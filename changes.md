@@ -1,9 +1,9 @@
-##Python3
+# Python3
 \venv\Lib\site-packages\django_thumbs\db\models.py
 from io import StringIO  + print
 
 
-##Windows
+# Windows
 \venv\Lib\site-packages\django\contrib\gis\gdal\libgdal.py L24
 
 elif os.name == 'nt':
@@ -13,14 +13,14 @@ elif os.name == 'nt':
 
 https://www.lfd.uci.edu/~gohlke/pythonlibs/
 
-Fiona
-GDAL
-lxml
-matplotlib
-numpx
-pandas
-Pillow
-psycopg2
-pycurl
-pyproj
-Shaply
++ Fiona
++ GDAL
++ lxml
++ matplotlib
++ numpy
++ pandas
++ Pillow
++ psycopg2
++ pycurl
++ pyproj
++ Shaply
