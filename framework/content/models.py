@@ -265,7 +265,7 @@ class ExternalDatabase(models.Model):
             region = region,
             region_id = region_id
         )
-        print obj
+        print (obj)
         obj.save()
         return obj.to_dict(include_meta=True)
 
@@ -316,7 +316,7 @@ class ExternalLayer(Layer):
             lineage=self.meta_lineage,
             geom = extent
         )
-        print obj
+        print (obj)
         obj.save()
         return obj.to_dict(include_meta=True)
 

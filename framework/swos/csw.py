@@ -55,12 +55,12 @@ def create_csw_xml(instance):
 
 def create_record(id):
     response = http_post(settings.CSW_T_PATH, request=open(settings.MEDIA_ROOT + 'csw/' + str(id) + '_insert.xml').read())
-    print response
+    print (response)
 
 def delete_record(id):
     if os.path.isfile(settings.MEDIA_ROOT + 'csw/' + str(id) + '_delete.xml'):
         response = http_post(settings.CSW_T_PATH, request=open(settings.MEDIA_ROOT + 'csw/' + str(id) + '_delete.xml').read())
-        print response
+        print (response)
 
 def create_update_csw(instance, action):
     if action == "update":
@@ -80,5 +80,5 @@ def create_update_csw_all():
         data = MetadataSerializer(layer).data
         import json
         data_obj = json.loads(json.dumps(data))
-        print data_obj["identifier"] + "%" + data_obj["abstract"]+ "%" + str(data_obj["topicCategory"]) + "%" + str(data_obj["layer_keywords"]) + "%" + str(data_obj["scope"]) + "%" + str(data_obj["layer_conformity"]) + "%" + str(data_obj["layer_constraints_limit"]) + "%" + str(data_obj["layer_constraints_cond"]) + "%" + data_obj["meta_lineage"] + "%" + str(data_obj["point_of_contacts"])
+        print (data_obj["identifier"] + "%" + data_obj["abstract"]+ "%" + str(data_obj["topicCategory"]) + "%" + str(data_obj["layer_keywords"]) + "%" + str(data_obj["scope"]) + "%" + str(data_obj["layer_conformity"]) + "%" + str(data_obj["layer_constraints_limit"]) + "%" + str(data_obj["layer_constraints_cond"]) + "%" + data_obj["meta_lineage"] + "%" + str(data_obj["point_of_contacts"]))
         create_update_csw(layer, "update")
