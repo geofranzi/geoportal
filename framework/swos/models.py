@@ -73,7 +73,7 @@ class Wetland(Region):
             geom=geometry
         )
 
-        print obj
+        print (obj)
         obj.save()
         return obj.to_dict(include_meta=True)
 
@@ -260,7 +260,7 @@ class WetlandLayer(Layer):
             lineage = self.meta_lineage,
             geom = extent
         )
-        print obj
+        print (obj)
         obj.save()
         return obj.to_dict(include_meta=True)
 

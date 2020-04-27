@@ -62,7 +62,7 @@ class Migration(migrations.Migration):
             name='WetlandLayer',
             fields=[
                 ('layer_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='layers.Layer')),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+
                 ('indicator', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='layer_indicator', to='swos.Indicator', verbose_name=b'Indicator')),
                 ('product', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='layer_product', to='swos.Product', verbose_name=b'Product')),
                 ('wetland', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='layer_wetland', to='swos.Wetland', verbose_name=b'Wetland')),

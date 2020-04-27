@@ -97,21 +97,21 @@ class Region(models.Model):
         collections = ['LANDSAT_8', 'LSR_LANDSAT_ETM_C1', 'LSR_LANDSAT_TM_C1', 'LANDSAT_MSS']
         collections = ['LANDSAT_8_C1', 'LANDSAT_ETM_C1', 'LANDSAT_TM_C1', 'LANDSAT_MSS']
         landsat_results_all = []
-        print 'Search for Landsat data'
+        print ('Search for Landsat data')
         for col in collections:
-            print col
+            print (col)
             landsat_results_col = []
             search_params['datasetName'] = col
-            print search_params
+            print (search_params)
             startingNumber = 1
             while startingNumber > 0:
                 search_params['startingNumber'] = startingNumber
-                print 'startingNumber: ' + str(startingNumber)
+                print ('startingNumber: ' + str(startingNumber))
                 search = requests.post(url=search_url, data={'jsonRequest': json.dumps(search_params)}).json()
                 if search['data'] != None:
-                    print 'totalHits: ' + str(search['data']['totalHits'])
-                    print 'nextRecord: ' + str(search['data']['nextRecord'])
-                    print 'lastRecord: ' + str(search['data']['lastRecord'])
+                    print ('totalHits: ' + str(search['data']['totalHits']))
+                    print ('nextRecord: ' + str(search['data']['nextRecord']))
+                    print ('lastRecord: ' + str(search['data']['lastRecord']))
                     for item in search['data']['results']:
                         item['collection'] = col
                     landsat_results_all.extend(search['data']['results'])
@@ -122,7 +122,7 @@ class Region(models.Model):
                         startingNumber = -1
                         break
                 else:
-                    print search
+                    print (search)
                     return False
 
             data = {}
@@ -153,7 +153,7 @@ class Region(models.Model):
         df_landsat['acquisitionDate'] = pd.to_datetime(df_landsat['acquisitionDate'], format='%Y-%m-%d')
         df_landsat.columns = ['date', 'collection']
 
-        print 'Search for Sentinel data'
+        print ('Search for Sentinel data')
         sentinel_results_all = []
         from . import sentinel_api_search as api
         sentinel = None
@@ -290,18 +290,18 @@ class Region(models.Model):
             inputs = scenes[satellite]
             orderRequest[mapSensors[satellite]] = {"inputs": inputs, "products": ["toa", "cloud"]}
 
-        print json.dumps(orderRequest)
+        print (json.dumps(orderRequest))
 
         espa_user = 'ANPASSEN'
         espa_passwd = 'ANPASSEN'
         r = requests.post('https://espa.cr.usgs.gov/api/v0/order', data=json.dumps(orderRequest),
                           auth=(espa_user, espa_passwd), verify=False)
         result = r.json()
-        print result
+        print (result)
         if result['status'] == 400:
-            print result['message']
+            print (result['message'])
             if 'Inputs Not Available' in result['message']:
-                print 'Need to delete some scenes from order list'
+                print ('Need to delete some scenes from order list')
                 for satellite in scenes:
                     orderRequest[mapSensors[satellite]]['inputs'] = [j for j in
                                                                      orderRequest[mapSensors[satellite]]['inputs'] if
@@ -340,7 +340,7 @@ class Region(models.Model):
                 filename = basename(url_parsed.path)
                 filepath = os.path.join(downloadPath, filename)
                 if not os.path.exists(filepath) and not os.path.exists(os.path.join(downloadPath, 'temp', filename)):
-                    print 'Downloading ' + filepath
+                    print ('Downloading ' + filepath)
                     r = requests.get(url, auth=(espa_user, espa_passwd), verify=False)
                     if r.status_code == 200:
                         f = open(filepath, 'wb')
@@ -366,7 +366,7 @@ class Region(models.Model):
         import subprocess
         import shutil
         for file in files:
-            print 'Extracting ' + file
+            print ('Extracting ' + file)
             tar = tarfile.open(file, "r:gz")
             folder = os.path.join(downloadPath, file[0:-7])
             tar.extractall(folder)
@@ -462,7 +462,7 @@ class Region(models.Model):
             import urllib
             for image in data['photos']:
                 code = urllib.urlopen(image['photo_url']).getcode()
-                print image['photo_url'] + ': ' + str(code)
+                print (image['photo_url'] + ': ' + str(code))
                 if code == 200:
                     data_new['photos'].append(image)
 
