@@ -2,7 +2,7 @@ from django.contrib.gis import admin
 from suit.sortables import SortableModelAdmin
 
 from layers.admin import LayersAdmin
-from .models import Wetland, Product, Indicator,  WetlandLayer
+from .models import Wetland, Product, Indicator,  WetlandLayer, Country
 from content.admin import make_downloadable, make_non_downloadable, make_publishable, make_unpublishable
 
 
