@@ -327,7 +327,7 @@ class Region(models.Model):
         espa_user = 'ANPASSEN'
         espa_passwd = 'ANPASSEN'
 
-        from urlparse import urlparse
+        from urllib.parse import urlparse
         from os.path import basename
 
         order = self.checkESPAOrder(orderid, type='item-status')
