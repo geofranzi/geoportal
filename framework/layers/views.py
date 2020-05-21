@@ -5,7 +5,7 @@ from wsgiref.util import FileWrapper
 from rest_framework import serializers, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-import urllib2
+from urllib.request import urlopen
 import json
 
 from webgis import settings
@@ -94,7 +94,7 @@ class LayerInfo(APIView):
 
             try:
                 #url = url.replace('text%2Fhtml', 'text%2Fplain')
-                f = urllib2.urlopen(url)
+                f = urlopen(url)
                 code = f.code
                 output = f.read()
             except Exception as e:
@@ -141,12 +141,12 @@ class LayerInfo(APIView):
                     import re
                     matches = re.findall(r'<td>(\d.*\d)</td>', output)
                     for match in matches:
-                        print match
+                        print (match)
                         match_float = None
                         try:
                             match_float = float(match)
                         except ValueError:
-                            print "Not a float"
+                            print ("Not a float")
 
                         if isinstance(match_float, float):
                             length = 0
@@ -178,7 +178,7 @@ class DataRequest(APIView):
         url = request.query_params.get('url')
 
         htmloutput = ''
-        f = urllib2.urlopen(url)
+        f = urlopen(url)
         htmloutput = f.read()
 
         return HttpResponse(htmloutput)
@@ -343,7 +343,7 @@ class GetWMSCapabilities(APIView):
         url = request.query_params.get('url')
         #type = request.query_params.get('type')
 
-        f = urllib2.urlopen(url)
+        f = urlopen(url)
         from lxml import etree
         try:
             xml = etree.parse(f)
@@ -410,7 +410,7 @@ class GetWMTSCapabilities(APIView):
     def get(self, request, *args, **kwargs):
         url = request.query_params.get('url')
 
-        f = urllib2.urlopen(url)
+        f = urlopen(url)
         from lxml import etree
         try:
             xml = etree.parse(f)

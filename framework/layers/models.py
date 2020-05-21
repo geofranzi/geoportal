@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User, Group
 from django.http import Http404, HttpResponse
 from rest_framework import serializers
-import urllib2
+from urllib.request import urlopen
 
 from webgis import settings
 
@@ -193,7 +193,7 @@ class Layer(models.Model):
             i=1
             for feature in features:
                 # request GetFeatureOfInterest from SOS
-                f = urllib2.urlopen(self.ogc_link+'?service=SOS&version=1.0.0&request=GetFeatureOfInterest&FeatureOfInterestId='+feature)
+                f = urlopen(self.ogc_link+'?service=SOS&version=1.0.0&request=GetFeatureOfInterest&FeatureOfInterestId='+feature)
                 sa = f.read()
                 f.close()
 
