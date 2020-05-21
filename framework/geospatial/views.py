@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 import os
-from io import StringIO
+import StringIO
 import requests
 import sqlite3 as sdb
 import uuid

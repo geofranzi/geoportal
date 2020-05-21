@@ -1,9 +1,8 @@
 import json
 import pycurl
-from urllib.request import urlopen
-from urllib.error import HTTPError
-import http.client
-from io import StringIO
+import urllib2
+import httplib
+import StringIO
 import os
 import requests
 import sqlite3 as sdb
@@ -795,7 +794,7 @@ class Layer(APIView):
             return Response({'wetland_id': result.wetland.id, 'data': LayerSerializer(result).data})
         if request.query_params.get("type") == "external":
             result = ExternalLayer.objects.get(pk=request.query_params.get("layer_id"))
-            print (result.datasource.id)
+            print result.datasource.id
             result2 = ExternalDatabase.objects.get(pk=result.datasource.id)
         wetland_id = None
         if  hasattr(result2.wetland, 'id'):
@@ -1134,11 +1133,11 @@ class CurlHTTPStream(object):
         self.curl.setopt(pycurl.HTTPHEADER, ['Cache-Control: no-cache'])
         self.curl.setopt(pycurl.COOKIEFILE, "/tmp/cookiefile")
         self.curl.setopt(pycurl.COOKIEJAR, "/tmp/cookiefile")
-        self.curl.setopt(pycurl.FAILONERROR, 1)
-        self.curl.setopt(pycurl.FOLLOWLOCATION, 1)
-        self.curl.setopt(pycurl.NOPROGRESS, 1)
-        self.curl.setopt(pycurl.SSL_VERIFYHOST, 0)
-        self.curl.setopt(pycurl.SSL_VERIFYPEER, 0)
+        self.curl.setopt(pycurl.FAILONERROR, 1L)
+        self.curl.setopt(pycurl.FOLLOWLOCATION, 1L)
+        self.curl.setopt(pycurl.NOPROGRESS, 1L)
+        self.curl.setopt(pycurl.SSL_VERIFYHOST, 0L)
+        self.curl.setopt(pycurl.SSL_VERIFYPEER, 0L)
         self.curl.setopt(pycurl.WRITEFUNCTION, self.received_buffer.write)
         if login:
             self.curl.setopt(pycurl.POSTFIELDS, "cn=" + settings.ESA_SSO_USER + "&password=" + settings.ESA_SSO_PASSWORD + "&loginFields=cn@password&loginMethod=umsso&sessionTime=untilbrowserclose&idleTime=oneday")
@@ -1162,8 +1161,8 @@ class CurlHTTPStream(object):
     def _check_status_code(self):
         if self.status_code == 0:
             self.status_code = self.curl.getinfo(pycurl.HTTP_CODE)
-        if self.status_code != 0 and self.status_code != http.client.OK:
-            raise HTTPError(self.url, self.status_code, None, None, None)
+        if self.status_code != 0 and self.status_code != httplib.OK:
+            raise urllib2.HTTPError(self.url, self.status_code, None, None, None)
 
     def _perform_on_curl(self):
         while True:

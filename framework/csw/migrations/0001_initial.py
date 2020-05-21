@@ -18,8 +18,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('title', models.CharField(max_length=200)),
-                ('type', models.CharField(choices=[('CSW', 'CSW')], default='CSW', max_length=10)),
-                ('url', models.CharField(max_length=200, verbose_name='URL')),
+                ('type', models.CharField(choices=[(b'CSW', b'CSW')], default=b'CSW', max_length=10)),
+                ('url', models.CharField(max_length=200, verbose_name=b'URL')),
             ],
             options={
                 'verbose_name': 'CSW',
