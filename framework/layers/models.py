@@ -50,11 +50,32 @@ class ISOcodelist(models.Model):
 
     def __str__(self):
         return u"%s" % (self.identifier)
+    def __str__(self):
+        return u"%s" % (self.identifier)
 
 class ISOcodelistSerializer(serializers.ModelSerializer):
     class Meta:
         model = ISOcodelist
         fields = ('identifier', )
+
+# ISO 19115 Codelists
+class INSPIREthemes(models.Model):
+    URI = models.CharField(max_length=400, verbose_name="URI")
+    name_en = models.CharField(max_length=200, verbose_name="Name (en)")
+    name_de = models.CharField(max_length=200, verbose_name="Name (de)")
+    definition_en = models.CharField(max_length=1000, verbose_name="Definition (en)")
+    definition_de = models.CharField(max_length=1000, verbose_name="Definition (de)")
+    topicCategory = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "MD_TopicCategoryCode"}, related_name="topicCategory",blank=True, null=True)
+
+
+    def __unicode__(self):
+        return u"%s" % (self.identifier)
+
+class INSPIREthemesSerializer(serializers.ModelSerializer):
+    topicCategory = ISOcodelistSerializer(read_only=True)
+    class Meta:
+        model = INSPIREthemes
+        fields = ('URI','name_en', 'name_de', 'definition_en', 'definition_de', 'topicCategory')
 
 # Layer model to specify visualization layers with metadata information
 class Layer(models.Model):
