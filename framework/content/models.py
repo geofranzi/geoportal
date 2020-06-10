@@ -504,7 +504,7 @@ class StoryLineInline(models.Model):
 
 class SatdataLayer(Layer):
     region = models.ForeignKey(Region, related_name="layer_satdata", verbose_name="Region", blank=True, null=True)
-    thema = models.CharField("Type", max_length=30, choices=(('Rohdaten', 'Rohdaten'), ('Produkt', 'Produkt')))
+    thema = models.CharField("Type", max_length=30, choices=(('Rohdaten', 'Rohdaten'), ('Produkt', 'Produkt')), default='Rohdaten')
 
     def __unicode__(self):
         return u"%s" %(self.title)
