@@ -56,12 +56,12 @@ class RegionDetail(APIView):
                 data['layers'][layer.type].append(layer_data)
 
         climatelayers = []
-        for key, value in data['climatelayers'].iteritems():
+        for key, value in data['climatelayers'].items():
             climatelayers.append(value)
         data['climatelayers']= climatelayers
 
         phenolayers = []
-        for key, value in data['phenolayers'].iteritems():
+        for key, value in data['phenolayers'].items():
             phenolayers.append(value)
         data['phenolayers'] = phenolayers
 
