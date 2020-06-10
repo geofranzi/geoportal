@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                 ('description_usage', models.TextField(blank=True)),
                 ('description_creation', models.TextField(blank=True)),
                 ('order', models.PositiveIntegerField(default=0)),
-                ('type', models.CharField(blank=True, choices=[(b'change', b'change'), (b'state', b'state')], help_text=b'Type of indicator', max_length=20)),
+                ('type', models.CharField(blank=True, choices=[('change', 'change'), ('state', 'state')], help_text='Type of indicator', max_length=20)),
             ],
         ),
         migrations.CreateModel(
@@ -71,6 +71,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='product',
             name='wetlands',
-            field=models.ManyToManyField(blank=True, related_name='swos_product_wetlands', to='swos.Wetland', verbose_name=b'Wetlands'),
+            field=models.ManyToManyField(blank=True, related_name='swos_product_wetlands', to='swos.Wetland', verbose_name='Wetlands'),
         ),
     ]
