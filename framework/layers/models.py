@@ -25,6 +25,8 @@ class Contact(models.Model):
 
     website = models.CharField(max_length=200, blank=True)
 
+    related_org = models.ForeignKey('self',verbose_name="Related organization", null=True, blank=True)
+
     def __str__(self):
         if self.first_name != '' or self.last_name != '':
             name = u"%s %s" %(self.first_name, self.last_name)
@@ -84,7 +86,10 @@ class Layer(models.Model):
     #Overview
     identifier = models.CharField(max_length=200)
     title = models.CharField(max_length=200)
+    alternative_title = models.CharField(max_length=200, null=True, blank=True)
+    title_en = models.CharField(max_length=200, null=True, blank=True)
     abstract = models.TextField()
+    abstract_en = models.TextField(null=True, blank=True)
     topicCategory = models.ManyToManyField(ISOcodelist, limit_choices_to={'code_list': "MD_TopicCategoryCode"},verbose_name="Topic category", default=227)
     scope = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "MD_ScopeCode"}, related_name="scope", default=203)
     publishable = models.BooleanField(default=False)
