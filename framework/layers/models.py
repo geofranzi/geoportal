@@ -52,8 +52,7 @@ class ISOcodelist(models.Model):
 
     def __str__(self):
         return u"%s" % (self.identifier)
-    def __str__(self):
-        return u"%s" % (self.identifier)
+
 
 class ISOcodelistSerializer(serializers.ModelSerializer):
     class Meta:
