@@ -25,7 +25,7 @@ class Contact(models.Model):
 
     website = models.CharField(max_length=200, blank=True)
 
-    def __unicode__(self):
+    def __str__(self):
         if self.first_name != '' or self.last_name != '':
             name = u"%s %s" %(self.first_name, self.last_name)
             if self.organisation != '':
@@ -48,7 +48,7 @@ class ISOcodelist(models.Model):
     description = models.CharField(max_length=500)
     code_list = models.CharField(max_length=200)
 
-    def __unicode__(self):
+    def __str__(self):
         return u"%s" % (self.identifier)
 
 class ISOcodelistSerializer(serializers.ModelSerializer):
@@ -162,7 +162,7 @@ class Layer(models.Model):
     max_zoom = models.IntegerField("Max Zoom level", null=True, blank=True)
     min_zoom = models.IntegerField("Min Zoom level", null=True, blank=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return u"%s" %(self.identifier)
 
     @property
@@ -316,7 +316,7 @@ def post_save_layer_sos(sender, instance, **kwargs):
 class Layergroup(models.Model):
     title = models.CharField(max_length=200) 
     
-    def __unicode__(self):
+    def __str__(self):
         return u"%s" %(self.title)
 
 
@@ -329,7 +329,7 @@ class LayerInline(models.Model):
     layer = models.ForeignKey(Layer)
     layergroup = models.ForeignKey(Layergroup)
 
-    def __unicode__(self):
+    def __str__(self):
         if self.title != None:
             return self.title
         else:
@@ -342,7 +342,7 @@ class LayergroupInline(models.Model):
     layergroup = models.ForeignKey(Layergroup)
     mapviewer = models.ForeignKey('mapviewer.MapViewer')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.layergroup.title
 
 class OnlineResourceInline(models.Model):
@@ -354,7 +354,7 @@ class OnlineResourceInline(models.Model):
     function = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': 'CI_OnLineFunctionCode'}, blank=True, null=True)
     layer = models.ForeignKey(Layer, related_name='layer_online_resource')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.linkage
 
 class OnlineResourceInlineSerializer(serializers.ModelSerializer):
@@ -369,7 +369,7 @@ class ConstraintLimitInline(models.Model):
     constraints_limit = models.CharField("Limitations on public access", max_length=400, blank=True, null=True)
     layer = models.ForeignKey(Layer, related_name='layer_constraints_limit')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.constraints_limit
 
 class ConstraintLimitInlineSerializer(serializers.ModelSerializer):
@@ -383,7 +383,7 @@ class ConstraintConditionsInline(models.Model):
     constraints_cond = models.CharField("Conditions applying to access and use", max_length=400, blank=True, null=True)
     layer = models.ForeignKey(Layer, related_name='layer_constraints_cond')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.constraints_cond
 
 class ConstraintConditionsInlineSerializer(serializers.ModelSerializer):
@@ -399,7 +399,7 @@ class ConformityInline(models.Model):
     date_type = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "CI_DateTypeCode"}, blank=True, verbose_name="Date type")
     layer = models.ForeignKey(Layer, related_name='layer_conformity')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.title
 
 class ConformityInlineSerializer(serializers.ModelSerializer):
@@ -417,7 +417,7 @@ class KeywordInline(models.Model):
     thesaurus_date_type_code_code_value = models.ForeignKey(ISOcodelist,limit_choices_to={'code_list': "CI_DateTypeCode"},blank=True, null=True)
     layer = models.ForeignKey(Layer, related_name='layer_keywords')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.keyword
 
 class KeywordInlineSerializer(serializers.ModelSerializer):

@@ -21,7 +21,7 @@ class Country(models.Model):
     continent = models.CharField(max_length=200, blank=True)
     bbox = models.CharField(max_length=200, blank=True, null=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return u"%s" % (self.name)
 
 class ExternalDatabase(models.Model):
@@ -238,7 +238,7 @@ class ExternalDatabase(models.Model):
     class Meta:
         ordering = ['name']
 
-    def __unicode__(self):
+    def __str__(self):
         return u"%s" %(self.name)
 
     def indexing(self):
@@ -272,7 +272,7 @@ class ExternalDatabase(models.Model):
 class ExternalLayer(Layer):
     datasource = models.ForeignKey(ExternalDatabase, related_name="layer_datasource", verbose_name="External Database", blank=True, null=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return u"%s" %(self.title)
 
     def indexing(self):
@@ -329,7 +329,7 @@ class Image(models.Model):
     image = ImageWithThumbsField(upload_to='images/',  sizes=((125,125), (52, 52), (1300,1000), (1000, 1300)))
     region = models.ForeignKey(Region, related_name="image_region", verbose_name="Region")
 
-    def __unicode__(self):
+    def __str__(self):
         return u"%s" %(self.name)
 
     @property
@@ -387,7 +387,7 @@ class Video(models.Model):
         return format_html('<a href="{}" target="_blank"><img src="{}" width="200" border="0" /></a>'.format(self.link,
                                                                                                              self.thumb_link))
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 
@@ -396,7 +396,7 @@ class StoryLineFeature(models.Model):
     geom = models.PolygonField()
     description = models.TextField(blank=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 
@@ -412,7 +412,7 @@ class StoryLine(models.Model):
                                        help_text="Upload storyline as pdf file")
     active = models.BooleanField(default=False)
 
-    def __unicode__(self):
+    def __str__(self):
         return u"%s" % (self.title)
 
 
@@ -441,7 +441,7 @@ class StoryLinePart(models.Model):
     north = models.FloatField("BBOX north coordinate", blank=True, null=True, help_text="e.g. 8,2")
     south = models.FloatField("BBOX south coordinate", blank=True, null=True, help_text="e.g. -3,9")
 
-    def __unicode__(self):
+    def __str__(self):
         return u"%s" % (self.wetland.name + "_" + self.headline)
 
     @property
@@ -495,7 +495,7 @@ class StoryLineInline(models.Model):
     story_line_part = models.ForeignKey(StoryLinePart, related_name='story_line_parts')
     story_line = models.ForeignKey(StoryLine, related_name='story_line')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.story_line_part.headline
 
     class Meta:
@@ -506,7 +506,7 @@ class SatdataLayer(Layer):
     region = models.ForeignKey(Region, related_name="layer_satdata", verbose_name="Region", blank=True, null=True)
     thema = models.CharField("Type", max_length=30, choices=(('Rohdaten', 'Rohdaten'), ('Produkt', 'Produkt')))
 
-    def __unicode__(self):
+    def __str__(self):
         return u"%s" %(self.title)
 
 from rest_framework import serializers

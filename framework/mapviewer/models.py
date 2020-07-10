@@ -91,7 +91,7 @@ class BaseLayerInline(models.Model):
     baselayer = models.ForeignKey(BaseLayer)
     mapviewer = models.ForeignKey(MapViewer)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.baselayer.title
 
 # Sortable BaseLayerInline model to reference baselayers and mapviewers
@@ -101,5 +101,5 @@ class LayerBaseInline(models.Model):
     baselayer = models.ForeignKey(Layer, related_name='layerbase')
     mapviewer = models.ForeignKey(MapViewer)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.baselayer.title

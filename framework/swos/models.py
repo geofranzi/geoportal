@@ -88,7 +88,7 @@ class Product(models.Model):
     short_name = models.CharField(max_length=100)
     order = models.PositiveIntegerField(default=0)
     
-    def __unicode__(self):
+    def __str__(self):
         return u"%s" %(self.name)
 
 class Indicator(models.Model):
@@ -101,7 +101,7 @@ class Indicator(models.Model):
     order = models.PositiveIntegerField(default=0)
     type = models.CharField(max_length=20, choices=(('change','change'),('state','state')), blank=True, help_text="Type of indicator")
 
-    def __unicode__(self):
+    def __str__(self):
         return u"%s" %(self.name)
 
 class IndicatorSerializer(serializers.ModelSerializer):
