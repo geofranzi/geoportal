@@ -94,7 +94,7 @@ class LayersAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {
             'classes': ('suit-tab', 'suit-tab-general',),
-            'fields': ('identifier', 'title', 'abstract', 'topicCategory', 'scope','meta_contact', 'meta_contacts', 'meta_language', 'meta_characterset', 'meta_date', 'publishable')
+            'fields': ('identifier', 'title', 'title_en', 'abstract', 'abstract_en', 'topicCategory', 'scope','meta_contact', 'meta_contacts', 'meta_language', 'meta_characterset', 'meta_date', 'publishable')
         }),
         (None, {
             'classes': ('suit-tab', 'suit-tab-ogc',),
@@ -106,7 +106,7 @@ class LayersAdmin(admin.ModelAdmin):
         }),
         (None, {
             'classes': ('suit-tab', 'suit-tab-dataset',),
-            'fields': ('dataset_contact_new', 'point_of_contacts', 'date_creation','date_publication', 'date_revision', 'language', 'characterset', 'dataset_epsg', 'format',  'meta_lineage', 'data_source')
+            'fields': ('dataset_contact_new', 'point_of_contacts', 'date_creation','date_publication', 'date_revision', 'progress', 'language', 'characterset', 'dataset_epsg', 'format',  'meta_lineage', 'data_source')
         }),
         (None, {
             'classes': ('suit-tab', 'suit-tab-location',),
@@ -118,7 +118,7 @@ class LayersAdmin(admin.ModelAdmin):
         }),
         (None, {
             'classes': ('suit-tab', 'suit-tab-spatialresolution',),
-            'fields': ('spat_representation_type', 'equi_scale','resolution_distance','resolution_unit')
+            'fields': ('spat_representation_type', 'equi_scale','resolution_distance','resolution_unit', 'denominator')
         }),
         (None, {
             'classes': ('suit-tab', 'suit-tab-download',),

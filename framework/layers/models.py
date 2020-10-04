@@ -68,9 +68,8 @@ class INSPIREthemes(models.Model):
     definition_de = models.CharField(max_length=1000, verbose_name="Definition (de)")
     topicCategory = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "MD_TopicCategoryCode"}, related_name="topicCategory",blank=True, null=True)
 
-
-    def __unicode__(self):
-        return u"%s" % (self.identifier)
+    def __str__(self):
+        return u"%s" % (self.name_en)
 
 class INSPIREthemesSerializer(serializers.ModelSerializer):
     topicCategory = ISOcodelistSerializer(read_only=True)
@@ -138,7 +137,7 @@ class Layer(models.Model):
     characterset = models.CharField(max_length=200, blank=True, null=True)
     format = models.CharField(max_length=200, blank=True, null=True)
     dataset_epsg = models.IntegerField("EPSG code from the dataset", blank=True, null=True, help_text="Just the projection code/number")
-
+    progress = models.ForeignKey(ISOcodelist, related_name="progress",limit_choices_to={'code_list': 'MD_ProgressCode'}, default=184, blank=True, null=True, verbose_name="Progress")
 
     #Geographic location
     west = models.FloatField("BBOX west coordinate", help_text="e.g. -180")
@@ -153,6 +152,7 @@ class Layer(models.Model):
     equi_scale = models.IntegerField("Spatial resolution", blank=True, null=True)
     resolution_distance = models.IntegerField("Resolution", null=True, blank=True)
     resolution_unit = models.CharField("Resolution unit", max_length=30, null=True, blank=True)
+    denominator = models.IntegerField("Resolution", null=True, blank=True)
 
     #Temporal Extent
     date_begin = models.DateField(blank = True,null=True,verbose_name='Begin temporal extent')
