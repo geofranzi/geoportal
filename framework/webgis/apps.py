@@ -52,6 +52,10 @@ class SuitConfig(DjangoSuitConfig):
             ChildItem('Products', model='phaenopt.product'),
             ChildItem('Phenophases', model='phaenopt.pheno'),
             ChildItem('Citizen Science', model='phaenopt.citizenscienceproject'),
+        ]),
+        ParentItem('INSPIRE', children=[
+            ChildItem('Layers', model='inspire.inpirelayer'),
+            ChildItem('Maps', model='inspire.inspiremap'),
         ])
     )
     if "validation" in settings.INSTALLED_APPS:
