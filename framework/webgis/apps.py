@@ -54,8 +54,10 @@ class SuitConfig(DjangoSuitConfig):
             ChildItem('Citizen Science', model='phaenopt.citizenscienceproject'),
         ]),
         ParentItem('INSPIRE', children=[
-            ChildItem('Layers', model='inspire.inpirelayer'),
+            ChildItem('Source datasets', model='inspire.sourcelayer'),
+            ChildItem('INSPIRE datasets', model='inspire.inspiredataset'),
             ChildItem('Maps', model='inspire.inspiremap'),
+            ChildItem('Themes', model='inspire.inspiretheme'),
         ])
     )
     if "validation" in settings.INSTALLED_APPS:
