@@ -3,33 +3,33 @@
     <csw:Transaction xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" xmlns:ows="http://www.opengis.net/ows" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/cat/csw/2.0.2 http://schemas.opengis.net/csw/2.0.2/CSW-publication.xsd" service="CSW" version="2.0.2">
     <csw:Insert>
 {%  endif %}
-<ns1:MD_Metadata xmlns:ns1="http://www.isotc211.org/2005/gmd"
+<gmd:MD_Metadata xmlns:gmd="http://www.isotc211.org/2005/gmd"
                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                  xsi:schemaLocation="http://www.isotc211.org/2005/gmd http://schemas.opengis.net/csw/2.0.2/profiles/apiso/1.0.0/apiso.xsd">
    <gmd:fileIdentifier xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">{{layer.identifier}}</gco:CharacterString>
+      <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">{{map.service_identifier}}</gco:CharacterString>
    </gmd:fileIdentifier>
    <gmd:language xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <LanguageCode xmlns="http://www.isotc211.org/2005/gmd"
-                    codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/codelist/ML_gmxCodelists.xml#LanguageCode"
+      <gmd:LanguageCode xmlns="http://www.isotc211.org/2005/gmd"
+                    codeList="http://www.loc.gov/standards/iso639-2/"
                     codeListValue="ger"/>
    </gmd:language>
    <gmd:characterSet xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <MD_CharacterSetCode xmlns="http://www.isotc211.org/2005/gmd"
+      <gmd:MD_CharacterSetCode xmlns="http://www.isotc211.org/2005/gmd"
                            codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/codelist/ML_gmxCodelists.xml#MD_CharacterSetCode"
                            codeListValue="utf8"/>
    </gmd:characterSet>
+
    <gmd:hierarchyLevel xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <MD_ScopeCode xmlns="http://www.isotc211.org/2005/gmd"
-                    codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/codelist/ML_gmxCodelists.xml#MD_ScopeCode"
+      <gmd:MD_ScopeCode xmlns="http://www.isotc211.org/2005/gmd"
+                    codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_ScopeCode"
                     codeListValue="service"/>
    </gmd:hierarchyLevel>
+
    <gmd:hierarchyLevelName xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">??????</gco:CharacterString>
+      <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Dienst</gco:CharacterString>
    </gmd:hierarchyLevelName>
-   <gmd:hierarchyLevelName xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco"/>
-   </gmd:hierarchyLevelName>
+
    <gmd:contact xmlns:gmd="http://www.isotc211.org/2005/gmd">
       <gmd:CI_ResponsibleParty>
           <gmd:individualName>
@@ -46,7 +46,7 @@
                               <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">+49 5151 202-3040</gco:CharacterString>
                           </gmd:voice>
                           <gmd:facsimile>
-                              <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">+49 5151 202-1569</gco:CharacterString>
+                              <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">+49 5151 202-1266</gco:CharacterString>
                           </gmd:facsimile>
                       </gmd:CI_Telephone>
                   </gmd:phone>
@@ -72,13 +72,13 @@
                           </gmd:electronicMailAddress>
                       </gmd:CI_Address>
                   </gmd:address>
-                  <gmd:onlineResource>
+                <!--  <gmd:onlineResource>
                       <gmd:CI_OnlineResource>
                           <gmd:linkage>
-                              <gmd:URL>????</gmd:URL>
+                              <gmd:URL></gmd:URL>
                           </gmd:linkage>
                       </gmd:CI_OnlineResource>
-                  </gmd:onlineResource>
+                  </gmd:onlineResource>-->
               </gmd:CI_Contact>
           </gmd:contactInfo>
          <gmd:role>
@@ -88,7 +88,7 @@
       </gmd:CI_ResponsibleParty>
    </gmd:contact>
    <gmd:dateStamp xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gco:Date xmlns:gco="http://www.isotc211.org/2005/gco">{{layer.meta_date}}</gco:Date>
+      <gco:Date xmlns:gco="http://www.isotc211.org/2005/gco">2020-11-27</gco:Date>
    </gmd:dateStamp>
    <gmd:metadataStandardName xmlns:gmd="http://www.isotc211.org/2005/gmd">
       <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">ISO 19115/19119</gco:CharacterString>
@@ -96,12 +96,14 @@
    <gmd:metadataStandardVersion xmlns:gmd="http://www.isotc211.org/2005/gmd">
       <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">19115:2003/Cor.1:2006, 19119:2005/DAmd 1:2008</gco:CharacterString>
    </gmd:metadataStandardVersion>
- <!--  <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
+
+  {% for epsg in ows_srs_list %}
+  <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
       <gmd:MD_ReferenceSystem>
          <gmd:referenceSystemIdentifier>
             <gmd:RS_Identifier>
                <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">31466</gco:CharacterString>
+                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">{{epsg}}</gco:CharacterString>
                </gmd:code>
                <gmd:codeSpace>
                   <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
@@ -113,685 +115,240 @@
          </gmd:referenceSystemIdentifier>
       </gmd:MD_ReferenceSystem>
    </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">31467</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">31468</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">31469</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">25833</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">25832</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">3035</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">3034</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">4258</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">3042</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">3043</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">3046</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">3047</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">3044</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">3045</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">4326</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">5650</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">3857</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">3398</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">3399</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">2180</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">5514</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">102067</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">3048</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">3049</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">3050</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">25830</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">25831</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">25834</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">25835</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">25836</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">25837</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>
-   <gmd:referenceSystemInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
-      <gmd:MD_ReferenceSystem>
-         <gmd:referenceSystemIdentifier>
-            <gmd:RS_Identifier>
-               <gmd:code>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">25838</gco:CharacterString>
-               </gmd:code>
-               <gmd:codeSpace>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">urn:ogc:def:crs:EPSG</gco:CharacterString>
-               </gmd:codeSpace>
-               <gmd:version>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">6.11.2</gco:CharacterString>
-               </gmd:version>
-            </gmd:RS_Identifier>
-         </gmd:referenceSystemIdentifier>
-      </gmd:MD_ReferenceSystem>
-   </gmd:referenceSystemInfo>-->
-   <ns1:identificationInfo>
+   {% endfor %}
+
+    <gmd:identificationInfo>
       <srv:SV_ServiceIdentification xmlns:srv="http://www.isotc211.org/2005/srv">
-         <ns1:citation>
-            <ns1:CI_Citation>
+         <gmd:citation>
+            <gmd:CI_Citation>
                <gmd:title xmlns:gmd="http://www.isotc211.org/2005/gmd">
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">[01 VIEW] INSPIRE SN [Thema]</gco:CharacterString>
+                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">{{ map.service_name }}</gco:CharacterString>
                </gmd:title>
-               <gmd:alternateTitle xmlns:gmd="http://www.isotc211.org/2005/gmd">
+            <!--   <gmd:alternateTitle xmlns:gmd="http://www.isotc211.org/2005/gmd">
                   <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco"/>
-               </gmd:alternateTitle>
+               </gmd:alternateTitle>-->
                <gmd:date xmlns:gmd="http://www.isotc211.org/2005/gmd">
                   <gmd:CI_Date>
                      <gmd:date>
-                        <gco:Date xmlns:gco="http://www.isotc211.org/2005/gco">???</gco:Date>
+                        <gco:Date xmlns:gco="http://www.isotc211.org/2005/gco">{{map.service_publication_date}}</gco:Date>
                      </gmd:date>
                      <gmd:dateType>
-                        <CI_DateTypeCode xmlns="http://www.isotc211.org/2005/gmd"
-                                         codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/codelist/ML_gmxCodelists.xml#CI_DateTypeCode"
+                        <gmd:CI_DateTypeCode xmlns="http://www.isotc211.org/2005/gmd"
+                                         codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_DateTypeCode"
                                          codeListValue="publication"/>
                      </gmd:dateType>
                   </gmd:CI_Date>
                </gmd:date>
-               <gmd:identifier xmlns:gmd="http://www.isotc211.org/2005/gmd">
+            <gmd:identifier xmlns:gmd="http://www.isotc211.org/2005/gmd">
                   <gmd:MD_Identifier>
                      <gmd:code>
-                        <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">https://geoportal.sachsen.de/md/[UUID von diesem MDS]</gco:CharacterString>
+                        <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">http://inspire.hameln.de/md/{{map.service_identifier}}</gco:CharacterString>
                      </gmd:code>
                   </gmd:MD_Identifier>
                </gmd:identifier>
-            </ns1:CI_Citation>
-         </ns1:citation>
+            </gmd:CI_Citation>
+         </gmd:citation>
          <gmd:abstract xmlns:gmd="http://www.isotc211.org/2005/gmd">
-            <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">[kurze Beschreibung des Inhalts der Ressource in vollständigen Sätzen bei der Suche wird der Inhalt der Beschreibung verwendet zum Auffinden der Metadaten Anzeige des Beginns der Beschreibung in der Ergebnisliste der Suche]</gco:CharacterString>
+            <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">{{ map.service_abstract }}</gco:CharacterString>
          </gmd:abstract>
          <gmd:pointOfContact xmlns:gmd="http://www.isotc211.org/2005/gmd">
-            <gmd:CI_ResponsibleParty>
-               <gmd:individualName>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">GDI-Servicezentrum</gco:CharacterString>
-               </gmd:individualName>
-               <gmd:organisationName>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Staatsbetrieb Geobasisinformation und Vermessung Sachsen (GeoSN)</gco:CharacterString>
-               </gmd:organisationName>
-               <gmd:contactInfo>
-                  <gmd:CI_Contact>
-                     <gmd:phone>
-                        <gmd:CI_Telephone>
-                           <gmd:voice>
-                              <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">+49 351 8283-8420</gco:CharacterString>
-                           </gmd:voice>
-                           <gmd:facsimile>
-                              <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">+49 351 8283-6110</gco:CharacterString>
-                           </gmd:facsimile>
-                        </gmd:CI_Telephone>
-                     </gmd:phone>
-                     <gmd:address>
-                        <gmd:CI_Address>
-                           <gmd:deliveryPoint>
-                              <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Olbrichtplatz 3</gco:CharacterString>
-                           </gmd:deliveryPoint>
-                           <gmd:city>
-                              <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Dresden</gco:CharacterString>
-                           </gmd:city>
-                           <gmd:administrativeArea>
-                              <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Freistaat Sachsen</gco:CharacterString>
-                           </gmd:administrativeArea>
-                           <gmd:postalCode>
-                              <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">01099</gco:CharacterString>
-                           </gmd:postalCode>
-                           <gmd:country>
-                              <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Deutschland</gco:CharacterString>
-                           </gmd:country>
-                           <gmd:electronicMailAddress>
-                              <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">servicedesk@geosn.sachsen.de</gco:CharacterString>
-                           </gmd:electronicMailAddress>
-                        </gmd:CI_Address>
-                     </gmd:address>
-                     <gmd:onlineResource>
-                        <gmd:CI_OnlineResource>
-                           <gmd:linkage>
-                              <gmd:URL>https://geoportal.sachsen.de/</gmd:URL>
-                           </gmd:linkage>
-                        </gmd:CI_OnlineResource>
-                     </gmd:onlineResource>
-                  </gmd:CI_Contact>
-               </gmd:contactInfo>
-               <gmd:role>
-                  <gmd:CI_RoleCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_RoleCode"
-                                   codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
-               </gmd:role>
-            </gmd:CI_ResponsibleParty>
-         </gmd:pointOfContact>
-         <gmd:graphicOverview xmlns:gmd="http://www.isotc211.org/2005/gmd">
+              <gmd:CI_ResponsibleParty>
+                  <gmd:individualName>
+                      <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Abt. Stadtentwicklung und Planung -Geoinformation-</gco:CharacterString>
+                  </gmd:individualName>
+                  <gmd:organisationName>
+                      <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Stadt Hameln</gco:CharacterString>
+                  </gmd:organisationName>
+                  <gmd:contactInfo>
+                      <gmd:CI_Contact>
+                          <gmd:phone>
+                              <gmd:CI_Telephone>
+                                  <gmd:voice>
+                                      <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">+49 5151 202-3040</gco:CharacterString>
+                                  </gmd:voice>
+                                  <gmd:facsimile>
+                                      <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">+49 5151 202-1266</gco:CharacterString>
+                                  </gmd:facsimile>
+                              </gmd:CI_Telephone>
+                          </gmd:phone>
+                          <gmd:address>
+                              <gmd:CI_Address>
+                                  <gmd:deliveryPoint>
+                                      <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Rathausplatz 1</gco:CharacterString>
+                                  </gmd:deliveryPoint>
+                                  <gmd:city>
+                                      <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Hameln</gco:CharacterString>
+                                  </gmd:city>
+                                  <gmd:administrativeArea>
+                                      <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Niedersachsen</gco:CharacterString>
+                                  </gmd:administrativeArea>
+                                  <gmd:postalCode>
+                                      <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">31785</gco:CharacterString>
+                                  </gmd:postalCode>
+                                  <gmd:country>
+                                      <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Deutschland</gco:CharacterString>
+                                  </gmd:country>
+                                  <gmd:electronicMailAddress>
+                                      <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">gis@hameln.de</gco:CharacterString>
+                                  </gmd:electronicMailAddress>
+                              </gmd:CI_Address>
+                          </gmd:address>
+                          <!-- <gmd:onlineResource>
+                               <gmd:CI_OnlineResource>
+                                   <gmd:linkage>
+                                       <gmd:URL></gmd:URL>
+                                   </gmd:linkage>
+                               </gmd:CI_OnlineResource>
+                           </gmd:onlineResource>-->
+                      </gmd:CI_Contact>
+                  </gmd:contactInfo>
+                  <gmd:role>
+                      <gmd:CI_RoleCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_RoleCode"
+                                       codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
+                  </gmd:role>
+              </gmd:CI_ResponsibleParty>
+          </gmd:pointOfContact>
+       <!--  <gmd:graphicOverview xmlns:gmd="http://www.isotc211.org/2005/gmd">
             <gmd:MD_BrowseGraphic>
                <gmd:fileName>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">https://geomis.sachsen.de/smartEditor/preview/gewässernetz.png</gco:CharacterString>
+                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco"></gco:CharacterString>
                </gmd:fileName>
                <gmd:fileDescription>
                   <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">[Thema]</gco:CharacterString>
                </gmd:fileDescription>
             </gmd:MD_BrowseGraphic>
-         </gmd:graphicOverview>
+         </gmd:graphicOverview>-->
+          <gmd:descriptiveKeywords>
+              <gmd:MD_Keywords>
+                  <gmd:keyword>
+                      <gmx:Anchor xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://inspire.ec.europa.eu/metadata-codelist/SpatialDataServiceCategory/infoMapAccessService">infoMapAccessService</gmx:Anchor>
+                  </gmd:keyword>
+                  <gmd:thesaurusName>
+                      <gmd:CI_Citation>
+                          <gmd:title>
+                              <gmx:Anchor xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://data.europa.eu/eli/reg/2008/1205">Commission Regulation (EC) No 1205/2008 of 3 December 2008 implementing Directive 2007/2/EC of the European Parliament and of the Council as regards metadata</gmx:Anchor>
+                          </gmd:title>
+                          <gmd:date>
+                              <gmd:CI_Date>
+                                  <gmd:date>
+                                      <gco:Date xmlns:gco="http://www.isotc211.org/2005/gco">2008-12-03</gco:Date>
+                                  </gmd:date>
+                                  <gmd:dateType>
+                                      <gmd:CI_DateTypeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication">Publication</gmd:CI_DateTypeCode>
+                                  </gmd:dateType>
+                              </gmd:CI_Date>
+                          </gmd:date>
+                      </gmd:CI_Citation>
+                  </gmd:thesaurusName>
+              </gmd:MD_Keywords>
+          </gmd:descriptiveKeywords>
          <gmd:descriptiveKeywords xmlns:gmd="http://www.isotc211.org/2005/gmd">
             <gmd:MD_Keywords>
                <gmd:keyword>
                   <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">inspireidentifiziert</gco:CharacterString>
                </gmd:keyword>
+                <gmd:keyword>
+                    <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">opendata</gco:CharacterString>
+                </gmd:keyword>
             </gmd:MD_Keywords>
          </gmd:descriptiveKeywords>
+
          <gmd:descriptiveKeywords xmlns:gmd="http://www.isotc211.org/2005/gmd">
             <gmd:MD_Keywords>
                <gmd:keyword>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">infoMapAccessService</gco:CharacterString>
-               </gmd:keyword>
-            </gmd:MD_Keywords>
-         </gmd:descriptiveKeywords>
-         <gmd:descriptiveKeywords xmlns:gmd="http://www.isotc211.org/2005/gmd">
-            <gmd:MD_Keywords>
-               <gmd:keyword>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">SN</gco:CharacterString>
+                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">NI</gco:CharacterString>
                </gmd:keyword>
                <gmd:keyword>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Freistaat Sachsen</gco:CharacterString>
+                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Stadt Hameln</gco:CharacterString>
                </gmd:keyword>
                <gmd:type>
-                  <MD_KeywordTypeCode xmlns="http://www.isotc211.org/2005/gmd"
+                  <gmd:MD_KeywordTypeCode xmlns="http://www.isotc211.org/2005/gmd"
                                       codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_KeywordTypeCode"
                                       codeListValue="place"/>
                </gmd:type>
             </gmd:MD_Keywords>
          </gmd:descriptiveKeywords>
 
+          <gmd:descriptiveKeywords xmlns:gmd="http://www.isotc211.org/2005/gmd">
+              <gmd:MD_Keywords>
+
+                  {% for keyword in map.inspire_theme %}
+                      <gmd:keyword>
+                          <gmx:Anchor xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="{{ keyword.uri }}">{{ keyword.name_de}}</gmx:Anchor>
+                      </gmd:keyword>
+                  {% endfor %}
+
+                  <gmd:thesaurusName>
+                      <gmd:CI_Citation>
+                          <gmd:title>
+                              <gmx:Anchor xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://www.eionet.europa.eu/gemet/de/inspire-themes/">GEMET - INSPIRE themes, version 1.0</gmx:Anchor>
+                          </gmd:title>
+                          <gmd:date>
+                              <gmd:CI_Date>
+                                  <gmd:date>
+                                      <gco:Date xmlns:gco="http://www.isotc211.org/2005/gco">2008-06-01</gco:Date>
+                                  </gmd:date>
+                                  <gmd:dateType>
+                                      <gmd:CI_DateTypeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication">Publication</gmd:CI_DateTypeCode>
+                                  </gmd:dateType>
+                              </gmd:CI_Date>
+                          </gmd:date>
+                      </gmd:CI_Citation>
+                  </gmd:thesaurusName>
+              </gmd:MD_Keywords>
+          </gmd:descriptiveKeywords>
+
+          {% if keywords_thesaurus.count > 0 %}
+          <gmd:descriptiveKeywords xmlns:gmd="http://www.isotc211.org/2005/gmd">
+              <gmd:MD_Keywords>
+
+                  {% for keyword in keywords_thesaurus %}
+                      <gmd:keyword>
+                          <gmx:Anchor xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="{{ keyword.uri }}">{{ keyword.keyword }}</gmx:Anchor>
+                      </gmd:keyword>
+                  {% endfor %}
+
+                  <gmd:thesaurusName>
+                      <gmd:CI_Citation>
+                          <gmd:title>
+                              <gmx:Anchor xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://www.eionet.europa.eu/gemet/de/themes">GEMET - Concepts, version 4.1.4</gmx:Anchor>
+                          </gmd:title>
+                          <gmd:date>
+                              <gmd:CI_Date>
+                                  <gmd:date>
+                                      <gco:Date xmlns:gco="http://www.isotc211.org/2005/gco">2020-02-13</gco:Date>
+                                  </gmd:date>
+                                  <gmd:dateType>
+                                      <gmd:CI_DateTypeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication">Publication</gmd:CI_DateTypeCode>
+                                  </gmd:dateType>
+                              </gmd:CI_Date>
+                          </gmd:date>
+                      </gmd:CI_Citation>
+                  </gmd:thesaurusName>
+              </gmd:MD_Keywords>
+          </gmd:descriptiveKeywords>
+          {% endif %}
+
+          {% if keywords_no_thesaurus %}
+              <gmd:descriptiveKeywords xmlns:gmd="http://www.isotc211.org/2005/gmd">
+                  <gmd:MD_Keywords>
+
+                      {% for keyword in keywords_no_thesaurus %}
+                          <gmd:keyword>
+                              <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">{{ keyword.keyword}}</gco:CharacterString>
+                          </gmd:keyword>
+                      {% endfor %}
+
+
+                  </gmd:MD_Keywords>
+              </gmd:descriptiveKeywords>
+          {% endif %}
+
+
          <gmd:resourceConstraints xmlns:gmd="http://www.isotc211.org/2005/gmd">
             <gmd:MD_SecurityConstraints>
                <gmd:classification>
-                  <MD_ClassificationCode xmlns="http://www.isotc211.org/2005/gmd"
+                  <gmd:MD_ClassificationCode xmlns="http://www.isotc211.org/2005/gmd"
                                          codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/codelist/ML_gmxCodelists.xml#MD_ClassificationCode"
                                          codeListValue="unclassified"/>
                </gmd:classification>
@@ -804,32 +361,32 @@
                </gmd:useLimitation>
             </gmd:MD_LegalConstraints>
          </gmd:resourceConstraints>
-         <gmd:resourceConstraints xmlns:gmd="http://www.isotc211.org/2005/gmd">
-            <gmd:MD_LegalConstraints>
-               <gmd:accessConstraints>
-                  <MD_RestrictionCode xmlns="http://www.isotc211.org/2005/gmd"
-                                      codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/codelist/ML_gmxCodelists.xml#MD_RestrictionCode"
-                                      codeListValue="otherRestrictions"/>
-               </gmd:accessConstraints>
-               <gmd:otherConstraints>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Es gelten keine Zugriffsbeschränkungen</gco:CharacterString>
-               </gmd:otherConstraints>
-            </gmd:MD_LegalConstraints>
-         </gmd:resourceConstraints>
+          <gmd:resourceConstraints xmlns:gmd="http://www.isotc211.org/2005/gmd">
+              <gmd:MD_LegalConstraints>
+                  <gmd:accessConstraints>
+                      <gmd:MD_RestrictionCode xmlns="http://www.isotc211.org/2005/gmd"
+                                          codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_RestrictionCode"
+                                          codeListValue="otherRestrictions"/>
+                  </gmd:accessConstraints>
+                  <gmd:otherConstraints>
+                      <gmx:Anchor xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://inspire.ec.europa.eu/metadata-codelist/LimitationsOnPublicAccess/noLimitations">Der Dienst ist kostenfrei und kann gemäß den Nutzungsbestimmungen von Datenlizenz Deutschland - Namensnennung - Version 2.0 (https://www.govdata.de/dl-de/by-2-0) unter Angabe der Quelle: "Geodaten Hameln" genutzt werden. Es gelten keine Zugriffsbeschränkungen.</gmx:Anchor>
+                  </gmd:otherConstraints>
+              </gmd:MD_LegalConstraints>
+          </gmd:resourceConstraints>
          <gmd:resourceConstraints xmlns:gmd="http://www.isotc211.org/2005/gmd">
             <gmd:MD_LegalConstraints>
                <gmd:useConstraints>
-                  <MD_RestrictionCode xmlns="http://www.isotc211.org/2005/gmd"
-                                      codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/codelist/ML_gmxCodelists.xml#MD_RestrictionCode"
+                  <gmd:MD_RestrictionCode xmlns="http://www.isotc211.org/2005/gmd"
+                                      codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_RestrictionCode"
                                       codeListValue="otherRestrictions"/>
                </gmd:useConstraints>
                <gmd:otherConstraints>
-                  <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Es gelten keine Bedingungen</gco:CharacterString>
+                   <gmx:Anchor xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://inspire.ec.europa.eu/metadata-codelist/ConditionsApplyingToAccessAndUse/noConditionsApply">Es gelten keine Bedingungen</gmx:Anchor>
                </gmd:otherConstraints>
             </gmd:MD_LegalConstraints>
          </gmd:resourceConstraints>
          <srv:serviceType>
-            <gco:LocalName xmlns:gco="http://www.isotc211.org/2005/gco">view</gco:LocalName>
+             <gco:LocalName xmlns:gco="http://www.isotc211.org/2005/gco" codeSpace="http://inspire.ec.europa.eu/metadata-codelist/SpatialDataServiceType">view</gco:LocalName>
          </srv:serviceType>
          <srv:serviceTypeVersion>
             <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">OGC:WMS1.3.0</gco:CharacterString>
@@ -842,16 +399,16 @@
                         <gco:Boolean xmlns:gco="http://www.isotc211.org/2005/gco">true</gco:Boolean>
                      </gmd:extentTypeCode>
                       <gmd:westBoundLongitude>
-                          <gco:Decimal xmlns:gco="http://www.isotc211.org/2005/gco">{{layer.west}}</gco:Decimal>
+                          <gco:Decimal xmlns:gco="http://www.isotc211.org/2005/gco">{{map.west |stringformat:".2f"}}</gco:Decimal>
                       </gmd:westBoundLongitude>
                       <gmd:eastBoundLongitude>
-                          <gco:Decimal xmlns:gco="http://www.isotc211.org/2005/gco">{{layer.east}}</gco:Decimal>
+                          <gco:Decimal xmlns:gco="http://www.isotc211.org/2005/gco">{{map.east |stringformat:".2f"}}</gco:Decimal>
                       </gmd:eastBoundLongitude>
                       <gmd:southBoundLatitude>
-                          <gco:Decimal xmlns:gco="http://www.isotc211.org/2005/gco">{{layer.south}}</gco:Decimal>
+                          <gco:Decimal xmlns:gco="http://www.isotc211.org/2005/gco">{{map.south |stringformat:".2f"}}</gco:Decimal>
                       </gmd:southBoundLatitude>
                       <gmd:northBoundLatitude>
-                          <gco:Decimal xmlns:gco="http://www.isotc211.org/2005/gco">{{layer.north}}</gco:Decimal>
+                          <gco:Decimal xmlns:gco="http://www.isotc211.org/2005/gco">{{map.north |stringformat:".2f"}}</gco:Decimal>
                       </gmd:northBoundLatitude>
                   </gmd:EX_GeographicBoundingBox>
                </gmd:geographicElement>
@@ -890,7 +447,7 @@
                <srv:connectPoint>
                   <gmd:CI_OnlineResource xmlns:gmd="http://www.isotc211.org/2005/gmd">
                      <gmd:linkage>
-                        <gmd:URL/>
+                         <gmd:URL>https://inspire.hameln.de/map/{{map.ows_url_name}}?</gmd:URL>
                      </gmd:linkage>
                   </gmd:CI_OnlineResource>
                </srv:connectPoint>
@@ -909,7 +466,7 @@
                <srv:connectPoint>
                   <gmd:CI_OnlineResource xmlns:gmd="http://www.isotc211.org/2005/gmd">
                      <gmd:linkage>
-                        <gmd:URL/>
+                         <gmd:URL>https://inspire.hameln.de/map/{{map.ows_url_name}}?</gmd:URL>
                      </gmd:linkage>
                   </gmd:CI_OnlineResource>
                </srv:connectPoint>
@@ -928,76 +485,77 @@
                <srv:connectPoint>
                   <gmd:CI_OnlineResource xmlns:gmd="http://www.isotc211.org/2005/gmd">
                      <gmd:linkage>
-                        <gmd:URL/>
+                         <gmd:URL>https://inspire.hameln.de/map/{{map.ows_url_name}}?</gmd:URL>
                      </gmd:linkage>
                   </gmd:CI_OnlineResource>
                </srv:connectPoint>
             </srv:SV_OperationMetadata>
          </srv:containsOperations>
-         <srv:operatesOn xmlns:xlink="http://www.w3.org/1999/xlink"
-                         xlink:href="https://geoportal.sachsen.de/md/[UUID des MDS für die Quelldaten]"/>
+      {% for resource_identifier in layer_identifier %}
+        <srv:operatesOn uuidref="{{ resource_identifier }}" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://inspire.hameln.de/md/{{ resource_identifier }}"/>
+      {% endfor %}
       </srv:SV_ServiceIdentification>
-   </ns1:identificationInfo>
-   <ns1:distributionInfo>
-      <ns1:MD_Distribution>
+   </gmd:identificationInfo>
+   <gmd:distributionInfo>
+      <gmd:MD_Distribution>
          <gmd:distributor xmlns:gmd="http://www.isotc211.org/2005/gmd">
             <gmd:MD_Distributor>
                <gmd:distributorContact>
-                  <gmd:CI_ResponsibleParty>
-                     <gmd:individualName>
-                        <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">GDI-Servicezentrum</gco:CharacterString>
-                     </gmd:individualName>
-                     <gmd:organisationName>
-                        <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Staatsbetrieb Geobasisinformation und Vermessung Sachsen (GeoSN)</gco:CharacterString>
-                     </gmd:organisationName>
-                     <gmd:contactInfo>
-                        <gmd:CI_Contact>
-                           <gmd:phone>
-                              <gmd:CI_Telephone>
-                                 <gmd:voice>
-                                    <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">+49 351 8283-8420</gco:CharacterString>
-                                 </gmd:voice>
-                                 <gmd:facsimile>
-                                    <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">+49 351 8283-6110</gco:CharacterString>
-                                 </gmd:facsimile>
-                              </gmd:CI_Telephone>
-                           </gmd:phone>
-                           <gmd:address>
-                              <gmd:CI_Address>
-                                 <gmd:deliveryPoint>
-                                    <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Olbrichtplatz 3</gco:CharacterString>
-                                 </gmd:deliveryPoint>
-                                 <gmd:city>
-                                    <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Dresden</gco:CharacterString>
-                                 </gmd:city>
-                                 <gmd:administrativeArea>
-                                    <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Freistaat Sachsen</gco:CharacterString>
-                                 </gmd:administrativeArea>
-                                 <gmd:postalCode>
-                                    <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">01099</gco:CharacterString>
-                                 </gmd:postalCode>
-                                 <gmd:country>
-                                    <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Deutschland</gco:CharacterString>
-                                 </gmd:country>
-                                 <gmd:electronicMailAddress>
-                                    <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">servicedesk@geosn.sachsen.de</gco:CharacterString>
-                                 </gmd:electronicMailAddress>
-                              </gmd:CI_Address>
-                           </gmd:address>
-                           <gmd:onlineResource>
-                              <gmd:CI_OnlineResource>
-                                 <gmd:linkage>
-                                    <gmd:URL>https://geoportal.sachsen.de/</gmd:URL>
-                                 </gmd:linkage>
-                              </gmd:CI_OnlineResource>
-                           </gmd:onlineResource>
-                        </gmd:CI_Contact>
-                     </gmd:contactInfo>
-                     <gmd:role>
-                        <gmd:CI_RoleCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_RoleCode"
-                                         codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
-                     </gmd:role>
-                  </gmd:CI_ResponsibleParty>
+                   <gmd:CI_ResponsibleParty>
+                       <gmd:individualName>
+                           <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Abt. Stadtentwicklung und Planung -Geoinformation-</gco:CharacterString>
+                       </gmd:individualName>
+                       <gmd:organisationName>
+                           <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Stadt Hameln</gco:CharacterString>
+                       </gmd:organisationName>
+                       <gmd:contactInfo>
+                           <gmd:CI_Contact>
+                               <gmd:phone>
+                                   <gmd:CI_Telephone>
+                                       <gmd:voice>
+                                           <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">+49 5151 202-3040</gco:CharacterString>
+                                       </gmd:voice>
+                                       <gmd:facsimile>
+                                           <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">+49 5151 202-1266</gco:CharacterString>
+                                       </gmd:facsimile>
+                                   </gmd:CI_Telephone>
+                               </gmd:phone>
+                               <gmd:address>
+                                   <gmd:CI_Address>
+                                       <gmd:deliveryPoint>
+                                           <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Rathausplatz 1</gco:CharacterString>
+                                       </gmd:deliveryPoint>
+                                       <gmd:city>
+                                           <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Hameln</gco:CharacterString>
+                                       </gmd:city>
+                                       <gmd:administrativeArea>
+                                           <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Niedersachsen</gco:CharacterString>
+                                       </gmd:administrativeArea>
+                                       <gmd:postalCode>
+                                           <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">31785</gco:CharacterString>
+                                       </gmd:postalCode>
+                                       <gmd:country>
+                                           <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Deutschland</gco:CharacterString>
+                                       </gmd:country>
+                                       <gmd:electronicMailAddress>
+                                           <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">gis@hameln.de</gco:CharacterString>
+                                       </gmd:electronicMailAddress>
+                                   </gmd:CI_Address>
+                               </gmd:address>
+                               <!--  <gmd:onlineResource>
+                                    <gmd:CI_OnlineResource>
+                                       <gmd:linkage>
+                                          <gmd:URL></gmd:URL>
+                                       </gmd:linkage>
+                                    </gmd:CI_OnlineResource>
+                                 </gmd:onlineResource>-->
+                           </gmd:CI_Contact>
+                       </gmd:contactInfo>
+                       <gmd:role>
+                           <gmd:CI_RoleCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_RoleCode"
+                                            codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
+                       </gmd:role>
+                   </gmd:CI_ResponsibleParty>
                </gmd:distributorContact>
             </gmd:MD_Distributor>
          </gmd:distributor>
@@ -1006,10 +564,10 @@
                <gmd:onLine>
                   <gmd:CI_OnlineResource>
                      <gmd:linkage>
-                        <gmd:URL>https://geodienste.sachsen.de/[Datenthema]/guest?REQUEST=GetCapabilities&amp;SERVICE=WMS&amp;VERSION=1.3.0</gmd:URL>
+                        <gmd:URL>http://inspire.hameln.de/map/{{map.ows_url_name}}?REQUEST=GetCapabilities&amp;SERVICE=WMS&amp;VERSION=1.3.0</gmd:URL>
                      </gmd:linkage>
                      <gmd:function>
-                        <CI_OnLineFunctionCode xmlns="http://www.isotc211.org/2005/gmd"
+                        <gmd:CI_OnLineFunctionCode xmlns="http://www.isotc211.org/2005/gmd"
                                                codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/codelist/ML_gmxCodelists.xml#CI_OnLineFunctionCode"
                                                codeListValue="information"/>
                      </gmd:function>
@@ -1017,14 +575,14 @@
                </gmd:onLine>
             </gmd:MD_DigitalTransferOptions>
          </gmd:transferOptions>
-      </ns1:MD_Distribution>
-   </ns1:distributionInfo>
+      </gmd:MD_Distribution>
+   </gmd:distributionInfo>
    <gmd:dataQualityInfo xmlns:gmd="http://www.isotc211.org/2005/gmd">
       <gmd:DQ_DataQuality>
          <gmd:scope>
             <gmd:DQ_Scope>
                <gmd:level>
-                  <MD_ScopeCode xmlns="http://www.isotc211.org/2005/gmd"
+                  <gmd:MD_ScopeCode xmlns="http://www.isotc211.org/2005/gmd"
                                 codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_ScopeCode"
                                 codeListValue="service"/>
                </gmd:level>
@@ -1052,8 +610,8 @@
                                     <gco:Date xmlns:gco="http://www.isotc211.org/2005/gco">2009-10-20</gco:Date>
                                  </gmd:date>
                                  <gmd:dateType>
-                                    <CI_DateTypeCode xmlns="http://www.isotc211.org/2005/gmd"
-                                                     codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/codelist/ML_gmxCodelists.xml#CI_DateTypeCode"
+                                    <gmd:CI_DateTypeCode xmlns="http://www.isotc211.org/2005/gmd"
+                                                     codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_DateTypeCode"
                                                      codeListValue="publication"/>
                                  </gmd:dateType>
                               </gmd:CI_Date>
@@ -1061,7 +619,7 @@
                         </gmd:CI_Citation>
                      </gmd:specification>
                      <gmd:explanation>
-                        <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">[Der Dienst wurde mit dem EU-Validator geprüft.] oder [Der Dienst wurde mit der GDI-DE Testsuite geprüft.]</gco:CharacterString>
+                        <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">Der Dienst wurde mit dem EU-Validator geprüft.</gco:CharacterString>
                      </gmd:explanation>
                      <gmd:pass>
                         <gco:Boolean xmlns:gco="http://www.isotc211.org/2005/gco">true</gco:Boolean>
@@ -1082,10 +640,10 @@
                            <gmd:date>
                               <gmd:CI_Date>
                                  <gmd:date>
-                                    <gco:Date xmlns:gco="http://www.isotc211.org/2005/gco">2013-04-04</gco:Date>
+                                    <gco:Date xmlns:gco="http://www.isotc211.org/2005/gco">2011-11-07</gco:Date>
                                  </gmd:date>
                                  <gmd:dateType>
-                                    <CI_DateTypeCode xmlns="http://www.isotc211.org/2005/gmd"
+                                    <gmd:CI_DateTypeCode xmlns="http://www.isotc211.org/2005/gmd"
                                                      codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_DateTypeCode"
                                                      codeListValue="publication"/>
                                  </gmd:dateType>
@@ -1093,7 +651,9 @@
                            </gmd:date>
                         </gmd:CI_Citation>
                      </gmd:specification>
-                     <gmd:explanation xmlns:gco="http://www.isotc211.org/2005/gco" gco:nilReason="missing"/>
+                      <gmd:explanation>
+                          <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">INSPIRE Netzdienste</gco:CharacterString>
+                      </gmd:explanation>
                      <gmd:pass>
                         <gco:Boolean xmlns:gco="http://www.isotc211.org/2005/gco">true</gco:Boolean>
                      </gmd:pass>
@@ -1103,7 +663,7 @@
          </gmd:report>
       </gmd:DQ_DataQuality>
    </gmd:dataQualityInfo>
-</ns1:MD_Metadata>
+</gmd:MD_Metadata>
 {% if csw %}
     </csw:Insert>
     </csw:Transaction>

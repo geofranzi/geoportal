@@ -1,0 +1,181 @@
+MAP
+  CONFIG "MS_ERRORFILE" "/tmp/ms_error.txt"
+  DEBUG 5
+
+  NAME "{{ map.service_name}}"
+  UNITS meters
+
+  SIZE 600 600
+
+  PROJECTION
+    "init=epsg:{{epsg}}"
+  END
+
+  EXTENT {{extent}}
+  IMAGETYPE PNG24
+
+  OUTPUTFORMAT
+    NAME "CSV"
+    DRIVER "OGR/CSV"
+    MIMETYPE "text/csv"
+    FORMATOPTION "LCO:GEOMETRY=AS_WKT"
+    FORMATOPTION "STORAGE=memory"
+    FORMATOPTION "FORM=simple"
+    FORMATOPTION "FILENAME=result.csv"
+  END
+
+  OUTPUTFORMAT
+    NAME "OGRGML"
+    DRIVER "OGR/GML"
+    FORMATOPTION "STORAGE=filesystem"
+    FORMATOPTION "FORM=multipart"
+    FORMATOPTION "FILENAME=result.gml"
+  END
+
+  OUTPUTFORMAT
+    NAME "geojson"
+    DRIVER "OGR/GEOJSON"
+    MIMETYPE "application/json"
+    FORMATOPTION "FORM=SIMPLE"
+    FORMATOPTION "STORAGE=memory"
+    FORMATOPTION "FILENAME=result.geojson"
+  END
+
+  WEB
+    IMAGEPATH "/tmp/"
+    IMAGEURL "/tmp/"
+    TEMPLATE "http://inspire.hameln.de/mapserver_response.html"
+
+    METADATA
+      "ows_inspire_capabilities" "url"
+      "ows_languages" "ger,eng"
+      "ows_inspire_metadataurl_href" "http://inspire.hameln.de/md/{{map.service_identifier}}"
+      "ows_inspire_metadataurl_format" "application/vnd.ogc.csw.capabilities.response_xml"
+      "ows_inspire_metadataurl_type" "TC211"
+      "ows_inspire_dsid_code" "{{layer_identifier_ids_list}}"
+      #"ows_inspire_dsid_ns" "http://inspire.hameln.de/md"
+      "ows_keywordlist_ISO_items" "{{inspire_theme}},infoMapAccessService,inspireidentifiziert,opendata"
+      "ows_keywordlist_vocabulary" "ISO"
+      "ows_title.eng" "{{map.ows_title_en}}"
+      "ows_title.ger" "{{map.ows_title_de}}"
+      "ows_abstract.eng" "{{map.ows_abstract_en}}"
+      "ows_abstract.ger" "{{map.ows_abstract_de}}"
+      "ows_onlineresource" "http://inspire.hameln.de/map/{{map.ows_url_name}}"
+      # "wms_updatesequence" "myupdatesequence"
+      "ows_srs" "EPSG:3857 EPSG:4258 EPSG:4326 EPSG:3034 EPSG:3035 EPSG:25832 EPSG:31467"
+
+      "ows_enable_request" "*"
+      "ows_bbox_extended" "true"
+
+      "ows_schemas_location" "http://schemas.opengis.net"
+      "ows_service_onlineresource" "http://inspire.hameln.de/md/{{map.service_identifier}}"
+      "ows_fees" "conditions unknown"
+      "ows_accessconstraints" "None"
+      "ows_addresstype" "postal"
+      "ows_address" "Rathausplatz 1"
+      "ows_city" "Hameln"
+      "ows_stateorprovince" "Niedersachsen"
+      "ows_postcode" "31785"
+      "ows_country" "Deutschland"
+      "ows_contactelectronicmailaddress" "gis@hameln.de"
+      "ows_contactvoicetelephone" "+49 5151 202-3040"
+      "ows_contactfacsimiletelephone" "+49 5151 202-1266"
+      "ows_contactperson" "Abt. Stadtentwicklung und Planung, Sachgebiet -Geoinformation- (Abt. 41.3)"
+      "ows_contactorganization" "Stadt Hameln"
+      "ows_contactposition" "owner"
+      "ows_rootlayer_title.eng" "{{map.ows_rootlayer_title_en}}"
+      "ows_rootlayer_title.ger" "{{map.ows_rootlayer_title_de}}"
+      "ows_rootlayer_abstract.eng" "{{map.ows_rootlayer_abstract_en}}"
+      "ows_rootlayer_abstract.ger" "{{map.ows_rootlayer_abstract_de}}"
+      "ows_rootlayer_keywordlist" "{{keyword_list}}"
+      "ows_authorityurl_name" "Stadt Hameln"
+      "ows_authorityurl_href" "http://inspire.hameln.de"
+      "ows_style_name" "{{map.ows_style_name}}"
+      "ows_style_title" "{{map.ows_style_name}}"
+
+    END
+  END
+
+  {% for layer in map.map_layer %}
+  {% if layer.ows_geometry_type != "RASTER" %}
+  LAYER
+    NAME "{{layer.ows_layer_name}}"
+    STATUS ON
+    TYPE {{layer.ows_geometry_type}}
+    CONNECTIONTYPE OGR
+    CONNECTION "/var/www/GML/{{layer.layer_gml_name}}.gml"
+    DATA "{{layer.ows_layer_spatial_object_name}}"
+    PROJECTION
+      "init=epsg:{{epsg}}"
+    END
+
+    {% if layer.ows_filter_item %}
+    FILTERITEM "{{layer.ows_filter_item}}"
+    FILTER {{layer.ows_filter_value}}
+    {% endif %}
+
+    {% if layer.wms_layer_min_scale %}
+    MINSCALEDENOM  {{layer.wms_layer_min_scale}}
+    {% endif %}
+    {% if layer.wms_layer_max_scale %}
+    MAXSCALEDENOM  {{layer.wms_layer_max_scale}}
+    {% endif %}
+    # GROUP "{{layer.ows_group.ows_group_title_de}}"
+    METADATA
+       # "ows_group_title.eng" "{{layer.ows_group.ows_group_title_en}}"
+      #  "ows_group_title.ger" "{{layer.ows_group.ows_group_title_de}}"
+       # "ows_group_abstract.eng" "{{layer.ows_group.ows_group_abstract_de}}"
+       # "ows_group_abstract.ger" "{{layer.ows_group.ows_group_abstract_de}}"
+        "ows_title.eng" "{{layer.ows_layer_title_en}}"
+        "ows_title.ger" "{{layer.ows_layer_title_de}}"
+        "ows_abstract.eng" "{{layer.ows_layer_abstract_en}}"
+        "ows_abstract.ger" "{{layer.ows_layer_abstract_de}}"
+        "ows_metadataurl_href" "http://inspire.hameln.de/md/{{layer.map_layer.identifier}}"
+        "ows_metadataurl_format" "application/vnd.ogc.csw.capabilities.response_xml"
+        "ows_metadataurl_type" "ISO19115:2003"
+        #"ows_style_name" "{{layer.ows_layer_name}}"
+        #"ows_style_title" "{{layer.ows_layer_name}}"
+        "ows_bbox_extended" "true"
+
+        "gml_featureid"     "localId" ## REQUIRED
+        "gml_include_items" "all"
+
+        "wfs_getfeature_formatlist" "OGRGML,CSV,geojson"
+
+        {{layer.ows_additional_infos}}
+
+    END
+
+    CLASSGROUP "{{map.ows_style_name}}"
+      CLASS
+      GROUP "{{map.ows_style_name}}"
+      NAME "{{map.ows_style_name}}"
+    END
+
+  END
+  {% endif %}
+   {% if layer.ows_geometry_type == "RASTER" %}
+   LAYER
+   NAME "{{layer.ows_layer_name}}"
+    STATUS ON
+    TOLERANCE 0
+    TYPE RASTER
+    DATA "{{layer.ows_layer_spatial_object_name}}"
+      METADATA
+            "ows_title.eng" "{{layer.ows_layer_title_en}}"
+            "ows_title.ger" "{{layer.ows_layer_title_de}}"
+            "ows_abstract.eng" "{{layer.ows_layer_abstract_en}}"
+            "ows_abstract.ger" "{{layer.ows_layer_abstract_de}}"
+            "ows_metadataurl_href" "http://inspire.hameln.de/md/{{layer.map_layer.identifier}}"
+            "ows_metadataurl_format" "application/vnd.ogc.csw.capabilities.response_xml"
+            "ows_metadataurl_type" "ISO19115:2003"
+            "ows_bbox_extended" "true"
+        END
+    ENDPUTT
+  {% endif %}
+{% endfor %}
+
+
+
+
+END
