@@ -6,7 +6,7 @@ import django
 from suit.sortables import SortableTabularInline
 
 from .models import Layergroup, LayerInline, Layer, Contact, ISOcodelist, OnlineResourceInline, ConstraintLimitInline, \
-    ConstraintConditionsInline, ConformityInline, KeywordInline, INSPIREthemes
+    ConstraintConditionsInline, ConformityInline, KeywordInline
 
 
 # Model form verification for BaseLayer model
@@ -159,16 +159,10 @@ class ISOcodelistAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         return False
 
-class INSPIREthemesAdmin(admin.ModelAdmin):
-    list_display = ('URI','name_en', 'name_de', 'definition_en', 'definition_de', "topicCategory")
-
-    def has_add_permission(self, request):
-        return False
-
 
 # Register all models with their changed admins
 admin.site.register(Layergroup, LayergroupAdmin)
 admin.site.register(Layer, LayersAdmin)
 admin.site.register(Contact, ContactsAdmin)
 admin.site.register(ISOcodelist, ISOcodelistAdmin)
-admin.site.register(INSPIREthemes, INSPIREthemesAdmin)
+
