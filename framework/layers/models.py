@@ -60,22 +60,6 @@ class ISOcodelistSerializer(serializers.ModelSerializer):
         fields = ('identifier', )
 
 # ISO 19115 Codelists
-class INSPIREthemes(models.Model):
-    URI = models.CharField(max_length=400, verbose_name="URI")
-    name_en = models.CharField(max_length=200, verbose_name="Name (en)")
-    name_de = models.CharField(max_length=200, verbose_name="Name (de)")
-    definition_en = models.CharField(max_length=1000, verbose_name="Definition (en)")
-    definition_de = models.CharField(max_length=1000, verbose_name="Definition (de)")
-    topicCategory = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "MD_TopicCategoryCode"}, related_name="topicCategory",blank=True, null=True)
-
-    def __str__(self):
-        return u"%s" % (self.name_en)
-
-class INSPIREthemesSerializer(serializers.ModelSerializer):
-    topicCategory = ISOcodelistSerializer(read_only=True)
-    class Meta:
-        model = INSPIREthemes
-        fields = ('URI','name_en', 'name_de', 'definition_en', 'definition_de', 'topicCategory')
 
 # Layer model to specify visualization layers with metadata information
 class Layer(models.Model):
@@ -89,7 +73,8 @@ class Layer(models.Model):
     abstract = models.TextField()
     abstract_en = models.TextField(null=True, blank=True)
     topicCategory = models.ManyToManyField(ISOcodelist, limit_choices_to={'code_list': "MD_TopicCategoryCode"},verbose_name="Topic category", default=227)
-    scope = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "MD_ScopeCode"}, related_name="scope", default=203)
+    SCOPE_ID = ISOcodelist.objects.get(identifier="dataset", code_list="MD_ScopeCode").id
+    scope = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "MD_ScopeCode"}, related_name="scope", default=SCOPE_ID)
     publishable = models.BooleanField(default=False)
 
     #Vizualiation services
@@ -134,10 +119,11 @@ class Layer(models.Model):
     date_publication = models.DateField(blank=True, null=True, verbose_name="Dataset publication date")
     date_revision = models.DateField(blank=True, null=True, verbose_name="Dataset revision date")
     language = models.CharField(max_length=200, default="English", blank=True)
-    characterset = models.CharField(max_length=200, blank=True, null=True)
+    characterset = models.CharField(max_length=200, default="utf8", blank=True, null=True)
     format = models.CharField(max_length=200, blank=True, null=True)
     dataset_epsg = models.IntegerField("EPSG code from the dataset", blank=True, null=True, help_text="Just the projection code/number")
-    progress = models.ForeignKey(ISOcodelist, related_name="progress",limit_choices_to={'code_list': 'MD_ProgressCode'}, default=184, blank=True, null=True, verbose_name="Progress")
+    PROGRESS_ID = ISOcodelist.objects.get(identifier="completed", code_list="MD_ProgressCode").id
+    progress = models.ForeignKey(ISOcodelist, related_name="progress",limit_choices_to={'code_list': 'MD_ProgressCode'}, default=PROGRESS_ID, blank=True, null=True, verbose_name="Progress")
 
     #Geographic location
     west = models.FloatField("BBOX west coordinate", help_text="e.g. -180")
@@ -148,7 +134,8 @@ class Layer(models.Model):
 
 
     #Spatial resolution
-    spat_representation_type = models.ForeignKey(ISOcodelist, related_name="representation_type",limit_choices_to={'code_list': 'MD_SpatialRepresentationTypeCode'}, default=215, blank=True, null=True, verbose_name="Spatial Representation Type")
+    SPAT_REPRESENTATION_TYPE_ID = ISOcodelist.objects.get(identifier="vector", code_list="MD_SpatialRepresentationTypeCode").id
+    spat_representation_type = models.ForeignKey(ISOcodelist, related_name="representation_type",limit_choices_to={'code_list': 'MD_SpatialRepresentationTypeCode'}, default=SPAT_REPRESENTATION_TYPE_ID, blank=True, null=True, verbose_name="Spatial Representation Type")
     equi_scale = models.IntegerField("Spatial resolution", blank=True, null=True)
     resolution_distance = models.IntegerField("Resolution", null=True, blank=True)
     resolution_unit = models.CharField("Resolution unit", max_length=30, null=True, blank=True)
@@ -162,7 +149,7 @@ class Layer(models.Model):
     meta_contact = models.ForeignKey(Contact, related_name="meta_contact", blank=True, null=True, verbose_name="Metadata contact - replaced by metadata contacts")
     meta_contacts = models.ManyToManyField(Contact, related_name="meta_contacts", blank=True, verbose_name="Metadata contact(s)")
     meta_language = models.CharField(max_length=200, default="English", blank=True, verbose_name="Metadata language")
-    meta_characterset = models.CharField(max_length=200, blank=True, null=True, verbose_name="Metadata character set")
+    meta_characterset = models.CharField(max_length=200, default="utf8", blank=True, null=True, verbose_name="Metadata character set")
     meta_date = models.DateField(blank=True, null=True, verbose_name="Metadata date")
     meta_lineage = models.TextField("Lineage information", blank=True, default="")
     meta_file_info = models.TextField("File info e.g. source", null=True, blank=True)
@@ -437,9 +424,11 @@ class ConformityInlineSerializer(serializers.ModelSerializer):
 class KeywordInline(models.Model):
     order = models.PositiveIntegerField(default=0)
     keyword = models.CharField(max_length=200)
+    uri = models.CharField(max_length=400, verbose_name="URI", blank=True, null=True)
     thesaurus_name = models.CharField(max_length=300, blank=True, null=True)
     thesaurus_date = models.DateField(blank=True, null=True, verbose_name="Thesaurus publication date")
     thesaurus_date_type_code_code_value = models.ForeignKey(ISOcodelist,limit_choices_to={'code_list': "CI_DateTypeCode"},blank=True, null=True)
+
     layer = models.ForeignKey(Layer, related_name='layer_keywords')
 
     def __str__(self):
@@ -450,7 +439,7 @@ class KeywordInlineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = KeywordInline
-        fields = ('keyword', 'thesaurus_name', 'thesaurus_date', 'thesaurus_date_type_code_code_value')
+        fields = ('keyword', 'thesaurus_name', 'thesaurus_date', 'thesaurus_date_type_code_code_value', 'uri')
 
 # Layer serializer used when add layer to map to retrieve fields needed for frontend (e.g., legend, downloadable)
 # Also used in MapViewerDetail view
@@ -483,6 +472,6 @@ class MetadataSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Layer
-        fields = ('title', 'identifier', 'abstract', 'topicCategory', 'scope', 'layer_keywords', 'layer_constraints_cond', 'layer_constraints_limit', 'layer_conformity', 'layer_online_resource', 'ogc_link', 'ogc_layer', 'ogc_type', 'point_of_contacts','meta_contacts', 'date_creation', 'date_publication', 'date_revision', 'language', 'characterset', 'format', 'west', 'east', 'north', 'south', 'geo_description', 'representation_type', 'equi_scale','resolution_distance', 'resolution_unit','meta_contact', 'meta_language', 'meta_characterset', 'meta_date', 'meta_lineage', 'date_begin', 'date_end')
+        fields = ('title', 'identifier', 'abstract', 'topicCategory', 'scope', 'layer_keywords', 'layer_constraints_cond', 'layer_constraints_limit', 'layer_conformity', 'layer_online_resource', 'ogc_link', 'ogc_layer', 'ogc_type', 'point_of_contacts','meta_contacts', 'date_creation', 'date_publication', 'date_revision', 'language', 'characterset', 'format', 'west', 'east', 'north', 'south', 'geo_description', 'representation_type', 'equi_scale','resolution_distance', 'resolution_unit','meta_contact', 'meta_language', 'meta_characterset', 'meta_date', 'meta_lineage', 'date_begin', 'date_end', 'dataset_epsg')
 
 
