@@ -462,7 +462,7 @@ class MetadataSerializer(serializers.ModelSerializer):
     point_of_contacts = ContactSerializer(many=True, read_only=True)
     meta_contacts = ContactSerializer(many=True, read_only=True)
     topicCategory = ISOcodelistSerializer(many=True, read_only=True)
-    representation_type = ISOcodelistSerializer(read_only=True)
+    spat_representation_type = ISOcodelistSerializer(read_only=True)
     scope = ISOcodelistSerializer(read_only=True)
     layer_keywords = KeywordInlineSerializer(many=True, read_only=True)
     layer_constraints_cond = ConstraintConditionsInlineSerializer(many=True, read_only=True)
@@ -472,6 +472,6 @@ class MetadataSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Layer
-        fields = ('title', 'identifier', 'abstract', 'topicCategory', 'scope', 'layer_keywords', 'layer_constraints_cond', 'layer_constraints_limit', 'layer_conformity', 'layer_online_resource', 'ogc_link', 'ogc_layer', 'ogc_type', 'point_of_contacts','meta_contacts', 'date_creation', 'date_publication', 'date_revision', 'language', 'characterset', 'format', 'west', 'east', 'north', 'south', 'geo_description', 'representation_type', 'equi_scale','resolution_distance', 'resolution_unit','meta_contact', 'meta_language', 'meta_characterset', 'meta_date', 'meta_lineage', 'date_begin', 'date_end', 'dataset_epsg')
+        fields = ('title', 'identifier', 'abstract', 'topicCategory', 'scope', 'layer_keywords', 'layer_constraints_cond', 'layer_constraints_limit', 'layer_conformity', 'layer_online_resource', 'ogc_link', 'ogc_layer', 'ogc_type', 'point_of_contacts','meta_contacts', 'date_creation', 'date_publication', 'date_revision', 'language', 'characterset', 'format', 'west', 'east', 'north', 'south', 'geo_description', 'spat_representation_type', 'equi_scale','resolution_distance', 'resolution_unit','meta_contact', 'meta_language', 'meta_characterset', 'meta_date', 'meta_lineage', 'date_begin', 'date_end', 'dataset_epsg')
 
 
