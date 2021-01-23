@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.template.loader import get_template
 from webgis import settings
 from owslib.util import http_post
@@ -116,7 +118,8 @@ def create_csw_view_xml(instance, inspire):
                 keywords_no_thesaurus.append(keywords)
 
         for layer in map.data["map_layer"]:
-            layer_identifier.append(layer["map_layer"]["identifier"])
+            if layer["map_layer"]["identifier"] not in layer_identifier:
+                layer_identifier.append(layer["map_layer"]["identifier"])
 
 
 
