@@ -142,8 +142,9 @@ MAP
 
         "wfs_getfeature_formatlist" "OGRGML,CSV,geojson"
 
+        {% if layer.ows_additional_infos %}
         {{layer.ows_additional_infos}}
-
+        {% endif %}
     END
 
     CLASSGROUP "{{map.ows_style_name}}"
@@ -174,8 +175,5 @@ MAP
     ENDPUTT
   {% endif %}
 {% endfor %}
-
-
-
 
 END
