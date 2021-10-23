@@ -509,48 +509,10 @@ def fill_map():
             add_map_layer_to_map(map_layer, i)
 
 
-    # wms_groups = pd.read_excel(xls, 'WMS Groups', skiprows=1, header=None )
-    # for i in range(3, len(wms_groups)):
-    #     print (wms_groups.iloc[i, 1])
-    #     check_create_wms_group(wms_groups.iloc[i, 0], wms_groups.iloc[i, 1], wms_groups.iloc[i, 2], wms_groups.iloc[i, 4])
-    #
-    # inspire_map = InspireMap(service_name="INSPIRE PF ProduktionsundIndustrieanlagen",
-    #
-    #                          ows_title_de= "INSPIRE PF ProduktionsundIndustrieanlagen",
-    #                          ows_abstract_de="Dieser Dienst stellt für das Annex-III-Thema Produktions- und Industrieanlagen die Standorte von Wind-Energie-"
-    #                                          "Anlagen (WEA) im Stadtgebiet von Hameln dar. Weitere Informationen zum Dienst erhalten Sie im Metadatenktatalog "
-    #                                          "des Landes Niedersachsen oder über die Metadatenanzeige, welche über folgende URL direkt aufrufbar ist: "
-    #                                          "[wird durch von uns eingefügt]",
-    #                          ows_rootlayer_title_de="INSPIRE – Windenergieanlagen")
-    # inspire_map.save()
-
-
-    #
-    # try:
-    #     MapLayerInline(map=inspire_map, order="1", ows_group= map_group, ows_layer_title_de="Produktionsanlagen", ows_layer_abstract_de= "Wind-Energie-Anlagen (WEA)", map_layer=InspireDataset.objects.get(title="Wind-Energie-Anlagen (WEA)")).save()
-    # except Exception as e:
-    #     print (str(e))
-    #
-    # keywords = ('WEA', 'Windenergie')
-    # for keyword in keywords:
-    #     res = check_keyword_gemet(keyword, "de")
-    #     if (res["found"] == "True"):
-    #         try:
-    #             KeywordInline(keyword=keyword.strip(), uri=res["URI"], thesaurus_name="http://www.eionet.europa.eu/gemet/concept/", thesaurus_date = "2020-02-13", thesaurus_date_type_code_code_value = ISOcodelist.objects.get(identifier="revision"),  map=inspire_map).save()
-    #         except Exception as e:
-    #             print (str(e))
-    #     else:
-    #         try:
-    #             KeywordInline(keyword=keyword,  map=inspire_map).save()
-    #         except Exception as e:
-    #             print (str(e))
-
 def check_create_inspire_layer(df, i):
     meta = {}
     meta_new = {}
     meta_add = {}
-
-
 
     # check if inspire relevant and filled
     if (df.iloc[i, 0] == "x"):
