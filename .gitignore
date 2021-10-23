@@ -91,3 +91,6 @@ ENV/
 
 framework/static/build
 node_modules
+.git_old
+framework/media/csw
+framework/media/map
