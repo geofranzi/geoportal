@@ -1,3 +1,6 @@
+import urllib
+from urllib.error import HTTPError, URLError
+
 from django.contrib.auth.models import User, Group
 from django.db.models import Q
 from rest_framework import serializers
@@ -9,13 +12,14 @@ from content.models import Country
 from geospatial.models import Region
 
 
+
 class InspireTheme(models.Model):
     uri = models.CharField(max_length=400, verbose_name="URI")
     name_en = models.CharField(max_length=200, verbose_name="Name (en)")
     name_de = models.CharField(max_length=200, verbose_name="Name (de)")
     definition_en = models.CharField(max_length=1000, verbose_name="Definition (en)")
     definition_de = models.CharField(max_length=1000, verbose_name="Definition (de)")
-    topicCategory = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "MD_TopicCategoryCode"}, related_name="topicCategory", blank=True, null=True)
+    topicCategory = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "MD_TopicCategoryCode"}, related_name="topicCategory", on_delete=models.PROTECT, blank=True, null=True)
 
     def __str__(self):
         return u"%s" % self.name_en
@@ -27,9 +31,9 @@ class InspireThemesSerializer(serializers.ModelSerializer):
         fields = ('uri', 'name_en', 'name_de', 'definition_en', 'definition_de', 'topicCategory')
 
 class SourceLayer(Layer):
-    internal_contact = models.ForeignKey(Contact, related_name="internal_contact", verbose_name="Internal Contact", blank=True, null=True)
+    internal_contact = models.ForeignKey(Contact, related_name="internal_contact", verbose_name="Internal Contact",on_delete=models.PROTECT, blank=True, null=True)
     internal_responsible_city_department = models.ForeignKey(Contact, related_name="city_department",
-                                                         limit_choices_to=Q(organisation__startswith="Stadt Hameln"))
+                                                         limit_choices_to=Q(organisation__startswith="Stadt Hameln"), on_delete=models.PROTECT)
     internal_legal_basis = models.TextField(max_length=1000, blank=True, null=True)
     internal_access_constraint = models.TextField(max_length=300, blank=True, null=True)
     internal_comment = models.TextField(max_length=1000, blank=True, null=True)
@@ -40,6 +44,12 @@ class SourceLayer(Layer):
     inspireidentified = models.BooleanField(default=False)
 
     inspire_theme = models.ManyToManyField(InspireTheme, blank=True, related_name="source_inspire_theme")
+
+    def check_csw_published(self):
+        return 'GDI-DE: <a href="https://gdk.gdi-de.org/gdi-de/srv/ger/catalog.search#/metadata/%s" target="_blank" >%s</a> GDI-NI: <a href="http://geoportal.geodaten.niedersachsen.de/harvest/srv/api/records/%s" target="_blank" >show</a>' % (self.identifier, check_csw_published(self.identifier), self.identifier)
+    check_csw_published.allow_tags = True  # in Django 2.0 it will be: return mark_safe('<image src="%s" />' % obj.image) or format_html()
+    # https://docs.djangoproject.com/en/3.0/ref/utils/#django.utils.html.format_html
+    check_csw_published.short_description = "GDI-DE"  # Overwrite name for display
 
 class InspireDataset(Layer):
 
@@ -56,6 +66,11 @@ class InspireDataset(Layer):
     def __str__(self):
         return u"%s" % self.title
 
+    def check_csw_published(self):
+        return 'GDI-DE: <a href="https://gdk.gdi-de.org/gdi-de/srv/ger/catalog.search#/metadata/%s" target="_blank" >%s</a> GDI-NI: <a href="http://geoportal.geodaten.niedersachsen.de/harvest/srv/api/records/%s" target="_blank" >show</a>' % (self.identifier, check_csw_published(self.identifier), self.identifier)
+    check_csw_published.allow_tags = True  # in Django 2.0 it will be: return mark_safe('<image src="%s" />' % obj.image) or format_html()
+    # https://docs.djangoproject.com/en/3.0/ref/utils/#django.utils.html.format_html
+    check_csw_published.short_description = "GDI-DE"  # Overwrite name for display
 
 class ProcessingInline(models.Model):
     order = models.PositiveIntegerField(default=0)
@@ -65,7 +80,7 @@ class ProcessingInline(models.Model):
     input_table = models.CharField(max_length=300)
     output_table = models.CharField(max_length=300)
     output_gml = models.FileField("Output GML", upload_to="GML", null=True, blank=True, help_text="Upload output GML")
-    layer = models.ForeignKey(InspireDataset, related_name='layer_processing')
+    layer = models.ForeignKey(InspireDataset, related_name='layer_processing', on_delete=models.CASCADE)
 
     def __unicode__(self):
         return self.layer.title + " " + str(self.active)
@@ -96,12 +111,19 @@ class InspireMap(Map):
     inspire_wfs_first_publication_date = models.DateTimeField(verbose_name="First publication date", blank=True, null=True)
     inspire_wfs_last_publication_date = models.DateTimeField(verbose_name="Last publication date", blank=True, null=True)
 
+    def check_csw_published(self):
+        return 'GDI-DE: <a href="https://gdk.gdi-de.org/gdi-de/srv/ger/catalog.search#/metadata/%s" target="_blank" >%s</a> GDI-NI: <a href="http://geoportal.geodaten.niedersachsen.de/harvest/srv/api/records/%s" target="_blank" >show</a>' % (self.service_identifier, check_csw_published(self.service_identifier), self.service_identifier)
+    check_csw_published.allow_tags = True  # in Django 2.0 it will be: return mark_safe('<image src="%s" />' % obj.image) or format_html()
+    # https://docs.djangoproject.com/en/3.0/ref/utils/#django.utils.html.format_html
+    check_csw_published.short_description = "GDI-DE"  # Overwrite name for display
+
+
 class InspireMetadataSerializer(MetadataSerializer):
     inspire_theme = InspireThemesSerializer(many=True)
 
     class Meta(MetadataSerializer.Meta):
         model = InspireDataset
-        fields = MetadataSerializer.Meta.fields + ( 'inspire_theme', )
+        fields = MetadataSerializer.Meta.fields + ( 'inspire_theme',  )
 
 class SourceMetadataSerializer(MetadataSerializer):
     inspire_theme = InspireThemesSerializer(many=True)
@@ -117,3 +139,26 @@ class InspireMapSerializer(MapSerializer):
     class Meta(MapSerializer.Meta):
         model = InspireMap
         fields = MapSerializer.Meta.fields + ('inspire_theme', )
+
+
+def check_csw_published(identifier):
+    #url = "http://geoportal.geodaten.niedersachsen.de/harvest/srv/api/records/%s" % self.identifier
+    url = "https://gdk.gdi-de.org/geonetwork/srv/api/0.1/records/%s" % identifier  # GDi-DE API https://gdk.gdi-de.org/gdi-de/doc/api/#/records/getRecord
+    print(url)
+    try:
+        urllib.request.urlopen(url)
+    except HTTPError as e:
+        # do something
+        print('Error code: ', e.code)
+        if(e.code == 404):
+            status = "offline / not published"
+        else:
+            status = "unkown"
+    except URLError as e:
+        # do something
+        print('Reason: ', e.reason)
+    else:
+        # do something
+        print('good!')
+        status = "OK"
+    return status
