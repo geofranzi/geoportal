@@ -9,7 +9,7 @@ from rest_framework import serializers
 # from content.models import Country
 # from geospatial.models import Region
 from layers.models import (Contact, ISOcodelist, Layer, MetadataSerializer,)
-from map.models import (Map, MapSerializer,)
+from map.models import (Map, MapSerializer, MapLayerInline)
 
 
 class InspireTheme(models.Model):
