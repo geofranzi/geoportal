@@ -34,6 +34,8 @@ def create_csw_source(self, request, queryset):
         if result["error"]:
             self.message_user(request, result["error_msg"], messages.ERROR)
             count = count - 1
+        item.inspire_published = True
+        item.save()
 
     self.message_user(request, ngettext(
         '%d file was successfully created',
@@ -80,7 +82,7 @@ class SourceLayerAdmin(LayersAdmin):
         }),
     )
     inlines = LayersAdmin.inlines
-    list_display = ('title', 'publishable', 'downloadable', 'internal_contact')
+    list_display = ('title', 'check_csw_published', 'internal_contact')
     suit_form_tabs = LayersAdmin.suit_form_tabs + (
         ('internal', 'Internal'), ('inspire', 'INSPIRE'))
     search_fields = ('title', 'abstract', 'inspire_theme__name')
@@ -88,7 +90,7 @@ class SourceLayerAdmin(LayersAdmin):
     list_filter = ('publishable', 'downloadable')
     suit_list_filter_horizontal = ('publishable', 'downloadable')
 
-    actions = [make_publishable, make_unpublishable, make_downloadable, make_non_downloadable, create_csw_source]
+    actions = [create_csw_source] #make_publishable, make_unpublishable, make_downloadable, make_non_downloadable,
 
 
 class InspireLayerAdmin(LayersAdmin):
@@ -100,7 +102,7 @@ class InspireLayerAdmin(LayersAdmin):
         }),
     )
     inlines = LayersAdmin.inlines + (ProcessingInlineTab,)
-    list_display = ('title', 'publishable', 'downloadable')
+    list_display = ('title', 'check_csw_published')
     suit_form_tabs = LayersAdmin.suit_form_tabs + (
         ('inspire', 'INSPIRE'),)
     search_fields = ('title', 'abstract', 'inspire_theme__name')
@@ -108,7 +110,7 @@ class InspireLayerAdmin(LayersAdmin):
     list_filter = ('publishable', 'downloadable')
     suit_list_filter_horizontal = ('publishable', 'downloadable')
 
-    actions = [make_publishable, make_unpublishable, make_downloadable, make_non_downloadable, update_csw, create_csw]
+    actions = [update_csw, create_csw] #make_publishable, make_unpublishable, make_downloadable, make_non_downloadable, 
 
 
 class InspireMapAdmin(MapAdmin):
