@@ -1,13 +1,13 @@
-from django.contrib.gis import admin
 from django.contrib import messages
+from django.contrib.gis import admin
 from django.utils.translation import ngettext
 from suit.sortables import SortableTabularInline
 
+from inspire.csw import (create_csw_view_xml, create_csw_xml, create_update_csw,)
 from layers.admin import LayersAdmin
 from map.admin import MapAdmin
-from .models import InspireDataset, ProcessingInline, InspireMap, InspireTheme, SourceLayer
-from content.admin import make_downloadable, make_non_downloadable, make_publishable, make_unpublishable
-from inspire.csw import create_update_csw, delete_csw, create_record, create_csw_xml, create_csw_view_xml
+
+from .models import (InspireDataset, InspireMap, InspireTheme, ProcessingInline, SourceLayer,)
 
 
 def create_csw(self, request, queryset):
@@ -27,6 +27,7 @@ def create_csw(self, request, queryset):
 
 create_csw.short_description = "Create INSPIRE Dataset XML"
 
+
 def create_csw_source(self, request, queryset):
     count = len(queryset)
     for item in queryset:
@@ -45,6 +46,7 @@ def create_csw_source(self, request, queryset):
 
 
 create_csw_source.short_description = "Create Source Dataset XML"
+
 
 def update_csw(self, request, queryset):
     for item in queryset:
@@ -90,7 +92,7 @@ class SourceLayerAdmin(LayersAdmin):
     list_filter = ('publishable', 'downloadable')
     suit_list_filter_horizontal = ('publishable', 'downloadable')
 
-    actions = [create_csw_source] #make_publishable, make_unpublishable, make_downloadable, make_non_downloadable,
+    actions = [create_csw_source]  # make_publishable, make_unpublishable, make_downloadable, make_non_downloadable,
 
 
 class InspireLayerAdmin(LayersAdmin):
@@ -110,7 +112,7 @@ class InspireLayerAdmin(LayersAdmin):
     list_filter = ('publishable', 'downloadable')
     suit_list_filter_horizontal = ('publishable', 'downloadable')
 
-    actions = [update_csw, create_csw] #make_publishable, make_unpublishable, make_downloadable, make_non_downloadable, 
+    actions = [update_csw, create_csw]  # make_publishable, make_unpublishable, make_downloadable, make_non_downloadable,
 
 
 class InspireMapAdmin(MapAdmin):
@@ -124,7 +126,7 @@ class InspireMapAdmin(MapAdmin):
     inlines = MapAdmin.inlines
     #  list_display=('title','publishable', 'downloadable', 'internal_contact')
     suit_form_tabs = MapAdmin.suit_form_tabs + (('inspire', 'Inspire theme'),)
-    search_fields = ( 'abstract', 'inspire_theme__name')
+    search_fields = ('abstract', 'inspire_theme__name')
 
     actions = [create_view_csw]
 

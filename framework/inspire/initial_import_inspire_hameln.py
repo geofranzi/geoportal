@@ -1,16 +1,18 @@
-import django
+import json
 import os
 import urllib.parse
-import urllib
-import json
 from xml.etree import ElementTree as ET
 
+import django
+
 from content.models import Country
-from layers.models import Contact, ISOcodelist
 from inspire.models import InspireTheme
+from layers.models import (Contact, ISOcodelist,)
+
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "webgis.settings")
 django.setup()
+
 
 def initial_fill_iso_codelist(filename):
     ISOcodelist.objects.all().delete()
@@ -136,7 +138,8 @@ def initial_fill_contacts_hameln():
     Contact(city="Hameln", state="Deutschland", address="Rathausplatz 1", postcode="31785", telephone="+49 5151 202-3040", fax="+49 5151 202-1266",
             email="gis@hameln.de",
             related_org=Contact.objects.get(organisation="Stadt Hameln - Fachbereich 4: Planen und Bauen / Abteilung 41: Stadtentwicklung und Planung"),
-            organisation="Stadt Hameln - Fachbereich 4: Planen und Bauen / Abteilung 41: Stadtentwicklung und Planung / Sachgebiet 41.3: Geoinformation und Vermessung").save()
+            organisation="Stadt Hameln - Fachbereich 4: Planen und Bauen / Abteilung 41: Stadtentwicklung und Planung / Sachgebiet 41.3: Geoinformation und "
+                         "Vermessung").save()
     Contact(city="Hameln", state="Deutschland", address="Rathausplatz 1", postcode="31785",
             related_org=Contact.objects.get(organisation="Stadt Hameln - Fachbereich 4: Planen un Bauen"),
             organisation="Stadt Hameln - Fachbereich 4: Planen und Bauen / Abteilung 46: Bauverwaltung und Grundstücksverkehr").save()
@@ -150,15 +153,18 @@ def initial_fill_contacts_hameln():
     Contact(city="Hameln", state="Deutschland", address="Rathausplatz 1", postcode="31785", telephone="+49 5151 202-1471", fax="+49 5151 202-1288",
             email="umwelt@hameln.de",
             related_org=Contact.objects.get(organisation="Stadt Hameln - Fachbereich 5: Umwelt und technische Dienste / Abteilung 51: Umwelt und Klimaschutz"),
-            organisation="Stadt Hameln - Fachbereich 5: Umwelt und technische Dienste / Abteilung 51: Umwelt und Klimaschutz / Sachgebiet 51.1: Untere Naturschutzbehörde").save()
+            organisation="Stadt Hameln - Fachbereich 5: Umwelt und technische Dienste / Abteilung 51: Umwelt und Klimaschutz / Sachgebiet 51.1: Untere "
+                         "Naturschutzbehörde").save()
     Contact(city="Hameln", state="Deutschland", address="Rathausplatz 1", postcode="31785", telephone="+49 5151 202-1823", fax="+49 5151 202-1288",
             email="umwelt@hameln.de",
             related_org=Contact.objects.get(organisation="Stadt Hameln - Fachbereich 5: Umwelt und technische Dienste / Abteilung 51: Umwelt und Klimaschutz"),
-            organisation="Stadt Hameln - Fachbereich 5: Umwelt und technische Dienste / Abteilung 51: Umwelt und Klimaschutz / Sachgebiet 51.2a: Untere Wasserbehörde").save()
+            organisation="Stadt Hameln - Fachbereich 5: Umwelt und technische Dienste / Abteilung 51: Umwelt und Klimaschutz / Sachgebiet 51.2a: Untere "
+                         "Wasserbehörde").save()
     Contact(city="Hameln", state="Deutschland", address="Rathausplatz 1", postcode="31785", telephone="+49 5151 202-1959", fax="+49 5151 202-1288",
             email="umwelt@hameln.de",
             related_org=Contact.objects.get(organisation="Stadt Hameln - Fachbereich 5: Umwelt und technische Dienste / Abteilung 51: Umwelt und Klimaschutz"),
-            organisation="Stadt Hameln - Fachbereich 5: Umwelt und technische Dienste / Abteilung 51: Umwelt und Klimaschutz / Sachgebiet 51.2b: Untere Immissionsschutzbehörde").save()
+            organisation="Stadt Hameln - Fachbereich 5: Umwelt und technische Dienste / Abteilung 51: Umwelt und Klimaschutz / Sachgebiet 51.2b: Untere "
+                         "Immissionsschutzbehörde").save()
     Contact(city="Hameln", state="Deutschland", address="Rathausplatz 1", postcode="31785", telephone="+49 5151 202-1574", fax="+49 5151 202-1817",
             email="vermessung@hameln.de", related_org=Contact.objects.get(organisation="Stadt Hameln - Fachbereich 5: Umwelt und technische Dienste"),
             organisation="Stadt Hameln - Fachbereich 5: Umwelt und technische Dienste / Abteilung 52: Verkehrsplanung und Straßenwesen").save()

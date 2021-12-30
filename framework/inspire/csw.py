@@ -1,40 +1,33 @@
-from datetime import date
-
-from django.template.loader import get_template
-from webgis import settings
-from owslib.util import http_post
 import os.path
-from django.contrib.sites.models import Site
-
-
-from layers.models import MetadataSerializer
-from inspire.models import InspireMetadataSerializer, InspireMapSerializer, InspireMap, MapLayerInline, SourceMetadataSerializer
 
 from django.contrib.gis.gdal import DataSource
+from django.template.loader import get_template
+from owslib.util import http_post
+
+from inspire.models import (InspireMap, InspireMapSerializer, InspireMetadataSerializer, MapLayerInline,
+                            SourceMetadataSerializer,)
+from layers.models import MetadataSerializer
+from webgis import settings
 
 
-
-#Create insert and delete XML
+# Create insert and delete XML
 def create_csw_xml(instance, type):
     result = {}
     layer = MetadataSerializer(instance)
-
-
 
     keywords_thesaurus = []
     keywords_no_thesaurus = []
     ows_identifier = None
 
-    if (type == "inspire"):
+    if type == "inspire":
         tpl = get_template('CSW/INSPIRE_Datensatz.xml')
         layer = InspireMetadataSerializer(instance)
         print(layer.data)
 
         layer.data["point_of_contacts"][0]["organisation"] = create_org_name_hameln(layer.data["point_of_contacts"][0]["organisation"])
 
-
         for keywords in layer.data["layer_keywords"]:
-            if (keywords["uri"] != None):
+            if keywords["uri"] is not None:
                 keywords_thesaurus.append(keywords)
             else:
                 keywords_no_thesaurus.append(keywords)
@@ -43,14 +36,14 @@ def create_csw_xml(instance, type):
         for ows_layer in ows_list:
             map_list = InspireMap.objects.filter(id=ows_layer.map.id)
             for map in map_list:
-               #if map.map_keywords ..inspireidentifiziert
+                # if map.map_keywords ..inspireidentifiziert
                 ows_identifier = map.ows_url_name
 
-        if ows_identifier == None:
+        if ows_identifier is None:
             result["error"] = True
             result["error_msg"] = "XML not created. Reason: Linked map not found for " + layer.data["title"]
             return result
-    if (type == "source"):
+    if type == "source":
         tpl = get_template('CSW/Source_Datensatz.xml')
         layer = SourceMetadataSerializer(instance)
         print(layer.data)
@@ -58,21 +51,21 @@ def create_csw_xml(instance, type):
         layer.data["point_of_contacts"][0]["organisation"] = create_org_name_hameln(layer.data["point_of_contacts"][0]["organisation"])
 
         for keywords in layer.data["layer_keywords"]:
-            if (keywords["uri"] != None):
+            if keywords["uri"] is not None:
                 keywords_thesaurus.append(keywords)
             else:
                 keywords_no_thesaurus.append(keywords)
     print(keywords_no_thesaurus)
-    ctx =({
+    ctx = ({
         'layer': layer.data,
         'keywords_thesaurus': keywords_thesaurus,
         'keywords_no_thesaurus': keywords_no_thesaurus,
         'ows_identifier': ows_identifier
-      #  'online_resources': online_resources
+        #  'online_resources': online_resources
     })
 
     md_doc_meta = tpl.render(ctx)
-    f = open(settings.MEDIA_ROOT + 'csw/metadata/' + str(instance.id) + '_' + type +'_metadata.xml', 'wb')
+    f = open(settings.MEDIA_ROOT + 'csw/metadata/' + str(instance.id) + '_' + type + '_metadata.xml', 'wb')
     f.write(md_doc_meta.encode('UTF-8'))
 
     ctx["csw"] = "1"
@@ -80,10 +73,10 @@ def create_csw_xml(instance, type):
     f = open(settings.MEDIA_ROOT + 'csw/' + str(instance.id) + '_' + type + '_insert.xml', 'wb')
     f.write(md_doc_csw.encode('UTF-8'))
 
-    print (ows_identifier)
+    print(ows_identifier)
 
     tpl = get_template('CSW/delete.xml')
-    ctx =({
+    ctx = ({
         'identifier': instance.identifier,
         'ows_identifier': ows_identifier
     })
@@ -95,8 +88,8 @@ def create_csw_xml(instance, type):
     result["error"] = False
     return result
 
-def create_csw_view_xml(instance, inspire):
 
+def create_csw_view_xml(instance, inspire):
     layer = InspireMapSerializer(instance)
 
     tpl_view = get_template('CSW/INSPIRE_View.xml')
@@ -106,13 +99,13 @@ def create_csw_view_xml(instance, inspire):
     keywords_no_thesaurus = []
     layer_identifier = []
 
-    if (inspire == True):
+    if inspire:
         map = InspireMapSerializer(instance)
-      #  print(map.data)
+        #  print(map.data)
         ows_srs_list = map.data["ows_srs"].split(",")
 
         for keywords in map.data["map_keywords"]:
-            if (keywords["uri"] != None):
+            if keywords["uri"] is not None:
                 keywords_thesaurus.append(keywords)
             else:
                 keywords_no_thesaurus.append(keywords)
@@ -121,13 +114,11 @@ def create_csw_view_xml(instance, inspire):
             if layer["map_layer"]["identifier"] not in layer_identifier:
                 layer_identifier.append(layer["map_layer"]["identifier"])
 
+    # todo layer.inspire_keywords
+    # todo inspire themes
 
-
-    #todo layer.inspire_keywords
-    #todo inspire themes
-
-  #  print(map.data)
-    ctx =({
+    #  print(map.data)
+    ctx = ({
         'map': map.data,
         'keywords_thesaurus': keywords_thesaurus,
         'keywords_no_thesaurus': keywords_no_thesaurus,
@@ -149,25 +140,20 @@ def create_csw_view_xml(instance, inspire):
     f = open(settings.MEDIA_ROOT + 'csw/' + str(instance.id) + '_insert_service.xml', 'wb')
     f.write(md_doc_csw.encode('UTF-8'))
 
-
     tpl_view = get_template('CSW/delete.xml')
-    ctx =({
+    ctx = ({
         'identifier': instance.service_identifier
     })
 
-
-
-# download
-
+    # download
 
     ctx["csw"] = "1"
     md_doc_csw = tpl_download.render(ctx)
     f = open(settings.MEDIA_ROOT + 'csw/' + str(instance.id) + '_insert_download.xml', 'wb')
     f.write(md_doc_csw.encode('UTF-8'))
 
-
     tpl_download = get_template('CSW/delete.xml')
-    ctx =({
+    ctx = ({
         'identifier': instance.download_identifier
     })
 
@@ -177,8 +163,8 @@ def create_csw_view_xml(instance, inspire):
 
     create_map_mapfile(instance, inspire)
 
-def create_map_mapfile(instance, inspire):
 
+def create_map_mapfile(instance, inspire):
     layer = InspireMapSerializer(instance)
 
     tpl = get_template('CSW/INSPIRE_Map.map')
@@ -186,16 +172,15 @@ def create_map_mapfile(instance, inspire):
     keywords_thesaurus = []
     keywords_no_thesaurus = []
     layer_identifier = []
-    layer_source = []
+    # layer_source = []
     keywords_arr = []
 
-
-    if (inspire == True):
+    if inspire:
         map = InspireMapSerializer(instance)
         map.data["ows_srs_list"] = map.data["ows_srs"].split(",")
 
         for keywords in map.data["map_keywords"]:
-            if (keywords["uri"] != None):
+            if keywords["uri"] is not None:
                 keywords_thesaurus.append(keywords)
             else:
                 keywords_no_thesaurus.append(keywords)
@@ -204,25 +189,24 @@ def create_map_mapfile(instance, inspire):
         for map_layer in map.data["map_layer"]:
             layer = map_layer["map_layer"]
             layer_identifier.append(layer["identifier"])
-            #layer_source.append(layer["source"])
-            source = map_layer["layer_gml_name"]  = layer["meta_file_info"]
+            # layer_source.append(layer["source"])
+            source = map_layer["layer_gml_name"] = layer["meta_file_info"]
             ds = DataSource(os.path.join(settings.GML_PATH, source + ".gml"))
             print(map_layer)
             layer_gml = ds[0]
-            #map_layer["layer_data_name"] = map_layer["ows_layer_name"][3:]
+            # map_layer["layer_data_name"] = map_layer["ows_layer_name"][3:]
 
     keyword_list = ','.join(keywords_arr)
     layer_identifier_ids_list = ','.join(layer_identifier)
 
     print(layer_gml.extent)
     print(layer_gml.extent.tuple)
-    print (layer_gml.srs.srid)
+    print(layer_gml.srs.srid)
 
+    # todo layer.inspire_keywords
+    # todo inspire themes
 
-    #todo layer.inspire_keywords
-    #todo inspire themes
-
-    ctx =({
+    ctx = ({
         'map': map.data,
         'keywords_thesaurus': keywords_thesaurus,
         'keywords_no_thesaurus': keywords_no_thesaurus,
@@ -231,7 +215,7 @@ def create_map_mapfile(instance, inspire):
         'layer_identifier_ids_list': layer_identifier_ids_list,
         'extent': str(layer_gml.extent).replace(",", " ").replace("  ", " ").replace("(", "").replace(")", ""),
         'epsg': layer_gml.srs.srid,
-       # 'source': source
+        # 'source': source
         #  'online_resources': online_resources
     })
 
@@ -240,15 +224,16 @@ def create_map_mapfile(instance, inspire):
     f.write(md_doc_meta.encode('UTF-8'))
 
 
-
 def create_record(id):
     response = http_post(settings.CSW_T_PATH, request=open(settings.MEDIA_ROOT + 'csw/' + str(id) + '_insert.xml').read())
-    print (response)
+    print(response)
+
 
 def delete_record(id):
     if os.path.isfile(settings.MEDIA_ROOT + 'csw/' + str(id) + '_delete.xml'):
         response = http_post(settings.CSW_T_PATH, request=open(settings.MEDIA_ROOT + 'csw/' + str(id) + '_delete.xml').read())
-        print (response)
+        print(response)
+
 
 def create_update_csw(instance, action):
     if action == "update":
@@ -256,8 +241,10 @@ def create_update_csw(instance, action):
     create_csw_xml(instance)
     create_record(instance.id)
 
+
 def delete_csw(instance):
     delete_record(instance.id)
+
 
 def create_org_name_hameln(org_name):
     print((org_name))
@@ -270,7 +257,6 @@ def create_org_name_hameln(org_name):
             new_name += abt.split(":")[1]
         if i > 1:
             new_name += " -" + abt.split(":")[1].strip() + "-"
-        i = i +1
+        i = i + 1
     print((new_name))
     return new_name
-

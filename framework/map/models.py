@@ -2,26 +2,28 @@ from django.contrib.gis.db import models
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from layers.models import (Contact, ContactSerializer, ISOcodelist, ISOcodelistSerializer, KeywordInline, Layer,
+                           LayerSerializer, )
 from webgis import settings
-
-
-from layers.models import Contact, ContactSerializer, ISOcodelist, ISOcodelistSerializer, KeywordInline, Layer, LayerSerializer  # isort:skip
 
 
 class MapLayerStyle(models.Model):
     name = models.CharField(max_length=400)
     description = models.CharField(max_length=4000, null=True, blank=True)
     template_file = models.FilePathField("Template file",
-                                         path=settings.TEMPLATES[0]['DIRS'][0]+'/sld', match=".*\.xml", max_length=1000, blank=True, null=True)  # noqa: W605
+                                         path=settings.TEMPLATES[0]['DIRS'][0] + '/sld', match=".*\.xml", max_length=1000, blank=True, null=True)  # noqa: W605
 
     def __unicode__(self):
         return self.name
 
 
 class Map(models.Model):
-    distributor_contact = models.ForeignKey(Contact, related_name="coordination_contact", verbose_name=_("Coordination"), on_delete=models.PROTECT, blank=True, null=True)
-    metadata_contact = models.ForeignKey(Contact, related_name="metadata_contact", verbose_name=_("Metadata contact"), on_delete=models.PROTECT, blank=True, null=True)
-    service_contact = models.ForeignKey(Contact, related_name="service_contact", verbose_name=_("Service contact"), on_delete=models.PROTECT, blank=True, null=True)
+    distributor_contact = models.ForeignKey(Contact, related_name="coordination_contact", verbose_name=_("Coordination"),
+                                            on_delete=models.PROTECT, blank=True, null=True)
+    metadata_contact = models.ForeignKey(Contact, related_name="metadata_contact", verbose_name=_("Metadata contact"),
+                                         on_delete=models.PROTECT, blank=True, null=True)
+    service_contact = models.ForeignKey(Contact, related_name="service_contact", verbose_name=_("Service contact"),
+                                        on_delete=models.PROTECT, blank=True, null=True)
 
     service_name = models.CharField(max_length=200, verbose_name=_("WMS name"), null=True, blank=True)
     service_abstract = models.CharField(max_length=2000, verbose_name=_("WMS abstract"), null=True, blank=True)
@@ -45,7 +47,8 @@ class Map(models.Model):
     ows_url_name = models.CharField(max_length=200, verbose_name=_("Identifier name"), null=True, blank=True,
                                     help_text="Used for name of Mapfile, SLD and short URL")
 
-    ows_contact = models.ForeignKey(Contact, related_name="wms_contact", verbose_name=_("WMS contact"), on_delete=models.PROTECT, blank=True, null=True)
+    ows_contact = models.ForeignKey(Contact, related_name="wms_contact", verbose_name=_("WMS contact"),
+                                    on_delete=models.PROTECT, blank=True, null=True)
     ows_title_de = models.CharField(max_length=200, null=True, blank=True)
     ows_title_en = models.CharField(max_length=200, null=True, blank=True)
     ows_abstract_de = models.CharField(max_length=2000, null=True, blank=True)
@@ -118,10 +121,9 @@ class ConstraintLimitMapInline(models.Model):
 
 
 class ConstraintLimitMapInlineSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = ConstraintLimitMapInline
-        fields = ('constraints_limit', )
+        fields = ('constraints_limit',)
 
 
 class ConstraintConditionsMapInline(models.Model):
@@ -134,17 +136,17 @@ class ConstraintConditionsMapInline(models.Model):
 
 
 class ConstraintConditionsMapInlineSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = ConstraintConditionsMapInline
-        fields = ('constraints_cond', )
+        fields = ('constraints_cond',)
 
 
 class ConformityMapInline(models.Model):
     order = models.PositiveIntegerField(default=0)
     title = models.CharField("Conformity", max_length=400, blank=True, null=True)
     date = models.DateField(blank=True, null=True, verbose_name="Date")
-    date_type = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "CI_DateTypeCode"}, on_delete=models.PROTECT, blank=True, verbose_name="Date type")
+    date_type = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "CI_DateTypeCode"},
+                                  on_delete=models.PROTECT, blank=True, verbose_name="Date type")
     map = models.ForeignKey(Map, related_name='map_conformity', on_delete=models.CASCADE)
 
     def __str__(self):
@@ -165,7 +167,8 @@ class KeywordMapInline(models.Model):
     uri = models.CharField(max_length=400, verbose_name="URI", blank=True, null=True)
     thesaurus_name = models.CharField(max_length=300, blank=True, null=True)
     thesaurus_date = models.DateField(blank=True, null=True, verbose_name=_("Thesaurus publication date"))
-    thesaurus_date_type_code_code_value = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "CI_DateTypeCode"}, on_delete=models.PROTECT, blank=True, null=True,
+    thesaurus_date_type_code_code_value = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "CI_DateTypeCode"},
+                                                            on_delete=models.PROTECT, blank=True, null=True,
                                                             related_name="map_thesaurus_date_type_code_code_value")
     map = models.ForeignKey(Map, related_name='map_keywords', on_delete=models.CASCADE)
 

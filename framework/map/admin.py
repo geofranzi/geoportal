@@ -1,10 +1,9 @@
 from django import forms
 from django.contrib.gis import admin
+from suit.sortables import (SortableStackedInline, SortableTabularInline,)
 
-
-from suit.sortables import SortableStackedInline, SortableTabularInline  # isort:skip
-from .models import ConformityMapInline, ConstraintConditionsMapInline, ConstraintLimitMapInline, KeywordMapInline, Map, MapLayerInline  # isort:skip
-from .models import MapLayerStyle, OnlineResourceMapInline   # isort:skip
+from .models import (ConformityMapInline, ConstraintConditionsMapInline, ConstraintLimitMapInline, KeywordMapInline,
+                     Map, MapLayerInline, MapLayerStyle, OnlineResourceMapInline,)
 
 
 class OnlineResourceMapInlineSort(SortableTabularInline):

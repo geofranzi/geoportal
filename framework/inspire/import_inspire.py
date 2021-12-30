@@ -1,36 +1,44 @@
-import django
-from django.db.models import Q
-from datetime import datetime
-import os
-import math
-import urllib.parse
-import urllib
 import json
+import math
+import os
+import urllib.parse
+from datetime import datetime
+
+import django
 import pandas as pd
-import pandas
+from django.db.models import Q
 
 from content.models import Country
-from layers.models import ISOcodelist, Layer, Contact, KeywordInline, ConstraintConditionsInline
-from inspire.models import InspireDataset, InspireTheme, InspireMap, SourceLayer
-from map.models import MapGroup, MapLayerInline, MapLayerStyle, KeywordMapInline
+from inspire.models import (InspireDataset, InspireMap, InspireTheme, SourceLayer,)
+from layers.models import (ConstraintConditionsInline, Contact, ISOcodelist, KeywordInline,)
+from map.models import (KeywordMapInline, MapGroup, MapLayerInline,)
 from webgis import settings
+
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "webgis.settings")
 django.setup()
 
-
 path_metadata = 'C:/Users/c1zafr/OneDrive/INSPIRE_HM/03_Umsetzung/Zusammenfassung_Metadaten_Dienste.xlsx'
 path_metadata_map = r'C:\Users\c1zafr\OneDrive\INSPIRE_HM\01_Metadaten\Datensaetze_GIS_und_INSPIRE_20201110.xlsx'
+
 
 # def update_topic_cat():
 #    for item in InspireLayer.objects.all():
 #        item.topicCategory =  item.inspire_theme.topicCategory
 #        item.save()
 
+
 def check_keyword_gemet(keyword="administration", language="en"):
+    """
+    Check if a given keyword can be found in the GEMET thesaurus
+    :param keyword:
+    :param language:
+    :return:
+    """
     keyword = urllib.parse.quote(keyword)
 
-    url = "https://www.eionet.europa.eu/gemet/getConceptsMatchingRegexByThesaurus?regex=^" + keyword + "$&thesaurus_uri=http://www.eionet.europa.eu/gemet/concept/&language=" + language
+    url = "https://www.eionet.europa.eu/gemet/getConceptsMatchingRegexByThesaurus?regex=^" + keyword + \
+          "$&thesaurus_uri=http://www.eionet.europa.eu/gemet/concept/&language=" + language
     print(url)
 
     response = urllib.request.urlopen(url)
@@ -80,7 +88,7 @@ def read_theme(meta_add, themes, i):
             item = InspireTheme.objects.get(name_de=theme.strip())  # remove tailing & leading whitespaces and search in table
             print(item)
             # INSPIRE theme + related topicCategory
-            if (item != None):
+            if item is not None:
                 meta_add["inspire_theme"].append(item)
                 meta_add['topicCategory'].append(item.topicCategory)
             else:
@@ -193,7 +201,7 @@ def import_excel_new():
             if check_date(df.iloc[i, 28], i):
                 meta_new['date_end'] = format_date(df.iloc[i, 28])
 
-            if not 'date_begin' in meta_new or not 'date_end' in meta_new:
+            if 'date_begin' not in meta_new or 'date_end' not in meta_new:
                 print("Missing begin or end date. Line: " + str(i))
 
             # change dates
@@ -204,7 +212,7 @@ def import_excel_new():
             if check_date(df.iloc[i, 23], i):
                 meta_new['date_revision'] = format_date(df.iloc[i, 23])
 
-            if not 'date_creation' in meta_new and not 'date_publication' not in meta_new and not 'date_revision' in meta_new:
+            if 'date_creation' not in meta_new and 'date_publication' not in meta_new and 'date_revision' not in meta_new:
                 print("Missing pub, create, revision date!" + str(i))
 
             # metadata date
@@ -320,11 +328,11 @@ def check_create_new_contact(person_name, email):  # first_name last_name
 
 def check_date(date, i):
     format = "%d.%m.%Y"
-    print (type(date))
+    print(type(date))
     if type(date) is float:  # nan value / empty field
         return False
 
-    if type(date) is pandas._libs.tslibs.timestamps.Timestamp:
+    if type(date) is pd._libs.tslibs.timestamps.Timestamp:
         return True
 
     try:
@@ -345,7 +353,7 @@ def is_integer(n):
 
 
 def format_date(date):
-    if type(date) is pandas._libs.tslibs.timestamps.Timestamp:
+    if type(date) is pd._libs.tslibs.timestamps.Timestamp:
         return date.strftime('%Y-%m-%d')
     else:
         return datetime.strptime(date, "%d.%m.%Y").strftime('%Y-%m-%d')
@@ -501,7 +509,10 @@ def check_create_inspire_layer(df, i):
             #     print (str(e))
 
         meta_new[
-            'meta_lineage'] = "Der Datensatz setzt sich aus folgenden Quelldaten zusammen: " + source_link + ". Hinweis: Die Quelldaten werden zu unterschiedlichen Zeitpunkten aktualisiert und mit dem jeweiligen Aktualitätsstand in diesem Datensatz abgebildet."
+            'meta_lineage'] = "Der Datensatz setzt sich aus folgenden Quelldaten zusammen: " + source_link + ". Hinweis: Die Quelldaten werden zu " \
+                                                                                                             "unterschiedlichen Zeitpunkten aktualisiert und " \
+                                                                                                             "mit dem jeweiligen Aktualitätsstand in diesem " \
+                                                                                                             "Datensatz abgebildet. "
 
         # Use limitation
         # ""Es gelten keine Bedingungen" oder "Bedingungen unbekannt" " Nutzungseinschränkungen: Nutzungsbedingungen:
@@ -649,7 +660,7 @@ def add_map_layer_to_map(df, i):
 def check_create_wms_group(ows_group_title_de, ows_group_title_en, ows_group_abstract_de, ows_group_abstract_en):
     res = MapGroup.objects.get(ows_group_title_de=ows_group_title_de)
     # create new, if not exists
-    if res == None:
+    if res is None:
         map_group = []
 
         map_group["ows_group_title_de"] = ows_group_title_de
@@ -660,9 +671,9 @@ def check_create_wms_group(ows_group_title_de, ows_group_title_en, ows_group_abs
         map_group_obj.save()
 
 
-
 # print (check_keyword_gemet("administration"))
 # print (check_keyword_gemet("Verwaltung", "de"))
+
 
 import_excel_new()
 fill_map()
