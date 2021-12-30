@@ -233,7 +233,7 @@ class ExternalDatabase(models.Model):
     geoss_datasource_id = models.TextField(blank=True, null=True)
     continent = models.CharField(max_length=30, choices=CONTINENT, blank=True)
     country = models.ManyToManyField(Country, blank=True)
-    region= models.ForeignKey(Region, related_name="external_region", verbose_name="Region", blank=True, null=True)
+    region= models.ForeignKey(Region, related_name="external_region", verbose_name="Region", on_delete=models.PROTECT, blank=True, null=True)
 
     class Meta:
         ordering = ['name']
@@ -270,7 +270,7 @@ class ExternalDatabase(models.Model):
         return obj.to_dict(include_meta=True)
 
 class ExternalLayer(Layer):
-    datasource = models.ForeignKey(ExternalDatabase, related_name="layer_datasource", verbose_name="External Database", blank=True, null=True)
+    datasource = models.ForeignKey(ExternalDatabase, related_name="layer_datasource", verbose_name="External Database", on_delete=models.PROTECT, blank=True, null=True)
 
     def __str__(self):
         return u"%s" %(self.title)
@@ -327,7 +327,7 @@ class Image(models.Model):
     copyright = models.CharField("Copyright / Owner", max_length=200, blank=True)
     date = models.DateField (blank=True, null=True)
     image = ImageWithThumbsField(upload_to='images/',  sizes=((125,125), (52, 52), (1300,1000), (1000, 1300)))
-    region = models.ForeignKey(Region, related_name="image_region", verbose_name="Region")
+    region = models.ForeignKey(Region, related_name="image_region", on_delete=models.PROTECT, verbose_name="Region")
 
     def __str__(self):
         return u"%s" %(self.name)
@@ -359,7 +359,7 @@ class Video(models.Model):
     thumb_link = models.CharField("Link to external thumbnail", max_length=200, blank=True, null=True)
     youtube_id = models.CharField("YouTube ID", max_length=20, blank=True, null=True)
     youtube_cat = models.IntegerField(blank=True, null=True)
-    region = models.ForeignKey(Region, related_name="video_region", verbose_name="Region")
+    region = models.ForeignKey(Region, related_name="video_region", verbose_name="Region", on_delete=models.PROTECT)
 
     categories = dict()
     categories[2] = 'Cars & Vehicles'
@@ -404,7 +404,7 @@ class StoryLine(models.Model):
     title = models.CharField(max_length=250)
     description = models.TextField(null=True, blank=True)
     authors = models.TextField(null=True, blank=True)
-    region = models.ForeignKey(Region, null=True)
+    region = models.ForeignKey(Region, on_delete=models.PROTECT, null=True)
     link_to_product = models.BooleanField(default="False",
                                           help_text="Storyline will be linked to a product instead of a wetland")
     story_line_file_name = models.CharField(max_length=50, blank=True, null=True, help_text="File name for download")
@@ -429,7 +429,7 @@ class StoryLinePart(models.Model):
                                  help_text="To avoid cutting off parts of your image please resize it in advance. Right position: max. 300px width; Bottom max. 600px. If you upload a GIF please make sure the size is not higher than 500kb")
     image_position = models.CharField(max_length=20, choices=(("right", "right"), ("bottom", "bottom")),
                                       default="right")
-    region = models.ForeignKey(Region,
+    region = models.ForeignKey(Region, on_delete=models.PROTECT,
                                 help_text="Plaese click - Save and continue editing - to update the layer lists below")
     product_layer = models.ManyToManyField(Layer, blank=True)
     indicator_layer = models.ManyToManyField(Layer, blank=True, related_name="indicator_layer")
@@ -492,8 +492,8 @@ class StoryLinePart(models.Model):
 
 class StoryLineInline(models.Model):
     order = models.PositiveIntegerField(default=0)
-    story_line_part = models.ForeignKey(StoryLinePart, related_name='story_line_parts')
-    story_line = models.ForeignKey(StoryLine, related_name='story_line')
+    story_line_part = models.ForeignKey(StoryLinePart, related_name='story_line_parts', on_delete=models.PROTECT)
+    story_line = models.ForeignKey(StoryLine, related_name='story_line', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.story_line_part.headline
@@ -503,7 +503,7 @@ class StoryLineInline(models.Model):
 
 
 class SatdataLayer(Layer):
-    region = models.ForeignKey(Region, related_name="layer_satdata", verbose_name="Region", blank=True, null=True)
+    region = models.ForeignKey(Region, related_name="layer_satdata", verbose_name="Region", on_delete=models.PROTECT, blank=True, null=True)
     thema = models.CharField("Type", max_length=30, choices=(('Rohdaten', 'Rohdaten'), ('Produkt', 'Produkt')))
 
     def __str__(self):

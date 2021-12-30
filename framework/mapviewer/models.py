@@ -49,7 +49,7 @@ class MapViewer(models.Model):
     title = models.CharField(max_length=200)
     template_file = models.FilePathField("Template file", path=settings.TEMPLATES[0]['DIRS'][0]+'/mapviewer', match=".*\.html", max_length=1000)
     auth_registration = models.BooleanField("Allow user registration", default=False)
-    search_url = models.ForeignKey(CSW, blank=True, null=True, verbose_name="Server for search field")
+    search_url = models.ForeignKey(CSW, blank=True, null=True, verbose_name="Server for search field", on_delete=models.PROTECT)
     addexternallayer = models.BooleanField("Allow external layers", default=False, help_text="(Hint: If activated, the button for add external layers to map by users is not hidden.)")
 
     # map
@@ -88,8 +88,8 @@ class MapViewer(models.Model):
 # Sortable BaseLayerInline model to reference baselayers and mapviewers
 class BaseLayerInline(models.Model):
     order = models.PositiveIntegerField(default=0)
-    baselayer = models.ForeignKey(BaseLayer)
-    mapviewer = models.ForeignKey(MapViewer)
+    baselayer = models.ForeignKey(BaseLayer, on_delete=models.PROTECT)
+    mapviewer = models.ForeignKey(MapViewer, on_delete=models.PROTECT)
 
     def __str__(self):
         return self.baselayer.title
@@ -98,8 +98,8 @@ class BaseLayerInline(models.Model):
 class LayerBaseInline(models.Model):
     order = models.PositiveIntegerField(default=0)
     title = models.CharField(max_length=200, blank=True, null=True)
-    baselayer = models.ForeignKey(Layer, related_name='layerbase')
-    mapviewer = models.ForeignKey(MapViewer)
+    baselayer = models.ForeignKey(Layer, related_name='layerbase', on_delete=models.CASCADE)
+    mapviewer = models.ForeignKey(MapViewer, on_delete=models.PROTECT)
 
     def __str__(self):
         return self.baselayer.title

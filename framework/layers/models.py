@@ -65,7 +65,7 @@ class Layer(models.Model):
     title = models.CharField(max_length=200)
     abstract = models.TextField()
     topicCategory = models.ManyToManyField(ISOcodelist, limit_choices_to={'code_list': "MD_TopicCategoryCode"},verbose_name="Topic category", default=227)
-    scope = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "MD_ScopeCode"}, related_name="scope", default=203)
+    scope = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "MD_ScopeCode"}, related_name="scope", default=203, on_delete=models.PROTECT)
     publishable = models.BooleanField(default=False)
 
     #Vizualiation services
@@ -104,7 +104,7 @@ class Layer(models.Model):
     #Data Quality
 
     #Dataset description
-    dataset_contact_new = models.ForeignKey(Contact, related_name="dataset_contact", verbose_name="Dataset contact - replaced by Dataset point  of contact(s)", blank=True, null=True)
+    dataset_contact_new = models.ForeignKey(Contact, related_name="dataset_contact", verbose_name="Dataset contact - replaced by Dataset point  of contact(s)", on_delete=models.PROTECT, blank=True, null=True)
     point_of_contacts = models.ManyToManyField(Contact, related_name="meta_point_of_contacts", blank=True, verbose_name="Dataset point of contact(s)")
     date_creation = models.DateField(blank=True, null=True, verbose_name="Dataset creation date")
     date_publication = models.DateField(blank=True, null=True, verbose_name="Dataset publication date")
@@ -134,7 +134,7 @@ class Layer(models.Model):
     date_end = models.DateField(blank=True, null=True, verbose_name='End temporal extent')
 
     #Metadata
-    meta_contact = models.ForeignKey(Contact, related_name="meta_contact", blank=True, null=True, verbose_name="Metadata contact - replaced by metadata contacts")
+    meta_contact = models.ForeignKey(Contact, related_name="meta_contact", blank=True, null=True, verbose_name="Metadata contact - replaced by metadata contacts", on_delete=models.PROTECT)
     meta_contacts = models.ManyToManyField(Contact, related_name="meta_contacts", blank=True, verbose_name="Metadata contact(s)")
     meta_language = models.CharField(max_length=200, default="English", blank=True, verbose_name="Metadata language")
     meta_characterset = models.CharField(max_length=200, blank=True, null=True, verbose_name="Metadata character set")
@@ -326,8 +326,8 @@ class Layergroup(models.Model):
 class LayerInline(models.Model):
     title = models.CharField(max_length=200, blank=True, null=True)
     order = models.PositiveIntegerField(default=0)
-    layer = models.ForeignKey(Layer)
-    layergroup = models.ForeignKey(Layergroup)
+    layer = models.ForeignKey(Layer, on_delete=models.CASCADE)
+    layergroup = models.ForeignKey(Layergroup, on_delete=models.PROTECT)
 
     def __str__(self):
         if self.title != None:
@@ -339,8 +339,8 @@ class LayerInline(models.Model):
 # Foreign Keys: Layergroup, MapViewer
 class LayergroupInline(models.Model):
     order = models.PositiveIntegerField(default=0)
-    layergroup = models.ForeignKey(Layergroup)
-    mapviewer = models.ForeignKey('mapviewer.MapViewer')
+    layergroup = models.ForeignKey(Layergroup, on_delete=models.CASCADE)
+    mapviewer = models.ForeignKey('mapviewer.MapViewer', on_delete=models.PROTECT)
 
     def __str__(self):
         return self.layergroup.title
@@ -351,8 +351,8 @@ class OnlineResourceInline(models.Model):
     name = models.CharField(max_length=100, blank=True, null=True)
     protocol = models.CharField(max_length=200, blank=True, null=True)
     description = models.CharField(max_length=500, blank=True, null=True)
-    function = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': 'CI_OnLineFunctionCode'}, blank=True, null=True)
-    layer = models.ForeignKey(Layer, related_name='layer_online_resource')
+    function = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': 'CI_OnLineFunctionCode'}, on_delete=models.PROTECT, blank=True, null=True)
+    layer = models.ForeignKey(Layer, related_name='layer_online_resource', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.linkage
@@ -367,7 +367,7 @@ class OnlineResourceInlineSerializer(serializers.ModelSerializer):
 class ConstraintLimitInline(models.Model):
     order = models.PositiveIntegerField(default=0)
     constraints_limit = models.CharField("Limitations on public access", max_length=400, blank=True, null=True)
-    layer = models.ForeignKey(Layer, related_name='layer_constraints_limit')
+    layer = models.ForeignKey(Layer, related_name='layer_constraints_limit', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.constraints_limit
@@ -381,7 +381,7 @@ class ConstraintLimitInlineSerializer(serializers.ModelSerializer):
 class ConstraintConditionsInline(models.Model):
     order = models.PositiveIntegerField(default=0)
     constraints_cond = models.CharField("Conditions applying to access and use", max_length=400, blank=True, null=True)
-    layer = models.ForeignKey(Layer, related_name='layer_constraints_cond')
+    layer = models.ForeignKey(Layer, related_name='layer_constraints_cond', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.constraints_cond
@@ -396,8 +396,8 @@ class ConformityInline(models.Model):
     order = models.PositiveIntegerField(default=0)
     title = models.CharField("Conformity", max_length=400, blank=True, null=True)
     date = models.DateField(blank=True, null=True, verbose_name="Date")
-    date_type = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "CI_DateTypeCode"}, blank=True, verbose_name="Date type")
-    layer = models.ForeignKey(Layer, related_name='layer_conformity')
+    date_type = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "CI_DateTypeCode"}, on_delete=models.PROTECT, blank=True, verbose_name="Date type")
+    layer = models.ForeignKey(Layer, related_name='layer_conformity', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.title
@@ -414,8 +414,8 @@ class KeywordInline(models.Model):
     keyword = models.CharField(max_length=200)
     thesaurus_name = models.CharField(max_length=300, blank=True, null=True)
     thesaurus_date = models.DateField(blank=True, null=True, verbose_name="Thesaurus publication date")
-    thesaurus_date_type_code_code_value = models.ForeignKey(ISOcodelist,limit_choices_to={'code_list': "CI_DateTypeCode"},blank=True, null=True)
-    layer = models.ForeignKey(Layer, related_name='layer_keywords')
+    thesaurus_date_type_code_code_value = models.ForeignKey(ISOcodelist,limit_choices_to={'code_list': "CI_DateTypeCode"}, on_delete=models.PROTECT, blank=True, null=True)
+    layer = models.ForeignKey(Layer, related_name='layer_keywords', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.keyword
