@@ -32,9 +32,9 @@ class Pheno(models.Model):
 
 
 class PhenoLayer(Layer):
-    region = models.ForeignKey(Region, related_name="layer_region", verbose_name="Region", blank=True, null=True)
-    product = models.ForeignKey(Product, related_name="layer_product", verbose_name="Product", blank=True, null=True)
-    phenophase = models.ForeignKey(Pheno, related_name="layer_phenophase", verbose_name="Phenophase", blank=True, null=True)
+    region = models.ForeignKey(Region, related_name="layer_region", verbose_name="Region", on_delete=models.PROTECT, blank=True, null=True)
+    product = models.ForeignKey(Product, related_name="layer_product", verbose_name="Product", on_delete=models.PROTECT, blank=True, null=True)
+    phenophase = models.ForeignKey(Pheno, related_name="layer_phenophase", verbose_name="Phenophase", on_delete=models.PROTECT, blank=True, null=True)
     type = models.CharField(max_length=20, choices=(('insitu', 'insitu'), ('modelliert', 'modelliert'), ('differenz', 'differenz'), ('allgemein', 'allgemein'), ('geoproxy', 'geoproxy')),help_text="Untergliederung der Phenophasen-Layer", blank=True, null=True)
 
     @property
@@ -70,7 +70,7 @@ class CitizenScienceProjectSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'shortname', 'online_link', 'description', 'provided_information', 'geoss_datasource_id')
 
 class CitizenScienceData(models.Model):
-    project = models.ForeignKey(CitizenScienceProject, related_name="data_project", verbose_name="Project", blank=True, null=True)
+    project = models.ForeignKey(CitizenScienceProject, related_name="data_project", verbose_name="Project", on_delete=models.PROTECT, blank=True, null=True)
     fid = models.CharField(max_length=200)
     name = models.CharField(max_length=200)
     plant = models.CharField(max_length=200)
