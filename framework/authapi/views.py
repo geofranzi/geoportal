@@ -6,7 +6,7 @@ from rest_framework import status
 
 import django
 
-from rest_auth.registration.views import RegisterView
+from dj_rest_auth.registration.views import RegisterView
 from allauth.account.views import ConfirmEmailView
 from mapviewer.models import MapViewer
 

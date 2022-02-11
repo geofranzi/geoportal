@@ -8,4 +8,4 @@ from rest_framework.authtoken.models import Token
 #admin.site.unregister(EmailConfirmation)
 #admin.site.unregister(EmailAddress)
 #admin.site.unregister(Site)
-admin.site.unregister(Token)
+#admin.site.unregister(Token)

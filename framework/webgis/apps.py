@@ -2,6 +2,9 @@
 from suit.apps import DjangoSuitConfig
 from suit.menu import ParentItem, ChildItem
 from webgis import settings
+#from django.apps import AppConfig
+from django.contrib import admin as ad
+from django.contrib.admin.apps import AdminConfig
 
 
 class SuitConfig(DjangoSuitConfig):
@@ -63,3 +66,10 @@ class SuitConfig(DjangoSuitConfig):
     if "validation" in settings.INSTALLED_APPS:
         menu = menu + (
             (ParentItem('Validation', children=[ChildItem('Validation Layers', model='validation.validationlayer')])),)
+
+
+class MyAdminSite(ad.AdminSite):
+    enable_nav_sidebar = False
+
+class MyAdminConfig(AdminConfig):
+    default_site = 'webgis.apps.MyAdminSite'

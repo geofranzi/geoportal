@@ -1,18 +1,18 @@
-from django.conf.urls import url
-
+# from django.conf.urls import url
+from django.urls import re_path
 from . import views
 
 urlpatterns = [
-    url(r'^list/$', views.LayerList.as_view(), name='layer_list'),
-    url(r'^detail/(?P<pk>[0-9]+)$', views.LayerDetail.as_view(), name='layer_detail'),
-    url(r'^detail/(?P<pk>[0-9]+)/download$', views.LayerDownload.as_view(), name='layer_download'),
-    url(r'^info$', views.LayerInfo.as_view(), name='layer_feature_info'),
-    url(r'^data$', views.DataRequest.as_view(), name='external_proxy'),
-    url(r'^capabilities/time$', views.GetTimeValues.as_view(), name='layer_time_values'),
-    url(r'^capabilities/WMS$', views.GetWMSCapabilities.as_view(), name='layer_capabilities_wms'),
-    url(r'^capabilities/WMTS$', views.GetWMTSCapabilities.as_view(), name='layer_capabilities_wmts'),
-    url(r'^sos/(?P<pk>[0-9]+)/stations$', views.GetSOSStations.as_view(), name='sos_stations'),
-    url(r'^sos/data$', views.GetSOSObservation.as_view(), name='sos_data'),
+    re_path(r'^list/$', views.LayerList.as_view(), name='layer_list'),
+    re_path(r'^detail/(?P<pk>[0-9]+)$', views.LayerDetail.as_view(), name='layer_detail'),
+    re_path(r'^detail/(?P<pk>[0-9]+)/download$', views.LayerDownload.as_view(), name='layer_download'),
+    re_path(r'^info$', views.LayerInfo.as_view(), name='layer_feature_info'),
+    re_path(r'^data$', views.DataRequest.as_view(), name='external_proxy'),
+    re_path(r'^capabilities/time$', views.GetTimeValues.as_view(), name='layer_time_values'),
+    re_path(r'^capabilities/WMS$', views.GetWMSCapabilities.as_view(), name='layer_capabilities_wms'),
+    re_path(r'^capabilities/WMTS$', views.GetWMTSCapabilities.as_view(), name='layer_capabilities_wmts'),
+    re_path(r'^sos/(?P<pk>[0-9]+)/stations$', views.GetSOSStations.as_view(), name='sos_stations'),
+    re_path(r'^sos/data$', views.GetSOSObservation.as_view(), name='sos_data'),
 ]
 
 # Used for detail/<pk>.json

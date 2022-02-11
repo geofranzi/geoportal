@@ -6,6 +6,7 @@ from urllib.request import urlopen
 
 from webgis import settings
 
+
 # Contact model (referenced 2x in layer model for metadata contact and dataset contact)
 class Contact(models.Model):
     first_name = models.CharField(max_length=200, blank=True)
@@ -25,7 +26,7 @@ class Contact(models.Model):
 
     website = models.CharField(max_length=200, blank=True)
 
-    related_org = models.ForeignKey('self',verbose_name="Related organization", null=True, blank=True)
+    related_org = models.ForeignKey('self',verbose_name="Related organization", null=True, blank=True, on_delete=models.PROTECT)
 
     def __str__(self):
         if self.first_name != '' or self.last_name != '':
@@ -123,7 +124,7 @@ class Layer(models.Model):
     format = models.CharField(max_length=200, blank=True, null=True)
     dataset_epsg = models.IntegerField("EPSG code from the dataset", blank=True, null=True, help_text="Just the projection code/number")
     PROGRESS_ID = ISOcodelist.objects.get(identifier="completed", code_list="MD_ProgressCode").id
-    progress = models.ForeignKey(ISOcodelist, related_name="progress",limit_choices_to={'code_list': 'MD_ProgressCode'}, default=PROGRESS_ID, blank=True, null=True, verbose_name="Progress")
+    progress = models.ForeignKey(ISOcodelist, related_name="progress",limit_choices_to={'code_list': 'MD_ProgressCode'}, default=PROGRESS_ID, blank=True, null=True, verbose_name="Progress", on_delete=models.PROTECT)
 
     #Geographic location
     west = models.FloatField("BBOX west coordinate", help_text="e.g. -180")
@@ -135,7 +136,7 @@ class Layer(models.Model):
 
     #Spatial resolution
     SPAT_REPRESENTATION_TYPE_ID = ISOcodelist.objects.get(identifier="vector", code_list="MD_SpatialRepresentationTypeCode").id
-    spat_representation_type = models.ForeignKey(ISOcodelist, related_name="representation_type",limit_choices_to={'code_list': 'MD_SpatialRepresentationTypeCode'}, default=SPAT_REPRESENTATION_TYPE_ID, blank=True, null=True, verbose_name="Spatial Representation Type")
+    spat_representation_type = models.ForeignKey(ISOcodelist, related_name="representation_type",limit_choices_to={'code_list': 'MD_SpatialRepresentationTypeCode'}, default=SPAT_REPRESENTATION_TYPE_ID, blank=True, null=True, verbose_name="Spatial Representation Type", on_delete=models.PROTECT)
     equi_scale = models.IntegerField("Spatial resolution", blank=True, null=True)
     resolution_distance = models.IntegerField("Resolution", null=True, blank=True)
     resolution_unit = models.CharField("Resolution unit", max_length=30, null=True, blank=True)

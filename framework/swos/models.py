@@ -110,9 +110,9 @@ class IndicatorSerializer(serializers.ModelSerializer):
         fields = ('name', 'description', 'short_name', 'number', 'short_description', 'type')
 
 class WetlandLayer(Layer):
-    wetland = models.ForeignKey(Wetland, related_name="layer_wetland", verbose_name="Wetland", blank=True, null=True)
-    product = models.ForeignKey(Product, related_name="layer_product", verbose_name="Product", blank=True, null=True)
-    indicator = models.ForeignKey(Indicator, related_name="layer_indicator", verbose_name="Indicator", blank=True, null=True)
+    wetland = models.ForeignKey(Wetland, related_name="layer_wetland", verbose_name="Wetland", blank=True, null=True, on_delete=models.PROTECT)
+    product = models.ForeignKey(Product, related_name="layer_product", verbose_name="Product", blank=True, null=True, on_delete=models.PROTECT)
+    indicator = models.ForeignKey(Indicator, related_name="layer_indicator", verbose_name="Indicator", blank=True, null=True, on_delete=models.PROTECT)
 
     @property
     def alternate_title(self):
