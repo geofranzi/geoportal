@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
+#Path on Windows for gdal and geos
+#GDAL_LIBRARY_PATH = "[path]/venv/Lib/site-packages/osgeo/gdal300.dll"
+#GEOS_LIBRARY_PATH = "[path]/venv/Lib/site-packages/osgeo/geos_c.dll"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
@@ -31,15 +34,18 @@ ASSETS_DEBUG = True
 # True: automatically rebuild bundles if source files have changed
 ASSETS_AUTO_BUILD = True
 
-ALLOWED_HOSTS = ['localhost', 'artemis.geogr.uni-jena.de', 'swos.ssv-hosting.de', 'swos2.ssv-hosting.de', 'phaenopt.ssv-hosting.de']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'artemis.geogr.uni-jena.de', 'swos.ssv-hosting.de', 'swos2.ssv-hosting.de', 'phaenopt.ssv-hosting.de']
 
 ##################################################
 # Application definition
 INSTALLED_APPS = (
     'webgis.apps.SuitConfig',
-    'django.contrib.admin',
+    # 'django.contrib.admin',
+    'webgis.apps.MyAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
+    'django.contrib.messages',
+    # 'django_messages'
     'django.contrib.sessions',
     'django.contrib.staticfiles',
     'django.contrib.sites',
@@ -48,31 +54,36 @@ INSTALLED_APPS = (
     'rest_framework.authtoken',
     'allauth',
     'allauth.account',
-    'rest_auth',
-    'rest_auth.registration',
+     # 'rest_auth',
+    'dj_rest_auth',
+     # 'rest_auth.registration',
+    'dj_rest_auth.registration',
     'cronjobs',
     'djgeojson',
     'authapi',
     'mapviewer',
     'layers',
+    'map',
     'geospatial',
     'content',
     'csw',
     'swos',
     'phaenopt',
-    #'validation',
-    'django_assets'
+    # 'validation',
+    'django_assets',
+    'inspire'
 )
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+  #  'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.gzip.GZipMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     #'authapi.disable.disableCSRF',
 )
 
@@ -80,6 +91,7 @@ ROOT_URLCONF = 'webgis.urls'
 
 WSGI_APPLICATION = 'webgis.wsgi.application'
 
+DEFAULT_AUTO_FIELD='django.db.models.AutoField'
 ##################################################
 # Database
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
@@ -104,6 +116,8 @@ DATABASES = {
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
+# LANGUAGE_CODE = 'de-De'
+LOCALE_PATHS = (os.path.join(BASE_DIR, "locale"),)
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_L10N = True
@@ -213,11 +227,11 @@ EMAIL_FILE_PATH = os.path.join(BASE_DIR, "media", "email") # change this to a pr
 ##################################################
 # ie csrf cookie
 CSRF_COOKIE_DOMAIN='localhost'
-#CSRF_COOKIE_DOMAIN='phaenopt.ssv-hosting.de'
+# CSRF_COOKIE_DOMAIN='phaenopt.ssv-hosting.de'
 SESSION_COOKIE_DOMAIN=CSRF_COOKIE_DOMAIN
 USE_X_FORWARDED_HOST=True
-#SESSION_COOKIE_SECURE=True
-#CSRF_COOKIE_SECURE=True
+# SESSION_COOKIE_SECURE=True
+# CSRF_COOKIE_SECURE=True
 
 ##################################################
 # satellite data discovery
@@ -247,6 +261,21 @@ ELASTICSEARCH_HOSTS = ['ANPASSEN']
 # Data download
 
 DATA_ROOT = 'ANPASSEN'
+
+##################################################
+# Base URL
+BASE_URL = "https://inspire.hameln.de/"
+DEFAULT_EXTENT_WEST = "9.25"
+DEFAULT_EXTENT_EAST = "9.47"
+DEFAULT_EXTENT_NORTH = "52.16"
+DEFAULT_EXTENT_SOUTH = "52.05"
+GML_PATH = "[path]/]Hale_Export"
+
+if os.name == 'nt':
+    VENV_BASE = os.environ['VIRTUAL_ENV']
+    os.environ['PATH'] = os.path.join(VENV_BASE, 'Lib\\site-packages\\osgeo') + ';' + os.environ['PATH']
+    os.environ['PROJ_LIB'] = os.path.join(VENV_BASE, 'Lib\\site-packages\\osgeo\\data\\proj') + ';' + os.environ['PATH']
+
 ##################################################
 # END
 ##################################################
