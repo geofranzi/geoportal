@@ -6,5 +6,5 @@ from .models import Layer
 def cache_sos_layers():
     layers = Layer.objects.filter(ogc_type__exact='SOS')
     for layer in layers:
-        print 'Layer: '+str(layer.id)
+        print('Layer: ' + str(layer.id))
         layer.cache()

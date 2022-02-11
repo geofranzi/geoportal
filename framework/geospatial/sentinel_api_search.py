@@ -63,7 +63,7 @@ class SentinelDownloader(object):
         # Test first geometry
         try:
             loads(self.__geometries[0])
-        except Exception, e:
+        except Exception as e:
             raise Exception('The first geometry is not valid! Error: %s' % e)
 
     def get_geometries(self):
@@ -132,15 +132,15 @@ class SentinelDownloader(object):
                     index += 100
                 if len(subscenes) < 100:
                     break
-            print '%s scenes after initial search' % len(scenes)
+            print('%s scenes after initial search' % len(scenes))
             if len(scenes) > 0:
                 #scenes = self._filter_existing(scenes, self.__download_dir)
                 scenes = self._filter_overlap(scenes, geom, min_overlap)
-                print '%s scenes after filtering before merging' % len(scenes)
+                print('%s scenes after filtering before merging' % len(scenes))
                 self.__scenes = self._merge_scenes(self.__scenes, scenes)
 
         print('===========================================================')
-        print '%s total scenes after merging' % len(self.__scenes)
+        print('%s total scenes after merging' % len(self.__scenes))
         print('===========================================================')
 
     def get_summary(self):

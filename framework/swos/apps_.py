@@ -78,7 +78,7 @@ def add_layers(server_name='default'):
     geoserver_user = settings.GEOSERVER[server_name]['USER']
     geoserver_password = settings.GEOSERVER[server_name]['PASSWORD']
     cat = Catalog(url, username=geoserver_user, password=geoserver_password)
-    print 'SEttings done'
+    print('SEttings done')
 
     gs_instance.binding.upload_data(cat, settings.DEST_FOLDER)
 
@@ -90,7 +90,7 @@ def add_data_in_django(workspace=None):
      and uses the .xml file of every layer to get the needed data.
     :return: None
     """
-    print 'Start:', asctime()
+    print('Start:', asctime())
     namespaces = {'gmd':"http://www.isotc211.org/2005/gmd", 'gco':"http://www.isotc211.org/2005/gco",'gml':"http://www.opengis.net/gml"}
     from layers.models import Layer, Contact
     from swos.models import WetlandLayer, Product, Wetland
@@ -105,17 +105,17 @@ def add_data_in_django(workspace=None):
     for gs_resource in gs_resources:
         name = gs_resource.name
         if WetlandLayer.objects.filter(identifier=name).count():
-            print "The Layer {name} is already integrated into Django.".format(name=name)
+            print("The Layer {name} is already integrated into Django.".format(name=name))
             continue
         if 'SWOS' in name:
-            print name, asctime()
+            print(name, asctime())
             shape_data = {}
             shape_data['identifier'] = name
             shape_data['title'] = name.replace('SWOS_-_', '').replace('_', ' ')
 
             workspace_name = gs_resource.workspace.name
             name = gs_resource.name
-            print workspace_name
+            print(workspace_name)
             for (k,v) in {'LST':'LSTT','LULC':'_LULC_','LULCC_L':'LULCC','SWD':'SWD','SSM':'SSM','Water_Quality':'WQ','Watershed':'Watershed'}.items():
                 if v in name:
                     product_name = k
@@ -124,7 +124,7 @@ def add_data_in_django(workspace=None):
                 tree = ET.parse(xml)
                 #namespaces = getNamespaces(xml)
             except IOError as e:
-                print e
+                print(e)
                 missing_meta.append([name, xml, e])
                 continue
 
@@ -171,7 +171,7 @@ def add_data_in_django(workspace=None):
 
             date_begin = root.find('.//gmd:EX_TemporalExtent//gml:beginPosition', namespaces).text
             date_end = root.find('.//gmd:EX_TemporalExtent//gml:endPosition', namespaces).text
-            print date_begin, date_end
+            print(date_begin, date_end)
             shape_data['date_begin'] = datetime.datetime.strptime(date_begin, '%Y-%m-%d').date()
             shape_data['date_end'] = datetime.datetime.strptime(date_end, '%Y-%m-%d').date()
 
@@ -191,7 +191,7 @@ def add_data_in_django(workspace=None):
                 dataset_contact = Contact.objects.get(email=dataset_email)
                 shape_data['dataset_contact_new'] =dataset_contact
             except Contact.DoesNotExist as e:
-                print 'The contact information for', gs_instance,'is missing.'
+                print('The contact information for', gs_instance, 'is missing.')
                 missing_meta.append([name, dataset_email,e])
                 continue
 
@@ -203,21 +203,21 @@ def add_data_in_django(workspace=None):
 
             shape_data['wetland'] = wetland
             product = Product.objects.get(short_name=product_name)
-            print product
-            print product_name
-            print product.name
-            print shape_data['date_begin']
+            print(product)
+            print(product_name)
+            print(product.name)
+            print(shape_data['date_begin'])
             product.wetlands.add(wetland)
             shape_data['product'] = product
             shape_data['title'] = ' '.join([product.name, wq_type, date_string, wetland.name, country])
-            print 'Title:', shape_data['title']
+            print('Title:', shape_data['title'])
             layer = WetlandLayer(**shape_data)
             layer.save()
-            print shape_data
-            print asctime()
+            print(shape_data)
+            print(asctime())
     for thing in missing_meta:
-        print thing
-    print len(missing_meta)
+        print(thing)
+    print(len(missing_meta))
     return
 
 def slds_wq():
@@ -251,12 +251,12 @@ def generate_metadata():
     from swos.models import WetlandLayer
 
     layers = WetlandLayer.objects.filter(publishable=True)
-    print len(layers)
+    print(len(layers))
     for layer in layers:
         meta = model_to_dict(layer)
         product = layer.product
         meta['product'] = product.name
-        print layer.title
+        print(layer.title)
         meta['date_begin'] = str(meta['date_begin'])
         meta['date_end'] = str(meta['date_end'])
         data_contact = layer.dataset_contact_new
@@ -267,13 +267,13 @@ def generate_metadata():
         meta['meta_contact_email'] = 'felix.cremer@uni-jena.de'
         wetland = layer.wetland
         meta['wetland_name'] = wetland.name
-        print wetland.short_name
+        print(wetland.short_name)
         if not meta['equi_scale']:
             meta['equi_scale']="20"
         template = ''.join([settings.METADATA_TEMPLATES,'template_',product.short_name,'.xml'])
         outpath = ''.join([settings.METADATA_FOLDER,layer.identifier,'.xml'])
         meta = generate_metadata_template(meta, outpath, template,save=True)
-        print meta
+        print(meta)
         #upload_cswt(outpath,settings.PYCSW_URL)
 
 
@@ -286,8 +286,8 @@ def update_wetland_geom(shapefile):
     datasource = DataSource(shapefile)
     #print datasource
     layer = datasource[0]
-    print layer.srs
-    print layer.fields
+    print(layer.srs)
+    print(layer.fields)
     new_wetlands = []
     for feature in layer:
         feature_dict = {}
@@ -314,12 +314,12 @@ def update_wetland_geom(shapefile):
         #feature_dict['geom'].srid = 3975
         #print feature_dict['geom']
         if Wetland.objects.filter(short_name=feature_dict['short_name']):
-            print feature_dict['short_name']
-            print "short_name"
+            print(feature_dict['short_name'])
+            print("short_name")
             Wetland.objects.filter(short_name=feature_dict['short_name']).update(**feature_dict)
         else:
-            print feature_dict['name']
-            print "new name"
+            print(feature_dict['name'])
+            print("new name")
             new_wetlands.append(feature_dict['name'])
             wetland = Wetland(**feature_dict)
             wetland.save()
@@ -340,6 +340,6 @@ def set_default_style(server_name, filelist, style_name):
         base, type = os.path.splitext(shape)
         name = os.path.basename(base)
         layer = cat.get_layer(name)
-        print layer, style_name
+        print(layer, style_name)
         layer._set_default_style(style_name)
         cat.save(layer)
