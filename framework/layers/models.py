@@ -26,24 +26,28 @@ class Contact(models.Model):
 
     website = models.CharField(max_length=200, blank=True)
 
-    related_org = models.ForeignKey('self',verbose_name="Related organization", null=True, blank=True, on_delete=models.PROTECT)
+    related_org = models.ForeignKey('self', verbose_name="Related organization", null=True, blank=True, on_delete=models.PROTECT)
 
     def __str__(self):
         if self.first_name != '' or self.last_name != '':
-            name = u"%s %s" %(self.first_name, self.last_name)
+            name = u"%s %s" % (self.first_name, self.last_name)
             if self.organisation != '':
-                name = name + " (%s)" % self.organisation 
+                name = name + " (%s)" % self.organisation
         elif self.organisation != '':
-            name = u"%s (%s)" %(self.organisation, self.email)
+            name = u"%s (%s)" % (self.organisation, self.email)
         elif self.email != '':
             name = self.email
         return name
+
 
 # Specify a contact serializer for JSON output (used in MetadataSerializer)
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact
-        fields = ('first_name', 'last_name', 'position', 'address', 'postcode', 'city', 'country', 'state', 'email', 'organisation', 'telephone', 'fax', 'mobile', 'website')
+        fields = (
+        'first_name', 'last_name', 'position', 'address', 'postcode', 'city', 'country', 'state', 'email', 'organisation', 'telephone', 'fax', 'mobile',
+        'website')
+
 
 # ISO 19115 Codelists
 class ISOcodelist(models.Model):
@@ -58,7 +62,8 @@ class ISOcodelist(models.Model):
 class ISOcodelistSerializer(serializers.ModelSerializer):
     class Meta:
         model = ISOcodelist
-        fields = ('identifier', )
+        fields = ('identifier',)
+
 
 # ISO 19115 Codelists
 
@@ -66,39 +71,50 @@ class ISOcodelistSerializer(serializers.ModelSerializer):
 class Layer(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
-    #Overview
+    # Overview
     identifier = models.CharField(max_length=200)
     title = models.CharField(max_length=200)
     alternative_title = models.CharField(max_length=200, null=True, blank=True)
     title_en = models.CharField(max_length=200, null=True, blank=True)
     abstract = models.TextField()
     abstract_en = models.TextField(null=True, blank=True)
-    topicCategory = models.ManyToManyField(ISOcodelist, limit_choices_to={'code_list': "MD_TopicCategoryCode"},verbose_name="Topic category", default=227)
-    SCOPE_ID = ISOcodelist.objects.get(identifier="dataset", code_list="MD_ScopeCode").id
+    topicCategory = models.ManyToManyField(ISOcodelist, limit_choices_to={'code_list': "MD_TopicCategoryCode"}, verbose_name="Topic category", default=227)
+    SCOPE_ID = 1
+    try:
+        SCOPE_ID = ISOcodelist.objects.get(identifier="dataset", code_list="MD_ScopeCode").id
+    except:
+        pass
+
     scope = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "MD_ScopeCode"}, related_name="scope", default=SCOPE_ID, on_delete=models.PROTECT)
     publishable = models.BooleanField(default=False)
 
-    #Vizualiation services
+    # Vizualiation services
     ogc_link = models.CharField("OGC service URL", max_length=400, blank=True, null=True)
     ogc_layer = models.CharField("Layer name", max_length=200, blank=True, null=True)
-    ogc_type = models.CharField("OGC service type", max_length=200, choices=[('WMS', 'WMS'), ('WMTS', 'WMTS'), ('XYZ', 'XYZ'), ('TMS', 'TMS'), ('WFS', 'WFS'), ('Tiled-WFS', 'Tiled-WFS'), ('GeoJSON', 'GeoJSON'), ('SOS', 'SOS'), ('MapServer', 'MapServer'), ('BingMaps', 'BingMaps'), ('MapQuest', 'MapQuest'), ('OSM', 'OSM'), ('GoogleMaps', 'GoogleMaps')], default="WMS")
+    ogc_type = models.CharField("OGC service type", max_length=200,
+                                choices=[('WMS', 'WMS'), ('WMTS', 'WMTS'), ('XYZ', 'XYZ'), ('TMS', 'TMS'), ('WFS', 'WFS'), ('Tiled-WFS', 'Tiled-WFS'),
+                                         ('GeoJSON', 'GeoJSON'), ('SOS', 'SOS'), ('MapServer', 'MapServer'), ('BingMaps', 'BingMaps'), ('MapQuest', 'MapQuest'),
+                                         ('OSM', 'OSM'), ('GoogleMaps', 'GoogleMaps')], default="WMS")
     ogc_time = models.BooleanField("WMS/WMTS Time", default=False, help_text="Time enabled?")
     ogc_imageformat = models.CharField("Image format", max_length=100, blank=True, null=True, help_text="For WMS/WMTS, e.g., image/png, image/jpeg")
     ogc_getfeatureinfo = models.CharField("OGC WMS GetFeatureInfo URL", max_length=200, blank=True, null=True)
-    ogc_attribution = models.CharField("Attribution", max_length=255, blank=True, null=True, help_text="Attribution / Copyright. To add a link use the following syntax (http://www.adress.de, name)")
+    ogc_attribution = models.CharField("Attribution", max_length=255, blank=True, null=True,
+                                       help_text="Attribution / Copyright. To add a link use the following syntax (http://www.adress.de, name)")
     ogc_times = models.TextField("Time dimension", blank=True, null=True, help_text="Separated by space/blank character")
 
-    statistic = models.CharField("Layer provide data over time (time series) or area (area statistic)", max_length=20, choices=[('time','Time series'),('area','Area')], default=None, null=True, blank=True)
+    statistic = models.CharField("Layer provide data over time (time series) or area (area statistic)", max_length=20,
+                                 choices=[('time', 'Time series'), ('area', 'Area')], default=None, null=True, blank=True)
 
-    #Download services
+    # Download services
     downloadable = models.BooleanField(default=False, help_text="Define whether layer can be downloaded")
     download_url = models.CharField("Download URL", max_length=300, null=True, blank=True, help_text="URL for download")
     download_layer = models.CharField("Download layer", max_length=100, null=True, blank=True, help_text="Layername for download url (only wcs)")
-    download_type = models.CharField("Download type", max_length=20, choices=[("wcs", "WCS"),("link", "Link / URL")], blank=True, help_text="")
+    download_type = models.CharField("Download type", max_length=20, choices=[("wcs", "WCS"), ("link", "Link / URL")], blank=True, help_text="")
     download_file = models.FileField("Download file", upload_to='downloads', null=True, blank=True, help_text="Upload file for layer download")
-    map_layout_image = models.FileField("Map layout image", upload_to="downloads",null=True, blank=True, help_text="Upload for a file with the Map Layout Image")
-    #download_layer = models.CharField(max_length=200, null=True, blank=True)
-    #download_type = models.CharField(max_length=200, choices=[('WCS', 'WCS'), ('WFS', 'WFS'), ('URL', 'URL'), ('SOS', 'SOS')], null=True, blank=True)
+    map_layout_image = models.FileField("Map layout image", upload_to="downloads", null=True, blank=True,
+                                        help_text="Upload for a file with the Map Layout Image")
+    # download_layer = models.CharField(max_length=200, null=True, blank=True)
+    # download_type = models.CharField(max_length=200, choices=[('WCS', 'WCS'), ('WFS', 'WFS'), ('URL', 'URL'), ('SOS', 'SOS')], null=True, blank=True)
 
     # WMTS settings
     wmts_matrixset = models.CharField("WMTS matrix set", max_length=100, null=True, blank=True)
@@ -109,12 +125,14 @@ class Layer(models.Model):
     wmts_prefix_matrix_ids = models.CharField("WMTS prefix matrix ids", max_length=200, blank=True, null=True)
 
     # SOS settings
-    sos_default_field = models.CharField("SOS default field", max_length=100, null=True, blank=True, help_text="If blank, the first field from SOS service will be used as default field")
+    sos_default_field = models.CharField("SOS default field", max_length=100, null=True, blank=True,
+                                         help_text="If blank, the first field from SOS service will be used as default field")
 
-    #Data Quality
+    # Data Quality
 
-    #Dataset description
-    dataset_contact_new = models.ForeignKey(Contact, related_name="dataset_contact", verbose_name="Dataset contact - replaced by Dataset point  of contact(s)", on_delete=models.PROTECT, blank=True, null=True)
+    # Dataset description
+    dataset_contact_new = models.ForeignKey(Contact, related_name="dataset_contact", verbose_name="Dataset contact - replaced by Dataset point  of contact(s)",
+                                            on_delete=models.PROTECT, blank=True, null=True)
     point_of_contacts = models.ManyToManyField(Contact, related_name="meta_point_of_contacts", blank=True, verbose_name="Dataset point of contact(s)")
     date_creation = models.DateField(blank=True, null=True, verbose_name="Dataset creation date")
     date_publication = models.DateField(blank=True, null=True, verbose_name="Dataset publication date")
@@ -123,31 +141,42 @@ class Layer(models.Model):
     characterset = models.CharField(max_length=200, default="utf8", blank=True, null=True)
     format = models.CharField(max_length=200, blank=True, null=True)
     dataset_epsg = models.IntegerField("EPSG code from the dataset", blank=True, null=True, help_text="Just the projection code/number")
-    PROGRESS_ID = ISOcodelist.objects.get(identifier="completed", code_list="MD_ProgressCode").id
-    progress = models.ForeignKey(ISOcodelist, related_name="progress",limit_choices_to={'code_list': 'MD_ProgressCode'}, default=PROGRESS_ID, blank=True, null=True, verbose_name="Progress", on_delete=models.PROTECT)
+    PROGRESS_ID = 1
+    try:
+        PROGRESS_ID = ISOcodelist.objects.get(identifier="completed", code_list="MD_ProgressCode").id
+    except:
+        pass
+    progress = models.ForeignKey(ISOcodelist, related_name="progress", limit_choices_to={'code_list': 'MD_ProgressCode'}, default=PROGRESS_ID, blank=True,
+                                 null=True, verbose_name="Progress", on_delete=models.PROTECT)
 
-    #Geographic location
+    # Geographic location
     west = models.FloatField("BBOX west coordinate", help_text="e.g. -180")
     east = models.FloatField("BBOX east coordinate", help_text="e.g. 180")
     north = models.FloatField("BBOX north coordinate", help_text="e.g. 90")
     south = models.FloatField("BBOX south coordinate", help_text="e.g. -90")
     geo_description = models.CharField("Location description", max_length=200, blank=True, null=True)
 
-
-    #Spatial resolution
-    SPAT_REPRESENTATION_TYPE_ID = ISOcodelist.objects.get(identifier="vector", code_list="MD_SpatialRepresentationTypeCode").id
-    spat_representation_type = models.ForeignKey(ISOcodelist, related_name="representation_type",limit_choices_to={'code_list': 'MD_SpatialRepresentationTypeCode'}, default=SPAT_REPRESENTATION_TYPE_ID, blank=True, null=True, verbose_name="Spatial Representation Type", on_delete=models.PROTECT)
+    # Spatial resolution
+    SPAT_REPRESENTATION_TYPE_ID = 1
+    try:
+        SPAT_REPRESENTATION_TYPE_ID = ISOcodelist.objects.get(identifier="vector", code_list="MD_SpatialRepresentationTypeCode").id
+    except:
+        pass
+    spat_representation_type = models.ForeignKey(ISOcodelist, related_name="representation_type",
+                                                 limit_choices_to={'code_list': 'MD_SpatialRepresentationTypeCode'}, default=SPAT_REPRESENTATION_TYPE_ID,
+                                                 blank=True, null=True, verbose_name="Spatial Representation Type", on_delete=models.PROTECT)
     equi_scale = models.IntegerField("Spatial resolution", blank=True, null=True)
     resolution_distance = models.IntegerField("Resolution", null=True, blank=True)
     resolution_unit = models.CharField("Resolution unit", max_length=30, null=True, blank=True)
     denominator = models.IntegerField("Resolution", null=True, blank=True)
 
-    #Temporal Extent
-    date_begin = models.DateField(blank = True,null=True,verbose_name='Begin temporal extent')
+    # Temporal Extent
+    date_begin = models.DateField(blank=True, null=True, verbose_name='Begin temporal extent')
     date_end = models.DateField(blank=True, null=True, verbose_name='End temporal extent')
 
-    #Metadata
-    meta_contact = models.ForeignKey(Contact, related_name="meta_contact", blank=True, null=True, verbose_name="Metadata contact - replaced by metadata contacts", on_delete=models.PROTECT)
+    # Metadata
+    meta_contact = models.ForeignKey(Contact, related_name="meta_contact", blank=True, null=True,
+                                     verbose_name="Metadata contact - replaced by metadata contacts", on_delete=models.PROTECT)
     meta_contacts = models.ManyToManyField(Contact, related_name="meta_contacts", blank=True, verbose_name="Metadata contact(s)")
     meta_language = models.CharField(max_length=200, default="English", blank=True, verbose_name="Metadata language")
     meta_characterset = models.CharField(max_length=200, default="utf8", blank=True, null=True, verbose_name="Metadata character set")
@@ -156,14 +185,13 @@ class Layer(models.Model):
     meta_file_info = models.TextField("File info e.g. source", null=True, blank=True)
     data_source = models.ManyToManyField("self", verbose_name="Data source", blank=True)
 
-
-    #Legend
+    # Legend
     legend_graphic = models.FileField("Legend graphic file", upload_to='legend', null=True, blank=True)
     legend_url = models.URLField("Legend graphic URL", max_length=400, null=True, blank=True)
     legend_colors = models.TextField("Legend rgb colors", null=True, blank=True)
     legend_info = models.TextField("Legend info", blank=True)
 
-    #Permissions
+    # Permissions
     auth_perm = models.BooleanField("Access permission", default=False, help_text="Activate access permission for layer")
     auth_users = models.ManyToManyField(User, blank=True, related_name='layer_auth_users', verbose_name="Access users")
     auth_groups = models.ManyToManyField(Group, blank=True, related_name='layer_auth_groups', verbose_name="Access groups")
@@ -171,12 +199,12 @@ class Layer(models.Model):
     download_users = models.ManyToManyField(User, blank=True, related_name="layer_download_users")
     download_groups = models.ManyToManyField(Group, blank=True, related_name="layer_download_groups")
 
-    #Zoom
+    # Zoom
     max_zoom = models.IntegerField("Max Zoom level", null=True, blank=True)
     min_zoom = models.IntegerField("Min Zoom level", null=True, blank=True)
 
     def __str__(self):
-        return u"%s" %(self.identifier)
+        return u"%s" % (self.identifier)
 
     @property
     def alternate_title(self):
@@ -203,10 +231,10 @@ class Layer(models.Model):
 
             # retrieve further information about each feature (name, crs, coordinates, first procedure
             featuresAr = []
-            i=1
+            i = 1
             for feature in features:
                 # request GetFeatureOfInterest from SOS
-                f = urlopen(self.ogc_link+'?service=SOS&version=1.0.0&request=GetFeatureOfInterest&FeatureOfInterestId='+feature)
+                f = urlopen(self.ogc_link + '?service=SOS&version=1.0.0&request=GetFeatureOfInterest&FeatureOfInterestId=' + feature)
                 sa = f.read()
                 f.close()
 
@@ -215,8 +243,9 @@ class Layer(models.Model):
                 name = root.find('{http://www.opengis.net/gml}name').text
                 point = root.find('{http://www.opengis.net/sampling/1.0}position').find('{http://www.opengis.net/gml}Point')
                 crsText = point.attrib['srsName']
-                procedure = root.find('{http://www.opengis.net/sampling/1.0}relatedObservation').find('{http://www.opengis.net/om/1.0}Observation').find('{http://www.opengis.net/om/1.0}procedure').attrib['{http://www.w3.org/1999/xlink}href']
-                x,y,z = point.find('{http://www.opengis.net/gml}coordinates').text.split(',')
+                procedure = root.find('{http://www.opengis.net/sampling/1.0}relatedObservation').find('{http://www.opengis.net/om/1.0}Observation').find(
+                    '{http://www.opengis.net/om/1.0}procedure').attrib['{http://www.w3.org/1999/xlink}href']
+                x, y, z = point.find('{http://www.opengis.net/gml}coordinates').text.split(',')
 
                 sensor = sos.describe_sensor(procedure=procedure, outputFormat='text/xml;subtype="sensorML/1.0.1"')
                 sensorRoot = etree.fromstring(sensor)
@@ -226,15 +255,15 @@ class Layer(models.Model):
                     description = name
 
                 # create new geometry and feature object from geojson package
-                f_point = Point(coordinates=(float(x),float(y)), crs=crs.Named(properties={"name": 'urn:ogc:def:crs:OGC:1.3:CRS84'}))
+                f_point = Point(coordinates=(float(x), float(y)), crs=crs.Named(properties={"name": 'urn:ogc:def:crs:OGC:1.3:CRS84'}))
                 f_obj = Feature(geometry=f_point, properties={'name': name, 'description': description, 'procedure': procedure}, id=i)
                 featuresAr.append(f_obj)
-                i = i+1
+                i = i + 1
 
             # create and return FeatureCollection from geojson package
             fcoll = FeatureCollection(featuresAr)
 
-            with open(settings.MEDIA_ROOT+'cache/sos_stations_'+str(self.id)+'.json','w') as f:
+            with open(settings.MEDIA_ROOT + 'cache/sos_stations_' + str(self.id) + '.json', 'w') as f:
                 dump(fcoll, f)
 
             return fcoll
@@ -243,7 +272,8 @@ class Layer(models.Model):
         if self.download_perm == True:
             if not request.user.is_authenticated():
                 raise HttpResponse('Layer download is protected. You are not authenticated. Please log in.')
-            elif request.user not in self.download_users.all() and len(set(list(request.user.groups.all())) & set(list(self.download_groups.all()))) == 0 and request.user.is_superuser != True:
+            elif request.user not in self.download_users.all() and len(
+                    set(list(request.user.groups.all())) & set(list(self.download_groups.all()))) == 0 and request.user.is_superuser != True:
                 raise HttpResponse('Layer download is protected. You are not allowed to download this layer.')
 
         link = None
@@ -256,43 +286,44 @@ class Layer(models.Model):
                 format = request.query_params.get('outputformat')
                 if format == None:
                     format = 'GeoTIFF'
-                                        
+
                 bbox = bbox.split(',')
                 bbox = [float(i) for i in bbox]
-                
+
                 from owslib.wcs import WebCoverageService
-                wcs = WebCoverageService(self.download_url,version='1.0.0')
+                wcs = WebCoverageService(self.download_url, version='1.0.0')
                 l = wcs.contents[self.download_layer]
                 resx = float(l.grid.offsetvectors[0][0])
-                resy = float(l.grid.offsetvectors[1][1])*-1.0
+                resy = float(l.grid.offsetvectors[1][1]) * -1.0
                 min_x = l.boundingBoxWGS84[0]
                 min_y = l.boundingBoxWGS84[1]
-                
-                range_min_x = bbox[0]-min_x
-                range_min_y = bbox[1]-min_y
-                range_max_x = bbox[2]-min_x
-                range_max_y = bbox[3]-min_y
-                
-                range_min_x_pixels = int(range_min_x/resx)
-                range_min_y_pixels = int(range_min_y/resy)
-                range_max_x_pixels = int(range_max_x/resx)
-                range_max_y_pixels = int(range_max_y/resy)
-                
-                bbox_min_x = min_x+(range_min_x_pixels*resx)
-                bbox_min_y = min_y+(range_min_y_pixels*resy)
-                bbox_max_x = min_x+(range_max_x_pixels*resx)
-                bbox_max_y = min_y+(range_max_y_pixels*resy)
-                
+
+                range_min_x = bbox[0] - min_x
+                range_min_y = bbox[1] - min_y
+                range_max_x = bbox[2] - min_x
+                range_max_y = bbox[3] - min_y
+
+                range_min_x_pixels = int(range_min_x / resx)
+                range_min_y_pixels = int(range_min_y / resy)
+                range_max_x_pixels = int(range_max_x / resx)
+                range_max_y_pixels = int(range_max_y / resy)
+
+                bbox_min_x = min_x + (range_min_x_pixels * resx)
+                bbox_min_y = min_y + (range_min_y_pixels * resy)
+                bbox_max_x = min_x + (range_max_x_pixels * resx)
+                bbox_max_y = min_y + (range_max_y_pixels * resy)
+
                 bbox = ','.join([str(bbox_min_x), str(bbox_min_y), str(bbox_max_x), str(bbox_max_y)])
-                
+
                 import requests
-                url = self.download_url+'?service=WCS&request=GetCoverage&version=1.0.0&COVERAGE='+self.download_layer+'&BBOX='+bbox+'&CRS=EPSG:4326&format='+format+'&RESPONSE_CRS=EPSG:4326&RESX='+str(resx)+'&RESY='+str(resy)
+                url = self.download_url + '?service=WCS&request=GetCoverage&version=1.0.0&COVERAGE=' + self.download_layer + '&BBOX=' + bbox + '&CRS=EPSG:4326&format=' + format + '&RESPONSE_CRS=EPSG:4326&RESX=' + str(
+                    resx) + '&RESY=' + str(resy)
                 return url
-                
+
                 # old code
                 data = requests.get(url)
                 content_type = data.headers['CONTENT-TYPE']
-                
+
                 response = HttpResponse(str(data.content), content_type=content_type)
                 filename = 'download.bin'
                 if 'tiff' in content_type.lower():
@@ -313,8 +344,10 @@ class Layer(models.Model):
     class Meta:
         ordering = ['title']
 
+
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
 
 @receiver(post_save, sender=Layer)
 def post_save_layer_sos(sender, instance, **kwargs):
@@ -322,15 +355,12 @@ def post_save_layer_sos(sender, instance, **kwargs):
         instance.cache()
 
 
-
-
-
 # Layergroup model to group layers, just title is needed, the layers were referenced in the LayerInline model
 class Layergroup(models.Model):
-    title = models.CharField(max_length=200) 
-    
+    title = models.CharField(max_length=200)
+
     def __str__(self):
-        return u"%s" %(self.title)
+        return u"%s" % (self.title)
 
 
 # Sortable LayerInline model to reference layers and layergroups
@@ -348,6 +378,7 @@ class LayerInline(models.Model):
         else:
             return self.layer.title
 
+
 # Sortable LayergroupInline model to reference mapviewers and layergroups
 # Foreign Keys: Layergroup, MapViewer
 class LayergroupInline(models.Model):
@@ -357,6 +388,7 @@ class LayergroupInline(models.Model):
 
     def __str__(self):
         return self.layergroup.title
+
 
 class OnlineResourceInline(models.Model):
     order = models.PositiveIntegerField(default=0)
@@ -370,12 +402,14 @@ class OnlineResourceInline(models.Model):
     def __str__(self):
         return self.linkage
 
+
 class OnlineResourceInlineSerializer(serializers.ModelSerializer):
     function = ISOcodelistSerializer(read_only=True)
 
     class Meta:
         model = OnlineResourceInline
-        fields = ('linkage', 'name', 'protocol', 'description', 'function' )
+        fields = ('linkage', 'name', 'protocol', 'description', 'function')
+
 
 class ConstraintLimitInline(models.Model):
     order = models.PositiveIntegerField(default=0)
@@ -385,11 +419,12 @@ class ConstraintLimitInline(models.Model):
     def __str__(self):
         return self.constraints_limit
 
-class ConstraintLimitInlineSerializer(serializers.ModelSerializer):
 
+class ConstraintLimitInlineSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConstraintLimitInline
-        fields = ('constraints_limit', )
+        fields = ('constraints_limit',)
+
 
 class ConstraintConditionsInline(models.Model):
     order = models.PositiveIntegerField(default=0)
@@ -399,21 +434,24 @@ class ConstraintConditionsInline(models.Model):
     def __str__(self):
         return self.constraints_cond
 
-class ConstraintConditionsInlineSerializer(serializers.ModelSerializer):
 
+class ConstraintConditionsInlineSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConstraintConditionsInline
-        fields = ('constraints_cond', )
+        fields = ('constraints_cond',)
+
 
 class ConformityInline(models.Model):
     order = models.PositiveIntegerField(default=0)
     title = models.CharField("Conformity", max_length=400, blank=True, null=True)
     date = models.DateField(blank=True, null=True, verbose_name="Date")
-    date_type = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "CI_DateTypeCode"}, on_delete=models.PROTECT, blank=True, verbose_name="Date type")
+    date_type = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "CI_DateTypeCode"}, on_delete=models.PROTECT, blank=True,
+                                  verbose_name="Date type")
     layer = models.ForeignKey(Layer, related_name='layer_conformity', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.title
+
 
 class ConformityInlineSerializer(serializers.ModelSerializer):
     date_type = ISOcodelistSerializer(read_only=True)
@@ -422,17 +460,20 @@ class ConformityInlineSerializer(serializers.ModelSerializer):
         model = ConformityInline
         fields = ('title', 'date', 'date_type')
 
+
 class KeywordInline(models.Model):
     order = models.PositiveIntegerField(default=0)
     keyword = models.CharField(max_length=200)
     uri = models.CharField(max_length=400, verbose_name="URI", blank=True, null=True)
     thesaurus_name = models.CharField(max_length=300, blank=True, null=True)
     thesaurus_date = models.DateField(blank=True, null=True, verbose_name="Thesaurus publication date")
-    thesaurus_date_type_code_code_value = models.ForeignKey(ISOcodelist,limit_choices_to={'code_list': "CI_DateTypeCode"}, on_delete=models.PROTECT, blank=True, null=True)
+    thesaurus_date_type_code_code_value = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "CI_DateTypeCode"}, on_delete=models.PROTECT,
+                                                            blank=True, null=True)
     layer = models.ForeignKey(Layer, related_name='layer_keywords', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.keyword
+
 
 class KeywordInlineSerializer(serializers.ModelSerializer):
     thesaurus_date_type_code_code_value = ISOcodelistSerializer(read_only=True)
@@ -440,6 +481,7 @@ class KeywordInlineSerializer(serializers.ModelSerializer):
     class Meta:
         model = KeywordInline
         fields = ('keyword', 'thesaurus_name', 'thesaurus_date', 'thesaurus_date_type_code_code_value', 'uri')
+
 
 # Layer serializer used when add layer to map to retrieve fields needed for frontend (e.g., legend, downloadable)
 # Also used in MapViewerDetail view
@@ -452,8 +494,8 @@ class LayerSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'identifier', 'title', 'alternate_title', 'abstract', 'ogc_link', 'ogc_layer', 'ogc_type',
             'ogc_time', 'ogc_times', 'ogc_imageformat', 'ogc_attribution', 'west', 'east', 'north', 'south', 'dataset_epsg',
-            'downloadable','legend_url', 'legend_graphic', 'legend_colors', 'legend_info', 'download', 'download_type', 'map_layout_image',
-            'wmts_matrixset', 'wmts_resolutions', 'wmts_tilesize', 'wmts_projection', 'wmts_multiply','wmts_prefix_matrix_ids',
+            'downloadable', 'legend_url', 'legend_graphic', 'legend_colors', 'legend_info', 'download', 'download_type', 'map_layout_image',
+            'wmts_matrixset', 'wmts_resolutions', 'wmts_tilesize', 'wmts_projection', 'wmts_multiply', 'wmts_prefix_matrix_ids',
             'min_zoom', 'max_zoom', 'meta_file_info', 'resolution_distance', 'resolution_unit', 'statistic')
 
 
@@ -472,6 +514,9 @@ class MetadataSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Layer
-        fields = ('title', 'identifier', 'abstract', 'topicCategory', 'scope', 'layer_keywords', 'layer_constraints_cond', 'layer_constraints_limit', 'layer_conformity', 'layer_online_resource', 'ogc_link', 'ogc_layer', 'ogc_type', 'point_of_contacts','meta_contacts', 'date_creation', 'date_publication', 'date_revision', 'language', 'characterset', 'format', 'west', 'east', 'north', 'south', 'geo_description', 'spat_representation_type', 'equi_scale','resolution_distance', 'resolution_unit','meta_contact', 'meta_language', 'meta_characterset', 'meta_date', 'meta_lineage', 'date_begin', 'date_end', 'dataset_epsg')
-
-
+        fields = (
+        'title', 'identifier', 'abstract', 'topicCategory', 'scope', 'layer_keywords', 'layer_constraints_cond', 'layer_constraints_limit', 'layer_conformity',
+        'layer_online_resource', 'ogc_link', 'ogc_layer', 'ogc_type', 'point_of_contacts', 'meta_contacts', 'date_creation', 'date_publication',
+        'date_revision', 'language', 'characterset', 'format', 'west', 'east', 'north', 'south', 'geo_description', 'spat_representation_type', 'equi_scale',
+        'resolution_distance', 'resolution_unit', 'meta_contact', 'meta_language', 'meta_characterset', 'meta_date', 'meta_lineage', 'date_begin', 'date_end',
+        'dataset_epsg')
