@@ -1,7 +1,7 @@
 from django.apps import AppConfig
 
 
-class MyAppConfig(AppConfig):
+class SwosConfig(AppConfig):
     name = 'swos'
 
     def ready(self):
