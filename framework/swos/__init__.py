@@ -1,2 +1,2 @@
-default_app_config = 'swos.apps.MyAppConfig'
+default_app_config = 'swos.apps.SwosConfig'
 
