@@ -1,14 +1,15 @@
 import urllib
-from urllib.error import (HTTPError, URLError,)
+from urllib.error import (HTTPError, URLError, )
 
 # from django.contrib.auth.models import (Group, User,)
 from django.contrib.gis.db import models
 from django.db.models import Q
+from django.utils.safestring import mark_safe
 from rest_framework import serializers
 
 # from content.models import Country
 # from geospatial.models import Region
-from layers.models import (Contact, ISOcodelist, Layer, MetadataSerializer,)
+from layers.models import (Contact, ISOcodelist, Layer, MetadataSerializer, )
 from map.models import (Map, MapSerializer, MapLayerInline)
 
 
@@ -49,11 +50,12 @@ class SourceLayer(Layer):
     inspire_theme = models.ManyToManyField(InspireTheme, blank=True, related_name="source_inspire_theme")
 
     def check_csw_published(self):
-        return 'GDI-DE: <a href="https://gdk.gdi-de.org/gdi-de/srv/ger/catalog.search#/metadata/%s" target="_blank" >%s</a> GDI-NI: ' \
-               '<a href="http://geoportal.geodaten.niedersachsen.de/harvest/srv/api/records/%s" target="_blank" >show</a>'\
-               % (self.identifier, check_csw_published(self.identifier), self.identifier)
+        return mark_safe('GDI-DE: <a href="https://gdk.gdi-de.org/gdi-de/srv/ger/catalog.search#/metadata/%s" target="_blank" >%s</a> GDI-NI: ' \
+                         '<a href="http://geoportal.geodaten.niedersachsen.de/harvest/srv/api/records/%s" target="_blank" >show</a>' \
+                         % (self.identifier, check_csw_published(self.identifier), self.identifier))
 
-    check_csw_published.allow_tags = True  # in Django 2.0 it will be: return mark_safe('<image src="%s" />' % obj.image) or format_html()
+    # check_csw_published.allow_tags = True
+    # in Django 2.0 it will be: from django.utils.safestring import mark_safe;  return mark_safe('<image src="%s" />' % obj.image) or format_html()
     # https://docs.djangoproject.com/en/3.0/ref/utils/#django.utils.html.format_html
     check_csw_published.short_description = "GDI-DE"  # Overwrite name for display
 
@@ -73,11 +75,16 @@ class InspireDataset(Layer):
         return u"%s" % self.title
 
     def check_csw_published(self):
-        return 'GDI-DE: <a href="https://gdk.gdi-de.org/gdi-de/srv/ger/catalog.search#/metadata/%s" target="_blank" >%s</a> GDI-NI: ' \
-               '<a href="http://geoportal.geodaten.niedersachsen.de/harvest/srv/api/records/%s" target="_blank" >show</a>'\
-               % (self.identifier, check_csw_published(self.identifier), self.identifier)
+        """
+        Search for ...
+        :rtype: object
+        """
+        return mark_safe('GDI-DE: <a href="https://gdk.gdi-de.org/gdi-de/srv/ger/catalog.search#/metadata/%s" target="_blank" >%s</a> GDI-NI: ' \
+                         '<a href="http://geoportal.geodaten.niedersachsen.de/harvest/srv/api/records/%s" target="_blank" >show</a>' \
+                         % (self.identifier, check_csw_published(self.identifier), self.identifier))
 
-    check_csw_published.allow_tags = True  # in Django 2.0 it will be: return mark_safe('<image src="%s" />' % obj.image) or format_html()
+    # check_csw_published.allow_tags = True
+    # in Django 2.0 it will be: from django.utils.safestring import mark_safe;  return mark_safe('<image src="%s" />' % obj.image) or format_html()
     # https://docs.djangoproject.com/en/3.0/ref/utils/#django.utils.html.format_html
     check_csw_published.short_description = "GDI-DE"  # Overwrite name for display
 
@@ -96,6 +103,11 @@ class ProcessingInline(models.Model):
         return self.layer.title + " " + str(self.active)
 
     def save(self, *args, **kwargs):
+        """
+
+        :param args:
+        :param kwargs:
+        """
         if self.active:
             try:
                 temp = ProcessingInline.objects.get(active=True)
@@ -122,11 +134,16 @@ class InspireMap(Map):
     inspire_wfs_last_publication_date = models.DateTimeField(verbose_name="Last publication date", blank=True, null=True)
 
     def check_csw_published(self):
-        return 'GDI-DE: <a href="https://gdk.gdi-de.org/gdi-de/srv/ger/catalog.search#/metadata/%s" target="_blank" >%s</a> GDI-NI: <a ' \
-               'href="http://geoportal.geodaten.niedersachsen.de/harvest/srv/api/records/%s" target="_blank" >show</a>' \
-               % (self.service_identifier, check_csw_published(self.service_identifier), self.service_identifier)
+        """
 
-    check_csw_published.allow_tags = True  # in Django 2.0 it will be: return mark_safe('<image src="%s" />' % obj.image) or format_html()
+        :return:
+        """
+        return mark_safe('GDI-DE: <a href="https://gdk.gdi-de.org/gdi-de/srv/ger/catalog.search#/metadata/%s" target="_blank" >%s</a> GDI-NI: <a ' \
+                         'href="http://geoportal.geodaten.niedersachsen.de/harvest/srv/api/records/%s" target="_blank" >show</a>' \
+                         % (self.service_identifier, check_csw_published(self.service_identifier), self.service_identifier))
+
+    # check_csw_published.allow_tags = True
+    # in Django 2.0 it will be: from django.utils.safestring import mark_safe;  return mark_safe('<image src="%s" />' % obj.image) or format_html()
     # https://docs.djangoproject.com/en/3.0/ref/utils/#django.utils.html.format_html
     check_csw_published.short_description = "GDI-DE"  # Overwrite name for display
 

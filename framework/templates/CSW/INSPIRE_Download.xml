@@ -140,7 +140,7 @@
                <gmd:identifier xmlns:gmd="http://www.isotc211.org/2005/gmd">
                   <gmd:MD_Identifier>
                      <gmd:code>
-                        <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">http://inspire.hameln.de/md/{{map.download_identifier}}</gco:CharacterString>
+                        <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">https://inspire.hameln.de/md/{{map.download_identifier}}</gco:CharacterString>
                      </gmd:code>
                   </gmd:MD_Identifier>
                </gmd:identifier>
@@ -471,7 +471,7 @@
             </srv:SV_OperationMetadata>
          </srv:containsOperations>
           {% for resource_identifier in layer_identifier %}
-              <srv:operatesOn uuidref="{{ resource_identifier }}" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://inspire.hameln.de/md/{{ resource_identifier }}"/>
+              <srv:operatesOn uuidref="{{ resource_identifier }}" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://inspire.hameln.de/md/{{ resource_identifier }}"/>
           {% endfor %}
       </srv:SV_ServiceIdentification>
    </gmd:identificationInfo>

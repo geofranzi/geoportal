@@ -142,7 +142,7 @@
             <gmd:identifier xmlns:gmd="http://www.isotc211.org/2005/gmd">
                   <gmd:MD_Identifier>
                      <gmd:code>
-                        <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">http://inspire.hameln.de/md/{{map.service_identifier}}</gco:CharacterString>
+                        <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">https://inspire.hameln.de/md/{{map.service_identifier}}</gco:CharacterString>
                      </gmd:code>
                   </gmd:MD_Identifier>
                </gmd:identifier>
@@ -492,7 +492,7 @@
             </srv:SV_OperationMetadata>
          </srv:containsOperations>
       {% for resource_identifier in layer_identifier %}
-        <srv:operatesOn uuidref="{{ resource_identifier }}" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://inspire.hameln.de/md/{{ resource_identifier }}"/>
+        <srv:operatesOn uuidref="{{ resource_identifier }}" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://inspire.hameln.de/md/{{ resource_identifier }}"/>
       {% endfor %}
       </srv:SV_ServiceIdentification>
    </gmd:identificationInfo>
@@ -566,7 +566,7 @@
                   <gmd:CI_OnlineResource>
 
                      <gmd:linkage>
-                        <gmd:URL>http://inspire.hameln.de/map/{{map.ows_url_name}}?REQUEST=GetCapabilities&amp;SERVICE=WMS&amp;VERSION=1.3.0</gmd:URL>
+                        <gmd:URL>https://inspire.hameln.de/map/{{map.ows_url_name}}?REQUEST=GetCapabilities&amp;SERVICE=WMS&amp;VERSION=1.3.0</gmd:URL>
                      </gmd:linkage>
                       <gmd:protocol>
                           <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">OGC:WMS-1.3.0-http-get-map</gco:CharacterString>
