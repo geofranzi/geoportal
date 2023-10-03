@@ -11,10 +11,8 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-
-#Path on Windows for gdal and geos
-#GDAL_LIBRARY_PATH = "[path]/venv/Lib/site-packages/osgeo/gdal300.dll"
-#GEOS_LIBRARY_PATH = "[path]/venv/Lib/site-packages/osgeo/geos_c.dll"
+# GDAL_LIBRARY_PATH = "C:/Users/c1zafr/PycharmProjects/GEOPORTAL_INSPIRE/venv_3_10/Lib/site-packages/osgeo/gdal304.dll"
+# GEOS_LIBRARY_PATH = "C:/Users/c1zafr/PycharmProjects/GEOPORTAL_INSPIRE/venv_3_10/Lib/site-packages/osgeo/geos_c.dll"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
@@ -40,12 +38,12 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'artemis.geogr.uni-jena.de', 'swos.ss
 # Application definition
 INSTALLED_APPS = (
     'webgis.apps.SuitConfig',
-    # 'django.contrib.admin',
+     # 'django.contrib.admin',
     'webgis.apps.MyAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.messages',
-    # 'django_messages'
+     # 'django_messages'
     'django.contrib.sessions',
     'django.contrib.staticfiles',
     'django.contrib.sites',
@@ -69,7 +67,7 @@ INSTALLED_APPS = (
     'csw',
     'swos',
     'phaenopt',
-    # 'validation',
+     #'validation',
     'django_assets',
     'inspire'
 )
@@ -103,11 +101,11 @@ DATABASES = {
         #'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
         #'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'swos',
+        'NAME': 'climate_services_gateway',
         'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': '127.0.0.1',
-        'PORT': '5433',
+        'PASSWORD': '',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
@@ -115,8 +113,7 @@ DATABASES = {
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
-# LANGUAGE_CODE = 'de-De'
+LANGUAGE_CODE = 'de-De'
 LOCALE_PATHS = (os.path.join(BASE_DIR, "locale"),)
 TIME_ZONE = 'UTC'
 USE_I18N = True
@@ -146,7 +143,7 @@ ASSETS_ROOT = STATICFILES_DIRS[0]
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
-    "npm.finders.NpmFinder",
+     # "npm.finders.NpmFinder",
     "django_assets.finders.AssetsFinder"
 )
 
@@ -226,12 +223,12 @@ EMAIL_FILE_PATH = os.path.join(BASE_DIR, "media", "email") # change this to a pr
 
 ##################################################
 # ie csrf cookie
-CSRF_COOKIE_DOMAIN='localhost'
-# CSRF_COOKIE_DOMAIN='phaenopt.ssv-hosting.de'
-SESSION_COOKIE_DOMAIN=CSRF_COOKIE_DOMAIN
-USE_X_FORWARDED_HOST=True
-# SESSION_COOKIE_SECURE=True
-# CSRF_COOKIE_SECURE=True
+#CSRF_COOKIE_DOMAIN='localhost'
+#CSRF_COOKIE_DOMAIN='phaenopt.ssv-hosting.de'
+#SESSION_COOKIE_DOMAIN=CSRF_COOKIE_DOMAIN
+#USE_X_FORWARDED_HOST=True
+#SESSION_COOKIE_SECURE=True
+#CSRF_COOKIE_SECURE=True
 
 ##################################################
 # satellite data discovery
@@ -255,7 +252,7 @@ CSW_T_PATH = 'ANPASSEN' #path to pycsw/csw.py; pycsw.cfg: transactions=true, all
 # Elasticsearch
 
 ELASTICSEARCH = False #true: active , empty/false: deactivated
-ELASTICSEARCH_HOSTS = ['ANPASSEN'] 
+ELASTICSEARCH_HOSTS = ['https://localhost:9200']  # Anpassen (needs to be a list)
 
 ##################################################
 # Data download
@@ -269,7 +266,7 @@ DEFAULT_EXTENT_WEST = "9.25"
 DEFAULT_EXTENT_EAST = "9.47"
 DEFAULT_EXTENT_NORTH = "52.16"
 DEFAULT_EXTENT_SOUTH = "52.05"
-GML_PATH = "[path]/]Hale_Export"
+GML_PATH = "[path]/Hale_Export"
 
 if os.name == 'nt':
     VENV_BASE = os.environ['VIRTUAL_ENV']

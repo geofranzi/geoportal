@@ -1,14 +1,14 @@
 from elasticsearch.helpers import bulk
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl.connections import connections
-from elasticsearch_dsl import DocType, Text, Date, Keyword, GeoShape, Index
+from elasticsearch_dsl import Document, Text, Date, Keyword, GeoShape, Index
 from elasticsearch_dsl import FacetedSearch, TermsFacet
 
 from webgis import settings
 
 connections.create_connection(hosts=settings.ELASTICSEARCH_HOSTS)
 
-class LayerIndex(DocType):
+class LayerIndex(Document):
     title = Text()
     category = Text(fields={'raw': Keyword()})
     topiccat = Keyword()
@@ -27,7 +27,7 @@ class LayerIndex(DocType):
     class Meta:
         index = 'layer_index'
 
-class ExternalDatabaseIndex(DocType):
+class ExternalDatabaseIndex(Document):
     name = Text()
     category = Text(fields={'raw': Keyword()})
     provided_information = Text()
@@ -41,7 +41,7 @@ class ExternalDatabaseIndex(DocType):
     class Meta:
         index = 'external_database_index'
 
-class WetlandIndex(DocType):
+class WetlandIndex(Document):
     title = Text()
     category = Text(fields={'raw': Keyword()})
     keywords = Text(fielddata=True, fields={'raw': Keyword()})
