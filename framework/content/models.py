@@ -4,8 +4,12 @@ from __future__ import unicode_literals
 from django.db import models
 from django.contrib.auth.models import User, Group
 from django.contrib.gis.db import models
+from django.db.models import ImageField
 from django.utils.html import format_html
-from django_thumbs.db.models import ImageWithThumbsField
+# from django.db import models
+# from django_thumbs.db.models import ImageWithThumbsField
+
+
 from swos.search_es import LayerIndex, ExternalDatabaseIndex
 from geospatial.models import Region
 
@@ -326,7 +330,7 @@ class Image(models.Model):
     description = models.TextField(null=True, blank=True)
     copyright = models.CharField("Copyright / Owner", max_length=200, blank=True)
     date = models.DateField (blank=True, null=True)
-    image = ImageWithThumbsField(upload_to='images/',  sizes=((125,125), (52, 52), (1300,1000), (1000, 1300)))
+    image = ImageField(upload_to='images/')  # sizes=((125,125), (52, 52), (1300,1000), (1000, 1300))
     region = models.ForeignKey(Region, related_name="image_region", on_delete=models.PROTECT, verbose_name="Region")
 
     def __str__(self):
@@ -334,7 +338,7 @@ class Image(models.Model):
 
     @property
     def image_tag(self):
-        return format_html('<img src="{}" />'.format(self.image.url_125x125))
+        return format_html('<img src="{}" />'.format(self.image.url))  # url_125x125
 
     @property
     def image_size(self):
@@ -423,10 +427,11 @@ class StoryLinePart(models.Model):
     image_description = models.TextField(null=True, blank=True)
     image_copyright = models.CharField("Copyright / Owner", max_length=200, blank=True)
     image_date = models.DateField(blank=True, null=True)
-    image = ImageWithThumbsField(upload_to='images/',
-                                 sizes=((125, 125), (200, 300), (300, 200), (600, 400), (400, 600)), null=True,
+    image = ImageField(upload_to='images/',
+                                 null=True,
                                  blank=True,
                                  help_text="To avoid cutting off parts of your image please resize it in advance. Right position: max. 300px width; Bottom max. 600px. If you upload a GIF please make sure the size is not higher than 500kb")
+                        # sizes=((125, 125), (200, 300), (300, 200), (600, 400), (400, 600))
     image_position = models.CharField(max_length=20, choices=(("right", "right"), ("bottom", "bottom")),
                                       default="right")
     region = models.ForeignKey(Region, on_delete=models.PROTECT,
@@ -442,20 +447,20 @@ class StoryLinePart(models.Model):
     south = models.FloatField("BBOX south coordinate", blank=True, null=True, help_text="e.g. -3,9")
 
     def __str__(self):
-        return u"%s" % (self.wetland.name + "_" + self.headline)
+        return u"%s" % (self.region.name + "_" + self.headline)
 
     @property
     def image_tag(self):
         if not self.image:
             return ""
-        return format_html('<img src="{}" />'.format(self.image.url_125x125))
+        return format_html('<img src="{}" />'.format(self.image.url))  # url_125x125
 
     @property
     def image_url_125(self):
         if not self.image:
             return ""
 
-        return (self.image.url_125x125)
+        return (self.image.url)  # url_125x125
 
     def image_url_300(self):
         if not self.image:
@@ -471,9 +476,9 @@ class StoryLinePart(models.Model):
 
         # detect landscape or portrait format
         if self.image.width > self.image.height:
-            return self.image.url_300x200
+            return self.image.url  # url_300x200
         else:
-            return self.image.url_200x300
+            return self.image.url  # url_200x300
 
     def image_url_600(self):
         if not self.image:
@@ -485,9 +490,9 @@ class StoryLinePart(models.Model):
 
         # detect landscape or portrait format
         if self.image.width > self.image.height:
-            return self.image.url_600x400
+            return self.image.url  # url_600x400
         else:
-            return self.image.url_400x600
+            return self.image.url  # url_400x600
 
 
 class StoryLineInline(models.Model):

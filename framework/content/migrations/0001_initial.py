@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 import django.contrib.gis.db.models.fields
 from django.db import migrations, models
 import django.db.models.deletion
-import django_thumbs.db.models
+# import django_thumbs.db.models
 
 
 class Migration(migrations.Migration):
@@ -71,7 +71,7 @@ class Migration(migrations.Migration):
                 ('description', models.TextField(blank=True, null=True)),
                 ('copyright', models.CharField(blank=True, max_length=200, verbose_name='Copyright / Owner')),
                 ('date', models.DateField(blank=True, null=True)),
-                ('image', django_thumbs.db.models.ImageWithThumbsField(upload_to='images/')),
+                ('image', models.ImageField(upload_to='images/')),
                 ('region', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='image_region', to='geospatial.Region', verbose_name='Region')),
             ],
         ),
@@ -127,7 +127,7 @@ class Migration(migrations.Migration):
                 ('image_description', models.TextField(blank=True, null=True)),
                 ('image_copyright', models.CharField(blank=True, max_length=200, verbose_name='Copyright / Owner')),
                 ('image_date', models.DateField(blank=True, null=True)),
-                ('image', django_thumbs.db.models.ImageWithThumbsField(blank=True, help_text='To avoid cutting off parts of your image please resize it in advance. Right position: max. 300px width; Bottom max. 600px. If you upload a GIF please make sure the size is not higher than 500kb', null=True, upload_to='images/')),
+                ('image', models.ImageField(blank=True, help_text='To avoid cutting off parts of your image please resize it in advance. Right position: max. 300px width; Bottom max. 600px. If you upload a GIF please make sure the size is not higher than 500kb', null=True, upload_to='images/')),
                 ('image_position', models.CharField(choices=[('right', 'right'), ('bottom', 'bottom')], default='right', max_length=20)),
                 ('remove_layer', models.BooleanField(default='False', help_text='Remove added layer on the next step')),
                 ('west', models.FloatField(blank=True, help_text='e.g. -5,3', null=True, verbose_name='BBOX west coordinate')),
