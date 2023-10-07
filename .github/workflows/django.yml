@@ -25,8 +25,7 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get install libgdal-dev
-        sudo apt-get install libsqlite3-mod-spatialite
-        sqlite> select load_extension(“mod_spatialite”);
+        sudo apt-get install -y libsqlite3-mod-spatialite
         export CPLUS_INCLUDE_PATH=/usr/include/gdal
         export C_INCLUDE_PATH=/usr/include/gdal
         python -m pip install --upgrade pip
