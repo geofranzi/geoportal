@@ -1,18 +1,18 @@
-from django.http import Http404, HttpResponse
-from django.shortcuts import redirect
+import json
+from urllib.request import urlopen
 from wsgiref.util import FileWrapper
 
-from rest_framework import serializers, status
-from rest_framework.views import APIView
+from django.http import (Http404, HttpResponse,)
+from django.shortcuts import redirect
+from owslib.etree import etree
+from rest_framework import (serializers, status,)
 from rest_framework.response import Response
-from urllib.request import urlopen
-import json
+from rest_framework.views import APIView
 
 from webgis import settings
 
-from .models import Layer, Contact, MetadataSerializer, KeywordInlineSerializer, KeywordInline
+from .models import (Contact, KeywordInline, KeywordInlineSerializer, Layer, MetadataSerializer,)
 
-from owslib.etree import etree
 
 # Contact serializer used in LayerSerializer
 class ContactSerializer(serializers.ModelSerializer):
@@ -28,7 +28,7 @@ class LayerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Layer
         fields = ('title', 'abstract', 'dataset_contact_new', 'downloadable')
-        
+
 
 # View to list all layers (not used in production!)
 class LayerList(APIView):
@@ -82,18 +82,18 @@ class LayerInfo(APIView):
     def get(self, request, *args, **kwargs):
         urls = request.query_params.get('url')
         urls = urls.split('||')
-        
+
         names = request.query_params.get('names')
         names = names.split('||')
 
-        return_json =[]
+        return_json = []
         return_all = {}
 
         htmloutput = ''
         for index, url in enumerate(urls):
 
             try:
-                #url = url.replace('text%2Fhtml', 'text%2Fplain')
+                # url = url.replace('text%2Fhtml', 'text%2Fplain')
                 f = urlopen(url)
                 code = f.code
                 output = f.read()
@@ -103,10 +103,10 @@ class LayerInfo(APIView):
 
             # return json object as it is if info_format / infoformat was application/json (only SWOS layer)
             if "application" in url and "json" in url:
-                return_json.append({"output": output, "name":names[index] })
+                return_json.append({"output": output, "name": names[index]})
                 continue
 
-            htmloutput += '<p><strong>'+names[index]+'</strong><br/>'
+            htmloutput += '<p><strong>' + names[index] + '</strong><br/>'
 
             try:
                 if '<ServiceExceptionReport' in output:
@@ -121,7 +121,7 @@ class LayerInfo(APIView):
                     xml = etree.fromstring(output)
                     code = xml.getchildren()[0].attrib['exceptionCode']
                     if code == 'TileOutOfRange':
-                        #htmloutput += "No data available at this location"
+                        # htmloutput += "No data available at this location"
                         htmloutput = htmloutput[:htmloutput.rfind('<p><strong>')] + htmloutput[htmloutput.rfind('<br/>') + 5:]
                     else:
                         htmloutput += xml.getchildren()[0].getchildren()[0].text.strip()
@@ -136,33 +136,32 @@ class LayerInfo(APIView):
                             output = output.replace('GRAY_INDEX', 'Value')
                     if 'fid' in output:
                         output = output.replace('<th>fid</th>', '')
-                        output = output[:output.find('<td>')] + output[output.find('</td>')+5:]
+                        output = output[:output.find('<td>')] + output[output.find('</td>') + 5:]
 
                     import re
                     matches = re.findall(r'<td>(\d.*\d)</td>', output)
                     for match in matches:
-                        print (match)
+                        print(match)
                         match_float = None
                         try:
                             match_float = float(match)
                         except ValueError:
-                            print ("Not a float")
+                            print("Not a float")
 
                         if isinstance(match_float, float):
                             length = 0
                             if '.' in match:
                                 length = len(match) - match.index('.') - 1
                             if length > 3:
-                                new =  "{0:.3f}".format(match_float)
-                                output = output.replace("<td>"+match+"</td>","<td>"+new+"</td>")
+                                new = "{0:.3f}".format(match_float)
+                                output = output.replace("<td>" + match + "</td>", "<td>" + new + "</td>")
 
                     if '<table' in output:
                         htmloutput += output
                     else:
-                        htmloutput = htmloutput[:htmloutput.rfind('<p><strong>')] + htmloutput[htmloutput.rfind('<br/>')+5:]
+                        htmloutput = htmloutput[:htmloutput.rfind('<p><strong>')] + htmloutput[htmloutput.rfind('<br/>') + 5:]
 
-
-            except Exception as e:
+            except Exception:
                 htmloutput += 'An error occurred while requesting data'
             htmloutput += '</p>'
 
@@ -185,12 +184,14 @@ class DataRequest(APIView):
 
 
 # REST view to extract all stations of an SOS service & offering and provide a GeoJSON
-import geojson
+import geojson  # noqa E402
+
+
 class GetSOSStations(APIView):
     def get(self, request, pk, *args, **kwargs):
         layer = Layer.objects.get(pk=pk)
 
-        with open(settings.MEDIA_ROOT+'cache/sos_stations_'+str(layer.id)+'.json', 'r') as f:
+        with open(settings.MEDIA_ROOT + 'cache/sos_stations_' + str(layer.id) + '.json', 'r') as f:
             coll = geojson.load(f)
             return Response(coll)
 
@@ -198,8 +199,9 @@ class GetSOSStations(APIView):
 
 
 # REST view to get observations for a given layer (sos server) and procedure
-from dateutil import parser
-from dateutil.relativedelta import relativedelta
+from dateutil import parser  # noqa E402
+from dateutil.relativedelta import relativedelta  # noqa E402
+
 
 class GetSOSObservation(APIView):
     def get(self, request, *args, **kwargs):
@@ -207,31 +209,31 @@ class GetSOSObservation(APIView):
         procedure = str(request.query_params.get('procedure'))
 
         download = False
-        if request.query_params.has_key('download'):
+        if 'download' in request.query_params:
             download = True
 
         start = None
-        if request.query_params.has_key('start'):
+        if 'start' in request.query_params:
             try:
                 start = parser.parse(request.query_params.get('start').replace('Z', ''))
-            except:
+            except Exception:
                 pass
 
         end = None
-        if request.query_params.has_key('end'):
+        if 'end' in request.query_params:
             try:
                 end = parser.parse(request.query_params.get('end').replace('Z', ''))
-            except:
+            except Exception:
                 pass
 
         observedProperty = None
-        if request.query_params.has_key('param'):
+        if 'param' in request.query_params:
             observedProperty = request.query_params.get('param')
 
         # get layer object from given id
         try:
             layer = Layer.objects.get(pk=django_layer_id)
-        except:
+        except Exception:
             raise Http404
 
         # get sos url and name of offering from layer
@@ -243,7 +245,7 @@ class GetSOSObservation(APIView):
         # generate Sensor Observation Object
         try:
             sos = SensorObservationService(sos_url, version='1.0.0')
-        except:
+        except Exception:
             raise Http404
 
         # describe sensor request lists any fields for this procedure / station
@@ -251,7 +253,7 @@ class GetSOSObservation(APIView):
         outputFormat = "text/xml;subtype='sensorML/1.0.0'"
         try:
             outputFormat = meta.parameters['outputFormat']['values'][0]
-        except:
+        except Exception:
             pass
         sensor = sos.describe_sensor(procedure=procedure, outputFormat=outputFormat)
 
@@ -268,7 +270,7 @@ class GetSOSObservation(APIView):
             name = field.attrib['name']
             item = field.getchildren()[0]
             definition = item.attrib['definition']
-            if activeField == None and name == layer.sos_default_field:
+            if activeField is None and name == layer.sos_default_field:
                 activeField = definition
             if item.tag == '{http://www.opengis.net/swe/1.0.1}Time':
                 value = item.find('.//{http://www.opengis.net/swe/1.0.1}interval').text.split(' ')
@@ -283,27 +285,28 @@ class GetSOSObservation(APIView):
         if len(fields) > 1:
 
             # At the moment only the first field can be used in get observation request
-            if activeField != None:
+            if activeField is not None:
                 observedProperty = activeField
-            if observedProperty == None or observedProperty not in parametersList:
+            if observedProperty is None or observedProperty not in parametersList:
                 observedProperty = parameters[0]['definition']
 
             # At the moment only the complete date range is used for get observation request
-            if end == None:
+            if end is None:
                 endTime = fields[0]['interval'][1]
                 end = parser.parse(endTime)
 
-            if start == None:
+            if start is None:
                 startTime = fields[0]['interval'][0]
                 start = parser.parse(startTime)
-                #start = end - relativedelta(years=1)
+                # start = end - relativedelta(years=1)
 
             start = str(start).replace(' ', 'T')
             end = str(end).replace(' ', 'T')
             eventTime = start + '/' + end
 
             # execute get observation request
-            res = sos.get_observation(offerings=[sos_offering], responseFormat='application/json', observedProperties=[observedProperty], eventTime=eventTime, procedure=procedure)
+            res = sos.get_observation(offerings=[sos_offering], responseFormat='application/json', observedProperties=[observedProperty], eventTime=eventTime,
+                                      procedure=procedure)
 
             # load JSON result
             try:
@@ -314,14 +317,14 @@ class GetSOSObservation(APIView):
             name, samplingTime, result, feature, observedPropertyRes, procedure = j['ObservationCollection']['member'][0].values()
 
             # save and return as CSV
-            if download == True:
+            if download is True:
                 from pandas import DataFrame
                 columns = [item['definition'] for item in result['DataArray']['field']]
                 d = DataFrame(result['DataArray']['values'], columns=columns)
                 d.set_index(columns[0], inplace=True)
 
                 import tempfile
-                f=tempfile.TemporaryFile()
+                f = tempfile.TemporaryFile()
                 d.to_csv(f)
                 f.seek(0)
 
@@ -331,7 +334,9 @@ class GetSOSObservation(APIView):
 
             else:
                 # only returned values und fields are relevant for us
-                output = {'start': start, 'end': end, 'minDate': fields[0]['interval'][0], 'maxDate': fields[0]['interval'][1], 'param': parametersList[observedProperty], 'parameters': parameters, 'dimensions': result['DataArray']['elementCount'], 'values':result['DataArray']['values'], 'fields': result['DataArray']['field']}
+                output = {'start': start, 'end': end, 'minDate': fields[0]['interval'][0], 'maxDate': fields[0]['interval'][1],
+                          'param': parametersList[observedProperty], 'parameters': parameters, 'dimensions': result['DataArray']['elementCount'],
+                          'values': result['DataArray']['values'], 'fields': result['DataArray']['field']}
                 return Response(output)
 
         else:
@@ -341,18 +346,18 @@ class GetSOSObservation(APIView):
 class GetWMSCapabilities(APIView):
     def get(self, request, *args, **kwargs):
         url = request.query_params.get('url')
-        #type = request.query_params.get('type')
+        # type = request.query_params.get('type')
 
         f = urlopen(url)
         from lxml import etree
         try:
             xml = etree.parse(f)
-        except:
+        except Exception:
             return Response({}, status=status.HTTP_400_BAD_REQUEST)
 
-        ns = {'ows':'http://www.opengis.net/ows/1.1'}
+        ns = {'ows': 'http://www.opengis.net/ows/1.1'}
         ns['wms'] = 'http://www.opengis.net/wms'
-        #ns['wmts'] = 'http://www.opengis.net/wmts/1.0'
+        # ns['wmts'] = 'http://www.opengis.net/wmts/1.0'
 
         version = xml.getroot().attrib['version']
 
@@ -362,7 +367,8 @@ class GetWMSCapabilities(APIView):
             nsWMS = 'wms:'
             timeElement = 'wms:Dimension'
 
-        getMapResource = xml.xpath('//wms:Capability/wms:Request/wms:GetMap/wms:DCPType/wms:HTTP/wms:Get/wms:OnlineResource'.replace('wms:', nsWMS), namespaces=ns)[0]
+        getMapResource = \
+            xml.xpath('//wms:Capability/wms:Request/wms:GetMap/wms:DCPType/wms:HTTP/wms:Get/wms:OnlineResource'.replace('wms:', nsWMS), namespaces=ns)[0]
         server_url = getMapResource.attrib['{http://www.w3.org/1999/xlink}href']
 
         server_layers = []
@@ -389,7 +395,7 @@ class GetWMSCapabilities(APIView):
                     layerObj['south'] = float(bbox_elem.attrib['miny'])
                     layerObj['north'] = float(bbox_elem.attrib['maxy'])
 
-            time = layer.find('./'+timeElement+'[@name="time"]', namespaces=ns)
+            time = layer.find('./' + timeElement + '[@name="time"]', namespaces=ns)
             if isinstance(time, etree._Element):
                 if 'default' in time.keys():
                     layerObj['selectedDate'] = time.attrib['default']
@@ -414,15 +420,18 @@ class GetWMTSCapabilities(APIView):
         from lxml import etree
         try:
             xml = etree.parse(f)
-        except:
+        except Exception:
             return Response({}, status=status.HTTP_400_BAD_REQUEST)
 
-        ns = {'ows':'http://www.opengis.net/ows/1.1'}
+        ns = {'ows': 'http://www.opengis.net/ows/1.1'}
         ns['wmts'] = 'http://www.opengis.net/wmts/1.0'
 
-        version = xml.getroot().attrib['version']
+        # version = xml.getroot().attrib['version']
 
-        resourceGetKVP = xml.xpath('//ows:OperationsMetadata/ows:Operation[@name="GetTile"]/ows:DCP/ows:HTTP/ows:Get/ows:Constraint[@name="GetEncoding"]/ows:AllowedValues/ows:Value[text()="KVP"]/parent::node()/parent::node()/parent::node()', namespaces=ns)
+        resourceGetKVP = xml.xpath(
+            '//ows:OperationsMetadata/ows:Operation[@name="GetTile"]/ows:DCP/ows:HTTP/ows:Get/ows:Constraint[@name="GetEncoding"]'
+            '/ows:AllowedValues/ows:Value[text()="KVP"]/parent::node()/parent::node()/parent::node()',
+            namespaces=ns)
         if len(resourceGetKVP) > 0:
             server_url = resourceGetKVP[0].attrib['{http://www.w3.org/1999/xlink}href']
 
@@ -450,15 +459,15 @@ class GetWMTSCapabilities(APIView):
                 time = time[0]
                 layerObj['selectedDate'] = time.find('./wmts:Default', namespaces=ns).text
                 times_xml = time.findall('./wmts:Value', namespaces=ns)
-                
+
                 if len(times_xml) > 0:
                     times = []
                     for time in times_xml:
                         times.append(time.text)
-                    layerObj['timeRange'] = ','.join(times) 
+                    layerObj['timeRange'] = ','.join(times)
 
-            # Get TileMatrix set
-            matrixset = xml.xpath('//wmts:TileMatrixSet/ows:Identifier[text()="'+layerObj['wmts_matrixset']+'"]/parent::node()', namespaces=ns)
+                    # Get TileMatrix set
+            matrixset = xml.xpath('//wmts:TileMatrixSet/ows:Identifier[text()="' + layerObj['wmts_matrixset'] + '"]/parent::node()', namespaces=ns)
             if len(matrixset) > 0:
                 matrixset = matrixset[0]
                 layerObj['wmts_projection'] = matrixset.find('./ows:SupportedCRS', namespaces=ns).text
@@ -476,16 +485,17 @@ class GetWMTSCapabilities(APIView):
 
         return Response({'url': server_url, 'layers': server_layers})
 
+
 class GetTimeValues(APIView):
     def get(self, request, *args, **kwargs):
         value = request.query_params.get('time')
-        if value == None or value == '':
-            return Response({'error':'No time range given'}, status=status.HTTP_400_BAD_REQUEST)
+        if value is None or value == '':
+            return Response({'error': 'No time range given'}, status=status.HTTP_400_BAD_REQUEST)
 
         dates = []
 
         start, end, interval = value.split('/')
-        from dateutil import parser, rrule
+        from dateutil import (parser, rrule,)
         start = parser.parse(start)
         end = parser.parse(end)
 
@@ -504,9 +514,8 @@ class GetTimeValues(APIView):
         elif interval == 'P1Y':
             timerange = rrule.YEARLY
 
-        if timerange != None:
+        if timerange is not None:
             for dt in rrule.rrule(timerange, interval=intval, dtstart=start, until=end):
                 dates.append(dt.strftime('%Y-%m-%d'))
 
-        return Response({'dates':dates})
-
+        return Response({'dates': dates})

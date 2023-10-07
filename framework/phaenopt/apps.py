@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.apps import AppConfig
+import datetime
+import glob
+import json
+import os
 
+import pandas
 #from .models import CitizenScienceData, CitizenScienceProject, DWDStation
 import requests
-import json
-import glob
-import pandas
-import datetime
-import os
-from shapely.geometry import shape, Point
+from django.apps import AppConfig
+from shapely.geometry import (Point, shape,)
+
 
 class PhaenoptConfig(AppConfig):
     name = 'phaenopt'

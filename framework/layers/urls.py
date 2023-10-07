@@ -1,6 +1,9 @@
 # from django.conf.urls import url
 from django.urls import re_path
+from rest_framework.urlpatterns import format_suffix_patterns
+
 from . import views
+
 
 urlpatterns = [
     re_path(r'^list/$', views.LayerList.as_view(), name='layer_list'),
@@ -16,5 +19,6 @@ urlpatterns = [
 ]
 
 # Used for detail/<pk>.json
-from rest_framework.urlpatterns import format_suffix_patterns
+
+
 urlpatterns = format_suffix_patterns(urlpatterns, allowed=['json'])

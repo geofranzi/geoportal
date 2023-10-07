@@ -1,12 +1,13 @@
-from django.template.loader import get_template
-from webgis import settings
-from owslib.util import http_post
 import os.path
-from django.contrib.sites.models import Site
 
+from django.contrib.sites.models import Site
+from django.template.loader import get_template
+from owslib.util import http_post
 
 from layers.models import MetadataSerializer
 from swos.models import WetlandLayer
+from webgis import settings
+
 
 #Create insert and delete XML
 def create_csw_xml(instance):

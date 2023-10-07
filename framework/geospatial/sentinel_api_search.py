@@ -15,13 +15,13 @@ __version__ = '0.4'
 # imports
 ###########################################################
 
-import os
-import sys
-import requests
-
-from shapely.wkt import loads
 import json
-from datetime import datetime, date
+import os
+# import sys
+from datetime import (date, datetime,)
+
+import requests
+from shapely.wkt import loads
 
 
 class SentinelDownloader(object):
@@ -50,7 +50,7 @@ class SentinelDownloader(object):
 
         """
         print('Set geometries:')
-        #print(geometries)
+        # print(geometries)
         if isinstance(geometries, list):
             self.__geometries = geometries
 
@@ -94,7 +94,7 @@ class SentinelDownloader(object):
         """
         print('===========================================================')
         print('Search data for platform %s' % platform)
-        #if platform != 'S1A*' and platform != 'S2A*':
+        # if platform != 'S1A*' and platform != 'S2A*':
         #    raise Exception('platform parameter has to be S1A or S2A')
 
         if download_dir is not None:
@@ -127,14 +127,14 @@ class SentinelDownloader(object):
                 print('Search URL: %s' % url)
                 subscenes = self._search_request(url)
                 if len(subscenes) > 0:
-                    print('found %s scenes on page %s' % (len(subscenes), index//100+1))
+                    print('found %s scenes on page %s' % (len(subscenes), index // 100 + 1))
                     scenes += subscenes
                     index += 100
                 if len(subscenes) < 100:
                     break
             print('%s scenes after initial search' % len(scenes))
             if len(scenes) > 0:
-                #scenes = self._filter_existing(scenes, self.__download_dir)
+                # scenes = self._filter_existing(scenes, self.__download_dir)
                 scenes = self._filter_overlap(scenes, geom, min_overlap)
                 print('%s scenes after filtering before merging' % len(scenes))
                 self.__scenes = self._merge_scenes(self.__scenes, scenes)
@@ -151,7 +151,7 @@ class SentinelDownloader(object):
         if len(dates) == 0:
             return {'count': count, 'begindate': 0, 'enddate': 0}
         return {'count': count, 'begindate': min(dates), 'enddate': max(dates)}
-    
+
     def get_summary_by_year(self):
         data = {}
         for scene in self.__scenes:
@@ -159,16 +159,16 @@ class SentinelDownloader(object):
             if year not in data:
                 data[year] = []
             data[year].append(scene)
-        
+
         result = {}
         for year in data:
             result[year] = len(data[year])
-        
-        return result        
-    
+
+        return result
+
     def clean(self):
         self.__scenes = []
-    
+
     def get_scenes(self):
         """Return searched and filtered scenes"""
         return self.__scenes
@@ -225,7 +225,7 @@ class SentinelDownloader(object):
         except requests.exceptions.RequestException as exc:
             print('Error: {}'.format(exc))
             return []
-        
+
         except ValueError as exc:
             print('Error: {}'.format(exc))
             print(content.text)
@@ -268,7 +268,7 @@ class SentinelDownloader(object):
             scenes_dict.append(item)
 
         return scenes_dict
-    
+
     def _filter_overlap(self, scenes, wkt_geometry, min_overlap=0):
         """Filter scenes based on the minimum overlap to the area of interest
 
@@ -341,7 +341,7 @@ class SentinelDownloader(object):
             for scene in self.__scenes:
                 outfile.write('wget -c -T120 --no-check-certificate --user=%s --password=%s -O %s%s.zip "%s"\n' % (
                     self.__esa_username, self.__esa_password, self.__download_dir, scene['title'],
-                    scene['url'].replace('$', '\$')
+                    scene['url'].replace('$', '\$')  # noqa: W605
                 ))
         return None
 
@@ -372,7 +372,9 @@ def main(username, password):
         password: Your password of ESA Data Hub
 
     s1 = SentinelDownloader(username, password, api_url='https://scihub.copernicus.eu/apihub/')
-    s1.set_geometries('POLYGON ((13.501756184061247 58.390759025092443,13.617310497771715 58.371827474899703,13.620921570075168 58.27891592167088,13.508978328668151 58.233319081414017,13.382590798047325 58.263723491583974,13.382590798047325 58.263723491583974,13.501756184061247 58.390759025092443))')
+    s1.set_geometries('POLYGON ((13.501756184061247 58.390759025092443,13.617310497771715 58.371827474899703,
+    13.620921570075168 58.27891592167088,13.508978328668151 58.233319081414017,13.382590798047325 58.263723491583974,
+    13.382590798047325 58.263723491583974,13.501756184061247 58.390759025092443))')
     s1.set_download_dir('./') # default is current directory
     s1.search('S1A*', 0.8, productType='GRD', sensoroperationalmode='IW')
     s1.write_results(type='wget', file='test.sh.neu')  # use wget, urls or json as type
@@ -383,7 +385,9 @@ def main(username, password):
     s1 = SentinelDownloader(username, password, api_url='https://scihub.copernicus.eu/apihub/')
     # s1.load_sites('wetlands_v8.shp')
     s1.set_geometries(
-        'POLYGON ((13.501756184061247 58.390759025092443,13.617310497771715 58.371827474899703,13.620921570075168 58.27891592167088,13.508978328668151 58.233319081414017,13.382590798047325 58.263723491583974,13.382590798047325 58.263723491583974,13.501756184061247 58.390759025092443))')
+        'POLYGON ((13.501756184061247 58.390759025092443,13.617310497771715 58.371827474899703,13.620921570075168 58.27891592167088,'
+        '13.508978328668151 58.233319081414017,13.382590798047325 58.263723491583974,13.382590798047325 58.263723491583974,'
+        '13.501756184061247 58.390759025092443))')
     s1.set_download_dir('./')  # default is current directory
     s1.search('S1A*', 0.8, productType='GRD', sensoroperationalmode='IW')
     s1.write_results(file_type='wget', filename='sentinel_api_download.sh')  # use wget, urls or json as type

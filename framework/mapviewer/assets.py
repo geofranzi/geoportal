@@ -1,7 +1,8 @@
-from django_assets import Bundle, register
-from os import path
 from glob import glob
+from os import path
+
 from django.conf import settings
+from django_assets import (Bundle, register,)
 
 
 def glob_files(path_str):
@@ -12,6 +13,7 @@ def glob_files(path_str):
 def make_bundle(bundle_name, file_list, filters, output):
     bundle = Bundle(*file_list, filters=filters, output=output)
     register(bundle_name, bundle)
+
 
 ########################################################################################################################
 # Vendor JS
@@ -37,7 +39,7 @@ baseVendorJs = [
     'bootstrap-slider/dist/bootstrap-slider.min.js',
     'bootstrap-select/dist/js/bootstrap-select.min.js',
     'angular-bootstrap-slider/slider.js',
-    'lib/jquery-drags.js',      # not on npmjs.com
+    'lib/jquery-drags.js',  # not on npmjs.com
     'anno.js/dist/anno.js',
     'lib/jquery.fancybox.pack_adjusted.js'  # not on npmjs.com
 ]
@@ -76,7 +78,6 @@ validationVendorJs.extend([
     'proj4/dist/proj4.js'
 ])
 make_bundle('validationVendorJsBundle', validationVendorJs, filters='rjsmin', output='build/validation.vendor.bundle.js')
-
 
 ########################################################################################################################
 # App JS
@@ -139,7 +140,7 @@ make_bundle('validationAppJsBundle', validationAppJs, filters='uglifyjs', output
 # Vendor CSS
 vendorCss = [
     'bootstrap/dist/css/bootstrap.min.css',
-    'css/bootstrap.diff.css',   # changes from modified less files
+    'css/bootstrap.diff.css',  # changes from modified less files
     'bootstrap-slider/dist/css/bootstrap-slider.min.css',
     'bootstrap-select/dist/css/bootstrap-select.min.css',
     'font-awesome/css/font-awesome.min.css',
@@ -154,7 +155,6 @@ make_bundle('baseVendorCssBundle', vendorCss, filters='cssmin', output='build/ba
 arbisVendorCss = vendorCss[:]
 # arbisVendorCss.extend([])
 make_bundle('arbisVendorCssBundle', arbisVendorCss, filters='cssmin', output='build/arbis.vendor.bundle.css')
-
 
 swosVendorCss = vendorCss[:]
 swosVendorCss.extend([
@@ -174,7 +174,6 @@ geossVendorCss.extend([
     'lib/geoss/css/sitecustom.css'
 ])
 make_bundle('geossVendorCssBundle', geossVendorCss, filters='cssmin', output='lib/geoss/css/geoss.vendor.bundle.css')
-
 
 ########################################################################################################################
 # App CSS

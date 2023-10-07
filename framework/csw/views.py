@@ -1,10 +1,13 @@
 from django.http import Http404
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework import status
-from .models import CSW
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from mapviewer.models import MapViewer
+
+
+# from .models import CSW
+
 
 # REST view to provide CSW-based search
 class CSWRequest(APIView):
@@ -21,14 +24,14 @@ class CSWRequest(APIView):
 
         text = params.get('text')
         bbox = None
-        if params.has_key('bbox'):
+        if 'bbox' in params:
             if isinstance(params.get['bbox'], list):
                 bbox = params.get('bbox')
             else:
                 bbox = None
 
         start = 0
-        if params.has_key('start'):
+        if 'start' in params:
             start = int(params.get('start'))
 
         # search in CSW server

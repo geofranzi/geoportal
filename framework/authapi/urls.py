@@ -1,9 +1,9 @@
-from django.urls import include, re_path
+import django
+from dj_rest_auth.registration.views import VerifyEmailView
+from django.urls import (include, re_path,)
+
 from . import views
 
-import django
-
-from dj_rest_auth.registration.views import VerifyEmailView
 
 urlpatterns = [
     re_path(r'^rest/', include('dj_rest_auth.urls')),

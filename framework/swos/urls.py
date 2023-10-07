@@ -1,8 +1,11 @@
 # from django.conf.urls import url
 # from djgeojson.views import GeoJSONLayerView
 
-from . import models, views
 from django.urls import re_path
+
+from . import (models, views,)
+
+
 #class MapLayer(GeoJSONLayerView):
     # Options
     #precision = 4   # float

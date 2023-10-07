@@ -5,5 +5,5 @@ class SwosConfig(AppConfig):
     name = 'swos'
 
     def ready(self):
-        import swos.signals
         import swos.search_es
+        import swos.signals

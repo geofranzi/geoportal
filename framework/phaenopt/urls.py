@@ -1,6 +1,8 @@
 # from django.conf.urls import url
 from django.urls import re_path
-from . import models, views
+
+from . import (models, views,)
+
 
 # register URLs for each app + media URLs
 urlpatterns = [

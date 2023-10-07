@@ -10,9 +10,10 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+
+
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-# GDAL_LIBRARY_PATH = "C:/Users/c1zafr/PycharmProjects/GEOPORTAL_INSPIRE/venv_3_10/Lib/site-packages/osgeo/gdal304.dll"
-# GEOS_LIBRARY_PATH = "C:/Users/c1zafr/PycharmProjects/GEOPORTAL_INSPIRE/venv_3_10/Lib/site-packages/osgeo/geos_c.dll"
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
@@ -103,7 +104,7 @@ DATABASES = {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'climate_services_gateway',
         'USER': 'postgres',
-        'PASSWORD': '',
+        'PASSWORD': 'admin',
         'HOST': 'localhost',
         'PORT': '5432',
     }
@@ -170,6 +171,7 @@ REST_FRAMEWORK = {
 ##################################################
 # django-suit adjustments
 import django
+
 
 TEMPLATES = [
     {
@@ -266,7 +268,7 @@ DEFAULT_EXTENT_WEST = "9.25"
 DEFAULT_EXTENT_EAST = "9.47"
 DEFAULT_EXTENT_NORTH = "52.16"
 DEFAULT_EXTENT_SOUTH = "52.05"
-GML_PATH = "[path]/Hale_Export"
+GML_PATH = "C:/Users/c1zafr/OneDrive/INSPIRE_HM/03_Umsetzung/Hale_Export"
 
 if os.name == 'nt':
     VENV_BASE = os.environ['VIRTUAL_ENV']

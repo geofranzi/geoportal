@@ -1,16 +1,18 @@
-from django.db import models
-from django.contrib.auth.models import User, Group
-from django.http import Http404, HttpResponse
-from rest_framework import serializers
-from django.contrib.gis.db import models
-from swos.search_es import LayerIndex, WetlandIndex
-
-from layers.models import Layer, ISOcodelist, KeywordInline, Contact
-from content.models import Country, Image, Video
-from geospatial.models import Region
-
 import json
+
 import matplotlib
+from django.contrib.auth.models import (Group, User,)
+from django.contrib.gis.db import models
+from django.db import models
+from django.http import (Http404, HttpResponse,)
+from rest_framework import serializers
+
+from content.models import (Country, Image, Video,)
+from geospatial.models import Region
+from layers.models import (Contact, ISOcodelist, KeywordInline, Layer,)
+from swos.search_es import (LayerIndex, WetlandIndex,)
+
+
 matplotlib.use('Agg')
 
 

@@ -1,12 +1,12 @@
 # django-suit config
 from django.apps import AppConfig
-from suit.apps import DjangoSuitConfig
-from suit.menu import ParentItem, ChildItem
-from webgis import settings
 # from django.apps import AppConfig
 from django.contrib import admin as ad
 from django.contrib.admin.apps import AdminConfig
-from django.apps import AppConfig
+from suit.apps import DjangoSuitConfig
+from suit.menu import (ChildItem, ParentItem,)
+
+from webgis import settings
 
 
 class SuitConfig(DjangoSuitConfig):

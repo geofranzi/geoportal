@@ -3,9 +3,12 @@ from __future__ import unicode_literals
 
 from django.contrib import admin
 from suit.sortables import SortableModelAdmin
-from .models import Product, Pheno, PhenoLayer, CitizenScienceProject
+
+from content.admin import (make_downloadable, make_non_downloadable, make_publishable, make_unpublishable,)
 from layers.admin import LayersAdmin
-from content.admin import make_downloadable, make_non_downloadable, make_publishable, make_unpublishable
+
+from .models import (CitizenScienceProject, Pheno, PhenoLayer, Product,)
+
 
 class ProductAdmin(SortableModelAdmin):
     sortable = 'order'

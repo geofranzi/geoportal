@@ -1,40 +1,53 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.contrib.gis import admin
 from django import forms
+from django.contrib.gis import admin
 from suit.sortables import SortableTabularInline
 
-from content.models import ExternalDatabase, ExternalLayer, StoryLine, StoryLineFeature, StoryLineInline, StoryLinePart, Image, Video, SatdataLayer, Country
+from content.models import (Country, ExternalDatabase, ExternalLayer, Image, SatdataLayer, StoryLine, StoryLineFeature,
+                            StoryLineInline, StoryLinePart, Video,)
+from inspire.csw import delete_csw
 from layers.admin import LayersAdmin
 from swos.models import WetlandLayer
 from swos.search_es import LayerIndex
 from webgis import settings
 
+
 def make_publishable(modeladmin, request, queryset):
     queryset.update(publishable=True)
     for item in queryset:
         item.save()
+
+
 make_publishable.short_description = "Mark selected layers as fit for publication"
+
 
 def make_unpublishable(modeladmin, request, queryset):
     queryset.update(publishable=False)
     for item in queryset:
-        if settings.CSW_T == True:
+        if settings.CSW_T:
             delete_csw(item)
-        if settings.ELASTICSEARCH == True:
+        if settings.ELASTICSEARCH:
             LayerIndex.get(id=item.id).delete()
+
 
 make_unpublishable.short_description = "Mark selected layers as unfit for publication"
 
+
 def make_downloadable(modeladmin, request, queryset):
     queryset.update(downloadable=True)
+
+
 make_downloadable.short_description = "Mark as donwloadable"
+
 
 def make_non_downloadable(modeladmin, request, queryset):
     queryset.update(downloadable=False)
 
+
 make_non_downloadable.short_description = "Mark as not downloadable"
+
 
 # Register your models here.
 class ExternalLayerAdmin(LayersAdmin):
@@ -125,7 +138,7 @@ class StoryLinePartAdmin(admin.ModelAdmin):
 class SatdataLayerAdmin(LayersAdmin):
     fieldsets = LayersAdmin.fieldsets + ((None, {
         'classes': ('suit-tab', 'suit-tab-swos',),
-        'fields': ('region','thema',)
+        'fields': ('region', 'thema',)
     }),)
     list_display = ('title', 'publishable', 'downloadable', 'region', 'thema')
     suit_form_tabs = LayersAdmin.suit_form_tabs + (('swos', 'SWOS'),)
