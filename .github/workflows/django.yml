@@ -16,6 +16,8 @@ jobs:
         python-version: ['3.10', 3.11]
 
     steps:
+    - env:
+          DATABASES: 'sqlite:////test_db.sqlite3'
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
@@ -27,7 +29,7 @@ jobs:
         export CPLUS_INCLUDE_PATH=/usr/include/gdal
         export C_INCLUDE_PATH=/usr/include/gdal
         python -m pip install --upgrade pip
-        pip install -r requirements/base.txt
+        pip install -r requirements/local.txt
     - name: Run mirgate
       run: |
         cd framework/
