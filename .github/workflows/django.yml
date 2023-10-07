@@ -33,6 +33,7 @@ jobs:
     - name: Run mirgate
       run: |
         cd framework/
+        python manage.py shell -c "import django;django.db.connection.cursor().execute('SELECT InitSpatialMetaData(1);')";
         python manage.py makemigrations
         python manage.py migrate
         python manage.py check
