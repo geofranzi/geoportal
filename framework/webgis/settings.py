@@ -10,7 +10,9 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+from pathlib import Path
 
+import environ
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
@@ -92,23 +94,18 @@ WSGI_APPLICATION = 'webgis.wsgi.application'
 
 DEFAULT_AUTO_FIELD='django.db.models.AutoField'
 ##################################################
+env = environ.Env()
+ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
+READ_DOT_ENV_FILE = env.bool("DJANGO_READ_DOT_ENV_FILE", default=True)  # True -> read .env file
+if READ_DOT_ENV_FILE:
+    # OS environment variables take precedence over variables from .env
+    env.read_env(str(ROOT_DIR / ".env"))
 # Database
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        #'ENGINE': 'django.db.backends.sqlite3', 
-        #'ENGINE': 'django.contrib.gis.db.backends.spatialite',
-        #'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        #'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'climate_services_gateway',
-        'USER': 'postgres',
-        'PASSWORD': 'admin',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
+DATABASES = {"default": env.db("DATABASES", default="postgres://postgres:\"\"@:5432/climate_services_gateway")}
+DATABASES["default"]["ATOMIC_REQUESTS"] = True
+
 
 ##################################################
 # Internationalization
