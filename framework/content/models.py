@@ -2,8 +2,8 @@
 from __future__ import unicode_literals
 
 # from django.contrib.auth.models import (Group, User,)
-# from django.contrib.gis.db import models
-from django.db import models
+from django.contrib.gis.db import models
+# from django.db import models
 from django.db.models import ImageField
 from django.utils.html import format_html
 from rest_framework import serializers
@@ -241,7 +241,7 @@ class ExternalDatabase(models.Model):
     geoss_datasource_id = models.TextField(blank=True, null=True)
     continent = models.CharField(max_length=30, choices=CONTINENT, blank=True)
     country = models.ManyToManyField(Country, blank=True)
-    region = models.ForeignKey(Region, related_name="external_region", verbose_name="Region", on_delete=models.PROTECT, blank=True, null=True)
+    region = models.ForeignKey(to='geospatial.Region', related_name="external_region", verbose_name="Region", on_delete=models.PROTECT, blank=True, null=True)
 
     class Meta:
         ordering = ['name']
@@ -337,7 +337,7 @@ class Image(models.Model):
     copyright = models.CharField("Copyright / Owner", max_length=200, blank=True)
     date = models.DateField(blank=True, null=True)
     image = ImageField(upload_to='images/')  # sizes=((125,125), (52, 52), (1300,1000), (1000, 1300))
-    region = models.ForeignKey(Region, related_name="image_region", on_delete=models.PROTECT, verbose_name="Region")
+    region = models.ForeignKey(to='geospatial.Region', related_name="image_region", on_delete=models.PROTECT, verbose_name="Region")
 
     def __str__(self):
         return u"%s" % (self.name)
@@ -370,7 +370,7 @@ class Video(models.Model):
     thumb_link = models.CharField("Link to external thumbnail", max_length=200, blank=True, null=True)
     youtube_id = models.CharField("YouTube ID", max_length=20, blank=True, null=True)
     youtube_cat = models.IntegerField(blank=True, null=True)
-    region = models.ForeignKey(Region, related_name="video_region", verbose_name="Region", on_delete=models.PROTECT)
+    region = models.ForeignKey(to='geospatial.Region', related_name="video_region", verbose_name="Region", on_delete=models.PROTECT)
 
     categories = dict()
     categories[2] = 'Cars & Vehicles'

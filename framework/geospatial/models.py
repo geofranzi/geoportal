@@ -8,11 +8,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 import requests
 # from django.contrib.auth.models import (Group, User,)
-# from django.contrib.gis.db import models
-from django.db import models
+# from django.db import models
+from django.contrib.gis.db import models
 from pycparser.ply.cpp import xrange
 
-from content.models import Video
+
 # from layers.models import (Contact, ISOcodelist, KeywordInline, Layer,)
 from webgis import settings
 
@@ -481,6 +481,7 @@ class Region(models.Model):
     def youtube(self, start=0, max=-1, forceUpdate=False, writeResults=True):
         videos = []
         if forceUpdate is False:
+            from content.models import Video
             videos_obj = Video.objects.filter(region=self)
             for vid in videos_obj:
                 videos.append({'id': vid.youtube_id, 'img': vid.thumb_link, 'title': vid.name, 'url': vid.link})
