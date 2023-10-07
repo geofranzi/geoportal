@@ -1,31 +1,35 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+
+import glob
 import os
-from io import StringIO
-import requests
 import sqlite3 as sdb
 import uuid
-import glob
-import zipfile
+# import zipfile
 from datetime import datetime
+from io import StringIO
 
-from django.shortcuts import render
-from django.http import Http404, HttpResponse
+import requests
+from django.http import (Http404, HttpResponse,)
+# from django.shortcuts import render
 from django.template.response import TemplateResponse
-from rest_framework import serializers, status
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from djgeojson.serializers import Serializer as GeoJSONSerializer
+from rest_framework import serializers
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
+# from layers.models import Layer
 from webgis import settings
+
 from .models import Region
-from layers.models import Layer
+
 
 # Create your views here.
 class RegionsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Region
         fields = ('id', 'name', 'description')
+
 
 class RegionsGeometry(APIView):
 
@@ -49,10 +53,10 @@ class RegionsGeometry(APIView):
         return os.path.getmtime(os.path.join(settings.MEDIA_ROOT + 'regions.geojson'))
 
     def get_last_modification_time(self):
-       result = Layer.objects.latest('updated_at')
-       timestamp_string = format(result.updated_at, u'U')
-       #return timestamp_string
-       return 0
+        # result = Layer.objects.latest('updated_at')
+        # timestamp_string = format(result.updated_at, u'U')
+        # return timestamp_string
+        return 0
 
 
 class RegionsList(APIView):
@@ -70,8 +74,8 @@ class RegionDetail(APIView):
         except Region.DoesNotExist:
             raise Http404
 
-    def get(self, request, pk):
-        region = self.get_object(pk)
+    # def get(self, request, pk):
+        # region = self.get_object(pk)
 
 
 class SatelliteData(APIView):
@@ -135,21 +139,23 @@ class SatelliteMetadataExport(APIView):
         sun_elevation = sun_elevation.split(',')
         # sql_additions.append('(sun_elevation IS NULL OR (sun_elevation >= %s AND sun_elevation <= %s))' % (float(sun_elevation[0]), float(sun_elevation[1])))
         sql_additions.append('(sun_elevation == \'\' OR (sun_elevation >= %s AND sun_elevation <= %s))' % (
-        float(sun_elevation[0]), float(sun_elevation[1])))
+            float(sun_elevation[0]), float(sun_elevation[1])))
 
         sun_zenith_angle_mean = request.query_params.get('sun_zenith_angle_mean')
         sun_zenith_angle_mean = sun_zenith_angle_mean.split(',')
-        # sql_additions.append('(sun_zenith_angle_mean IS NULL OR (sun_zenith_angle_mean >= %s AND sun_zenith_angle_mean <= %s))' % (float(sun_zenith_angle_mean[0]), float(sun_zenith_angle_mean[1])))
+        # sql_additions.append('(sun_zenith_angle_mean IS NULL OR (sun_zenith_angle_mean >= %s AND sun_zenith_angle_mean <= %s))'
+        # % (float(sun_zenith_angle_mean[0]), float(sun_zenith_angle_mean[1])))
         sql_additions.append(
             '(sun_zenith_angle_mean == \'\' OR (sun_zenith_angle_mean >= %s AND sun_zenith_angle_mean <= %s))' % (
-            float(sun_zenith_angle_mean[0]), float(sun_zenith_angle_mean[1])))
+                float(sun_zenith_angle_mean[0]), float(sun_zenith_angle_mean[1])))
 
         sun_azimuth_angle_mean = request.query_params.get('sun_azimuth_angle_mean')
         sun_azimuth_angle_mean = sun_azimuth_angle_mean.split(',')
-        # sql_additions.append('(sun_azimuth_angle_mean IS NULL OR (sun_azimuth_angle_mean >= %s AND sun_azimuth_angle_mean <= %s))' % (float(sun_azimuth_angle_mean[0]), float(sun_azimuth_angle_mean[1])))
+        # sql_additions.append('(sun_azimuth_angle_mean IS NULL OR (sun_azimuth_angle_mean >= %s AND sun_azimuth_angle_mean <= %s))'
+        # % (float(sun_azimuth_angle_mean[0]), float(sun_azimuth_angle_mean[1])))
         sql_additions.append(
             '(sun_azimuth_angle_mean == \'\' OR (sun_azimuth_angle_mean >= %s AND sun_azimuth_angle_mean <= %s))' % (
-            float(sun_azimuth_angle_mean[0]), float(sun_azimuth_angle_mean[1])))
+                float(sun_azimuth_angle_mean[0]), float(sun_azimuth_angle_mean[1])))
 
         time_start_begin = request.query_params.get('time_start_begin')
         time_start_end = request.query_params.get('time_start_end')
@@ -171,11 +177,14 @@ class SatelliteMetadataExport(APIView):
         sql_query += ' ORDER BY time_start ASC;'
 
         filename = os.path.join(settings.MEDIA_ROOT, 'tmp', str(uuid.uuid4()))
-        db_conn = settings.DATABASES['default']
+        # db_conn = settings.DATABASES['default']
         # return Response(sql_query)
-        # os.system('ogr2ogr -f "CSV" -sql "%s" %s.csv PG:"host=localhost dbname=%s user=%s password=%s"' % (sql_query, filename, db_conn['NAME'], db_conn['USER'], db_conn['PASSWORD']))
-        # os.system('ogr2ogr -f "ESRI Shapefile" -sql "%s" %s.shp PG:"host=localhost dbname=%s user=%s password=%s"' % (sql_query, filename, db_conn['NAME'], db_conn['USER'], db_conn['PASSWORD']))
-        # os.system('ogr2ogr -f "GeoJSON" -sql "%s" %s.json PG:"host=localhost dbname=%s user=%s password=%s"' % (sql_query, filename, db_conn['NAME'], db_conn['USER'], db_conn['PASSWORD']))
+        # os.system('ogr2ogr -f "CSV" -sql "%s" %s.csv PG:"host=localhost dbname=%s user=%s password=%s"'
+        # % (sql_query, filename, db_conn['NAME'], db_conn['USER'], db_conn['PASSWORD']))
+        # os.system('ogr2ogr -f "ESRI Shapefile" -sql "%s" %s.shp PG:"host=localhost dbname=%s user=%s password=%s"'
+        # % (sql_query, filename, db_conn['NAME'], db_conn['USER'], db_conn['PASSWORD']))
+        # os.system('ogr2ogr -f "GeoJSON" -sql "%s" %s.json PG:"host=localhost dbname=%s user=%s password=%s"'
+        # % (sql_query, filename, db_conn['NAME'], db_conn['USER'], db_conn['PASSWORD']))
 
         # SQLite
         os.system('ogr2ogr -f "CSV" -sql "%s" %s.csv %s' % (
@@ -259,7 +268,7 @@ class SatelliteMetadata(APIView):
                 tile = scene['tile']
                 date = scene['time_start'].split('T')[0].split('-')
                 amazon_url = 'http://sentinel-s2-l1c.s3-website.eu-central-1.amazonaws.com/#tiles/%s/%s/%s/%s/%s/%s/0/' % (
-                tile[1:3], tile[3:4], tile[4:6], date[0], int(date[1]), int(date[2]))
+                    tile[1:3], tile[3:4], tile[4:6], date[0], int(date[1]), int(date[2]))
                 scene['download_urls'].append(dict(url=amazon_url, filename='Files overview'))
 
                 if 'metadata_url' in scene:
@@ -275,7 +284,7 @@ class SatelliteMetadata(APIView):
                             id = data['feed']['entry']['id']
                             download_url = "https://scihub.copernicus.eu/dhus/odata/v1/Products('%s')/$value" % id
                             scene['download_urls'].append(dict(url=download_url, filename=scene_id + '.zip'))
-                except Exception as e:
+                except Exception:
                     pass
             elif 'ESA' in scene_id and scene['source'] == 'ESA-Archive via Sentinel-Hub':
                 scene['download_urls'] = [
@@ -337,4 +346,3 @@ class SatelliteMetadata(APIView):
             return TemplateResponse(request, 'metadata/' + dataset + '.html', scene)
 
         raise Http404
-

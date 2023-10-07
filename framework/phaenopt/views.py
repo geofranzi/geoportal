@@ -1,21 +1,26 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-import os
+
 import json
+import os
 
+from django.db.models import (Count, Max, Min,)
+from django.http import (Http404, HttpResponse,)
 from django.shortcuts import render
-from django.http import Http404, HttpResponse
-from django.db.models import Count, Min, Max
-from rest_framework import serializers, status
-from rest_framework.views import APIView
-from rest_framework.response import Response
-
-from webgis import settings
-from geospatial.models import Region
-from content.models import SatdataLayer, SatdataLayerSerializer
-from .models import PhenoLayer, Product, Pheno, CitizenScienceProject, CitizenScienceData, CitizenScienceProjectSerializer, DWDInSituData, DWDStation, DWDStationSerializer, DWDStationSingleSerializer, dwd_id_to_name
-from layers.models import LayerSerializer, MetadataSerializer
 from djgeojson.serializers import Serializer as GeoJSONSerializer
+from rest_framework import (serializers, status,)
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from content.models import (SatdataLayer, SatdataLayerSerializer,)
+from geospatial.models import Region
+from layers.models import (LayerSerializer, MetadataSerializer,)
+from webgis import settings
+
+from .models import (CitizenScienceData, CitizenScienceProject, CitizenScienceProjectSerializer, DWDInSituData,
+                     DWDStation, DWDStationSerializer, DWDStationSingleSerializer, Pheno, PhenoLayer, Product,
+                     dwd_id_to_name,)
+
 
 # Create your views here.
 class RegionDetail(APIView):

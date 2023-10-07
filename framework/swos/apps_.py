@@ -1,21 +1,21 @@
 from __future__ import unicode_literals
 
-from django.apps import AppConfig
-from django.contrib.gis.geos import GEOSGeometry
-from geoserver.catalog import Catalog
-from django.forms.models import model_to_dict
 import datetime
-import xml.etree.ElementTree as ET
-import pysftp
-from django.conf import settings
 import os
+import xml.etree.ElementTree as ET
 from time import asctime
-from gs_instance.sld import get_rgb_json, make_sld_wq
-import gs_instance.binding
-from gs_instance.metadata import generate_metadata_template, upload_cswt
-from gs_instance.ancillary import getNamespaces, finder
 
+import gs_instance.binding
+import pysftp
 from django.apps import AppConfig
+from django.conf import settings
+from django.contrib.gis.geos import GEOSGeometry
+from django.forms.models import model_to_dict
+from geoserver.catalog import Catalog
+from gs_instance.ancillary import (finder, getNamespaces,)
+from gs_instance.metadata import (generate_metadata_template, upload_cswt,)
+from gs_instance.sld import (get_rgb_json, make_sld_wq,)
+
 
 class MyAppConfig(AppConfig):
     name = 'swos'
@@ -92,8 +92,8 @@ def add_data_in_django(workspace=None):
     """
     print('Start:', asctime())
     namespaces = {'gmd':"http://www.isotc211.org/2005/gmd", 'gco':"http://www.isotc211.org/2005/gco",'gml':"http://www.opengis.net/gml"}
-    from layers.models import Layer, Contact
-    from swos.models import WetlandLayer, Product, Wetland
+    from layers.models import (Contact, Layer,)
+    from swos.models import (Product, Wetland, WetlandLayer,)
     url = settings.GEOSERVER['earthcare']['URL']
     geoserver_user = settings.GEOSERVER['earthcare']['USER']
     geoserver_password = settings.GEOSERVER['earthcare']['PASSWORD']
@@ -279,9 +279,10 @@ def generate_metadata():
 
 def update_wetland_geom(shapefile):
 
-    from swos.models import Wetland
     from django.contrib.gis.gdal import DataSource
-    from django.contrib.gis.geos import MultiPolygon, GEOSGeometry
+    from django.contrib.gis.geos import (GEOSGeometry, MultiPolygon,)
+
+    from swos.models import Wetland
 
     datasource = DataSource(shapefile)
     #print datasource
@@ -326,7 +327,7 @@ def update_wetland_geom(shapefile):
     #print new_wetlands
 
 def month_publicable(month, product):
-    from swos.models import WetlandLayer, Product
+    from swos.models import (Product, WetlandLayer,)
     prod = Product.objects.get(short_name=product)
     layers = WetlandLayer.objects.filter(date_begin__month=month,product=prod)
     layers.update(publishable=True)

@@ -1,10 +1,10 @@
 import json
-from django.shortcuts import render
-from django.http import Http404, HttpResponse
 
-from rest_framework import serializers, status
-from rest_framework.views import APIView
+from django.http import (Http404, HttpResponse,)
+from django.shortcuts import render
+from rest_framework import (serializers, status,)
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 
 class ValidationLayerList(APIView): 
@@ -12,9 +12,10 @@ class ValidationLayerList(APIView):
     def get(self, request, format=None):
         validation_layers = []
         
-        from .models import ValidationLayer
         from layers.models import LayerSerializer
         from swos.models import ExternalLayer
+
+        from .models import ValidationLayer
         
         layers = ValidationLayer.objects.all().order_by('title')
         externallayers = ExternalLayer.objects.all()

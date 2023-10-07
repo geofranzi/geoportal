@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+
 import json
 
 #from django.db import models
 from django.contrib.gis.db import models
+from django.db.models import (Avg, Count, Max, Min,)
 from rest_framework import serializers
-from django.db.models import Count, Min, Max, Avg
 
-from layers.models import Layer
-from geospatial.models import Region
 from content.models import ExternalDatabase
+from geospatial.models import Region
+from layers.models import Layer
+
 
 # Create your models here.
 class Product(models.Model):
@@ -141,6 +143,8 @@ class DWDStationSingleSerializer(serializers.ModelSerializer):
 
 
 from django_pandas.managers import DataFrameManager
+
+
 class DWDInSituData(models.Model):
     Stations_id = models.IntegerField(db_index=True)
     Referenzjahr = models.IntegerField()

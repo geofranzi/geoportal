@@ -1,9 +1,10 @@
 from django.contrib.gis import admin
 from suit.sortables import SortableModelAdmin
 
+from content.admin import (make_downloadable, make_non_downloadable, make_publishable, make_unpublishable,)
 from layers.admin import LayersAdmin
-from .models import Wetland, Product, Indicator,  WetlandLayer, Country
-from content.admin import make_downloadable, make_non_downloadable, make_publishable, make_unpublishable
+
+from .models import (Country, Indicator, Product, Wetland, WetlandLayer,)
 
 
 class Wetlands(admin.OSMGeoAdmin):

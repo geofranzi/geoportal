@@ -1,13 +1,12 @@
+import django
+from allauth.account.views import ConfirmEmailView
+from dj_rest_auth.registration.views import RegisterView
 from django.shortcuts import redirect
+from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import status
 
-import django
-
-from dj_rest_auth.registration.views import RegisterView
-from allauth.account.views import ConfirmEmailView
 from mapviewer.models import MapViewer
 
 

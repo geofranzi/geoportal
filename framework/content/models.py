@@ -1,23 +1,26 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.db import models
-from django.contrib.auth.models import User, Group
+# from django.contrib.auth.models import (Group, User,)
 from django.contrib.gis.db import models
+# from django.db import models
 from django.db.models import ImageField
 from django.utils.html import format_html
+from rest_framework import serializers
+
+from geospatial.models import Region
+from layers.models import (Contact, ISOcodelist, KeywordInline, Layer,)
+from swos.search_es import (ExternalDatabaseIndex, LayerIndex,)
+
+
 # from django.db import models
 # from django_thumbs.db.models import ImageWithThumbsField
 
 
-from swos.search_es import LayerIndex, ExternalDatabaseIndex
-from geospatial.models import Region
-
-from layers.models import Layer, ISOcodelist, KeywordInline, Contact
-
 # Create your models here.
 class Category(models.Model):
     category = models.CharField(max_length=60)
+
 
 class Country(models.Model):
     name = models.CharField(max_length=200)
@@ -27,6 +30,7 @@ class Country(models.Model):
 
     def __str__(self):
         return u"%s" % (self.name)
+
 
 class ExternalDatabase(models.Model):
     LANG_CODES = (
@@ -51,7 +55,7 @@ class ExternalDatabase(models.Model):
         ('bn', 'Bengali'),
         ('bh', 'Bihari languages'),
         ('bi', 'Bislama'),
- #       ('nb', 'Bokmal, Norwegian; Norwegian Bokmal'),
+        #       ('nb', 'Bokmal, Norwegian; Norwegian Bokmal'),
         ('bs', 'Bosnian'),
         ('br', 'Breton'),
         ('bg', 'Bulgarian'),
@@ -62,7 +66,7 @@ class ExternalDatabase(models.Model):
         ('ce', 'Chechen'),
         ('ny', 'Chichewa; Chewa; Nyanja'),
         ('zh', 'Chinese'),
- #       ('cu', 'Church Slavic; Old Slavonic; Church Slavonic; Old Bulgarian; Old Church Slavonic'),
+        #       ('cu', 'Church Slavic; Old Slavonic; Church Slavonic; Old Bulgarian; Old Church Slavonic'),
         ('cv', 'Chuvash'),
         ('kw', 'Cornish'),
         ('co', 'Corsican'),
@@ -70,7 +74,7 @@ class ExternalDatabase(models.Model):
         ('hr', 'Croatian'),
         ('cs', 'Czech'),
         ('da', 'Danish'),
- #       ('dv', 'Divehi; Dhivehi; Maldivian'),
+        #       ('dv', 'Divehi; Dhivehi; Maldivian'),
         ('nl', 'Dutch; Flemish'),
         ('dz', 'Dzongkha'),
         ('en', 'English'),
@@ -82,7 +86,7 @@ class ExternalDatabase(models.Model):
         ('fi', 'Finnish'),
         ('fr', 'French'),
         ('ff', 'Fulah'),
- #       ('gd', 'Gaelic; Scottish Gaelic'),
+        #       ('gd', 'Gaelic; Scottish Gaelic'),
         ('gl', 'Galician'),
         ('lg', 'Ganda'),
         ('ka', 'Georgian'),
@@ -149,7 +153,7 @@ class ExternalDatabase(models.Model):
         ('ne', 'Nepali'),
         ('se', 'Northern Sami'),
         ('no', 'Norwegian'),
-#        ('nn', 'Norwegian Nynorsk; Nynorsk, Norwegian'),
+        #        ('nn', 'Norwegian Nynorsk; Nynorsk, Norwegian'),
         ('oc', 'Occitan (post 1500)'),
         ('oj', 'Ojibwa'),
         ('or', 'Oriya'),
@@ -237,13 +241,13 @@ class ExternalDatabase(models.Model):
     geoss_datasource_id = models.TextField(blank=True, null=True)
     continent = models.CharField(max_length=30, choices=CONTINENT, blank=True)
     country = models.ManyToManyField(Country, blank=True)
-    region= models.ForeignKey(Region, related_name="external_region", verbose_name="Region", on_delete=models.PROTECT, blank=True, null=True)
+    region = models.ForeignKey(to='geospatial.Region', related_name="external_region", verbose_name="Region", on_delete=models.PROTECT, blank=True, null=True)
 
     class Meta:
         ordering = ['name']
 
     def __str__(self):
-        return u"%s" %(self.name)
+        return u"%s" % (self.name)
 
     def indexing(self):
 
@@ -259,25 +263,27 @@ class ExternalDatabase(models.Model):
 
         obj = ExternalDatabaseIndex(
             meta={'id': self.id},
-            name = self.name,
+            name=self.name,
             category="external",
-            provided_information = self.provided_information,
-            description = self.description,
-            link = self.online_link,
-            continent = self.continent,
-            country = countries,
-            region = region,
-            region_id = region_id
+            provided_information=self.provided_information,
+            description=self.description,
+            link=self.online_link,
+            continent=self.continent,
+            country=countries,
+            region=region,
+            region_id=region_id
         )
-        print (obj)
+        print(obj)
         obj.save()
         return obj.to_dict(include_meta=True)
 
+
 class ExternalLayer(Layer):
-    datasource = models.ForeignKey(ExternalDatabase, related_name="layer_datasource", verbose_name="External Database", on_delete=models.PROTECT, blank=True, null=True)
+    datasource = models.ForeignKey(ExternalDatabase, related_name="layer_datasource", verbose_name="External Database", on_delete=models.PROTECT, blank=True,
+                                   null=True)
 
     def __str__(self):
-        return u"%s" %(self.title)
+        return u"%s" % (self.title)
 
     def indexing(self):
 
@@ -303,7 +309,7 @@ class ExternalLayer(Layer):
 
         extent = {
             "type": "Polygon",
-            "coordinates": [[[self.west,self.north],[self.east,self.north],[self.east,self.south],[self.west,self.south],[self.west,self.north]]]
+            "coordinates": [[[self.west, self.north], [self.east, self.north], [self.east, self.south], [self.west, self.south], [self.west, self.north]]]
         }
 
         obj = LayerIndex(
@@ -315,12 +321,12 @@ class ExternalLayer(Layer):
             keywords=keywords,
             contact_name=contact_name,
             contact_org=contact_org,
-            date_begin = self.date_begin,
-            date_end = self.date_end,
+            date_begin=self.date_begin,
+            date_end=self.date_end,
             lineage=self.meta_lineage,
-            geom = extent
+            geom=extent
         )
-        print (obj)
+        print(obj)
         obj.save()
         return obj.to_dict(include_meta=True)
 
@@ -329,12 +335,12 @@ class Image(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(null=True, blank=True)
     copyright = models.CharField("Copyright / Owner", max_length=200, blank=True)
-    date = models.DateField (blank=True, null=True)
+    date = models.DateField(blank=True, null=True)
     image = ImageField(upload_to='images/')  # sizes=((125,125), (52, 52), (1300,1000), (1000, 1300))
-    region = models.ForeignKey(Region, related_name="image_region", on_delete=models.PROTECT, verbose_name="Region")
+    region = models.ForeignKey(to='geospatial.Region', related_name="image_region", on_delete=models.PROTECT, verbose_name="Region")
 
     def __str__(self):
-        return u"%s" %(self.name)
+        return u"%s" % (self.name)
 
     @property
     def image_tag(self):
@@ -344,7 +350,8 @@ class Image(models.Model):
     def image_size(self):
         suffixes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
         size = int(self.image.size)
-        if size == 0: return '0 B'
+        if size == 0:
+            return '0 B'
         i = 0
         while size >= 1024 and i < len(str(size)) - 1:
             size /= 1024.
@@ -363,7 +370,7 @@ class Video(models.Model):
     thumb_link = models.CharField("Link to external thumbnail", max_length=200, blank=True, null=True)
     youtube_id = models.CharField("YouTube ID", max_length=20, blank=True, null=True)
     youtube_cat = models.IntegerField(blank=True, null=True)
-    region = models.ForeignKey(Region, related_name="video_region", verbose_name="Region", on_delete=models.PROTECT)
+    region = models.ForeignKey(to='geospatial.Region', related_name="video_region", verbose_name="Region", on_delete=models.PROTECT)
 
     categories = dict()
     categories[2] = 'Cars & Vehicles'
@@ -428,14 +435,15 @@ class StoryLinePart(models.Model):
     image_copyright = models.CharField("Copyright / Owner", max_length=200, blank=True)
     image_date = models.DateField(blank=True, null=True)
     image = ImageField(upload_to='images/',
-                                 null=True,
-                                 blank=True,
-                                 help_text="To avoid cutting off parts of your image please resize it in advance. Right position: max. 300px width; Bottom max. 600px. If you upload a GIF please make sure the size is not higher than 500kb")
-                        # sizes=((125, 125), (200, 300), (300, 200), (600, 400), (400, 600))
+                       null=True,
+                       blank=True,
+                       help_text=("To avoid cutting off parts of your image please resize it in advance. Right position: max. 300px width;"
+                                  " Bottom max. 600px.If you upload a GIF please make sure the size is not higher than 500kb"))
+    # sizes=((125, 125), (200, 300), (300, 200), (600, 400), (400, 600))
     image_position = models.CharField(max_length=20, choices=(("right", "right"), ("bottom", "bottom")),
                                       default="right")
     region = models.ForeignKey(Region, on_delete=models.PROTECT,
-                                help_text="Plaese click - Save and continue editing - to update the layer lists below")
+                               help_text="Please click - Save and continue editing - to update the layer lists below")
     product_layer = models.ManyToManyField(Layer, blank=True)
     indicator_layer = models.ManyToManyField(Layer, blank=True, related_name="indicator_layer")
     external_layer = models.ManyToManyField(Layer, blank=True, related_name="external_layer")
@@ -460,7 +468,7 @@ class StoryLinePart(models.Model):
         if not self.image:
             return ""
 
-        return (self.image.url)  # url_125x125
+        return self.image.url  # url_125x125
 
     def image_url_300(self):
         if not self.image:
@@ -512,9 +520,9 @@ class SatdataLayer(Layer):
     thema = models.CharField("Type", max_length=30, choices=(('Rohdaten', 'Rohdaten'), ('Produkt', 'Produkt')))
 
     def __str__(self):
-        return u"%s" %(self.title)
+        return u"%s" % (self.title)
 
-from rest_framework import serializers
+
 class SatdataLayerSerializer(serializers.ModelSerializer):
     # legend = serializers.FileField(source='legend_graphic') or serializers.CharField(source='legend_url')
     download = serializers.FileField(source='download_file') or serializers.CharField(source='download_url')
@@ -524,6 +532,6 @@ class SatdataLayerSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'identifier', 'title', 'alternate_title', 'abstract', 'ogc_link', 'ogc_layer', 'ogc_type',
             'ogc_time', 'ogc_times', 'ogc_imageformat', 'ogc_attribution', 'west', 'east', 'north', 'south', 'dataset_epsg',
-            'downloadable','legend_url', 'legend_graphic', 'legend_colors', 'legend_info', 'download', 'download_type', 'map_layout_image',
-            'wmts_matrixset', 'wmts_resolutions', 'wmts_tilesize', 'wmts_projection', 'wmts_multiply','wmts_prefix_matrix_ids',
+            'downloadable', 'legend_url', 'legend_graphic', 'legend_colors', 'legend_info', 'download', 'download_type', 'map_layout_image',
+            'wmts_matrixset', 'wmts_resolutions', 'wmts_tilesize', 'wmts_projection', 'wmts_multiply', 'wmts_prefix_matrix_ids',
             'min_zoom', 'max_zoom', 'meta_file_info', 'resolution_distance', 'resolution_unit', 'statistic', 'thema')

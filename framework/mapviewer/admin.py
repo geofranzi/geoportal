@@ -1,12 +1,12 @@
+# import django
 from django import forms
 from django.contrib import admin
-
-import django
-
 from suit.sortables import SortableTabularInline
 
-from .models import MapViewer, BaseLayer, BaseLayerInline, LayerBaseInline
 from layers.models import LayergroupInline
+
+from .models import (LayerBaseInline, MapViewer,)
+
 
 # Sortable LayersgroupsInline to MapViewerAdmin
 class LayergroupsInline(SortableTabularInline):
@@ -17,10 +17,11 @@ class LayergroupsInline(SortableTabularInline):
     sortable = 'order'
     suit_classes = 'suit-tab suit-tab-layergroups'
 
+
 # Sortable BaseLayersInline for MapViewerAdmin
 class LayersBaseInline(SortableTabularInline):
     model = LayerBaseInline
-    fields = ('title','baselayer',)
+    fields = ('title', 'baselayer',)
     extra = 1
     verbose_name_plural = 'Base layers'
     sortable = 'order'
@@ -34,27 +35,27 @@ class MapViewerForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super(MapViewerForm, self).clean()
 
-        if cleaned_data.get('time_slider') == True and cleaned_data.get('time_slider_dates') == '':
-            if cleaned_data.get('time_slider_start') == None:
+        if cleaned_data.get('time_slider') is True and cleaned_data.get('time_slider_dates') == '':
+            if cleaned_data.get('time_slider_start') is None:
                 self.add_error('time_slider_start', 'Either starting date or individual dates has to be specified')
-            if cleaned_data.get('time_slider_interval') == None:
+            if cleaned_data.get('time_slider_interval') is None:
                 self.add_error('time_slider_interval', 'Either starting date with step interval or individual dates has to be specified')
 
 
 # MapViewerAdmin with two inlines
 class MapViewerAdmin(admin.ModelAdmin):
     form = MapViewerForm
-    inlines = (LayersBaseInline,LayergroupsInline,)
+    inlines = (LayersBaseInline, LayergroupsInline,)
     fieldsets = (
         (None, {
             'classes': ('suit-tab', 'suit-tab-general',),
             'fields': (
-            'title', 'template_file','search_url', 'auth_registration', 'addexternallayer', 'html_info', 'html_footer')
+                'title', 'template_file', 'search_url', 'auth_registration', 'addexternallayer', 'html_info', 'html_footer')
         }),
         (None, {
             'classes': ('suit-tab', 'suit-tab-map',),
             'fields': (
-                'center_lat', 'center_lon', 'center_proj', 'map_proj',  'zoom_min', 'zoom_max', 'zoom_init','map_resolutions')
+                'center_lat', 'center_lon', 'center_proj', 'map_proj', 'zoom_min', 'zoom_max', 'zoom_init', 'map_resolutions')
         }),
         (None, {
             'classes': ('suit-tab', 'suit-tab-permissions',),
@@ -67,10 +68,10 @@ class MapViewerAdmin(admin.ModelAdmin):
                 'time_slider', 'time_slider_start', 'time_slider_end', 'time_slider_interval', 'time_slider_dates')
         }),
     )
-    suit_form_tabs = (('general', 'General'), ('map', 'Map'), ('timeslider', 'Time slider'), ('baselayer', 'Base layer'), ('layergroups','Layer groups'), ('permissions', 'Permissions'))
+    suit_form_tabs = (('general', 'General'), ('map', 'Map'), ('timeslider', 'Time slider'), ('baselayer', 'Base layer'), ('layergroups', 'Layer groups'),
+                      ('permissions', 'Permissions'))
     save_as = True
     list_display = ('title', 'template_file')
-
 
 
 # Model form verification for BaseLayer model
@@ -89,20 +90,22 @@ class BaseLayerForm(forms.ModelForm):
                 self.add_error('wmts_matrixset', 'Matrixset has to be specified for WMTS layers')
             if cleaned_data.get('wmts_resolutions') == '':
                 self.add_error('wmts_resolutions', 'Resolutions have to be specified for WMTS layers')
-            if cleaned_data.get('wmts_projection') == None:
+            if cleaned_data.get('wmts_projection') is None:
                 self.add_error('wmts_projection', 'Projection has to be specified for WMTS layers')
-            if cleaned_data.get('wmts_tilesize') == None:
+            if cleaned_data.get('wmts_tilesize') is None:
                 self.add_error('wmts_tilesize', 'Tilesize has to be specified for WMTS layers')
         if type == 'XYZ' and cleaned_data.get('url') == '':
             self.add_error('url', 'URL has to be specified')
+
 
 # Register BaseLayerForm in BaseLayerAdmin
 class BaseLayerAdmin(admin.ModelAdmin):
     form = BaseLayerForm
     save_as = True
 
+
 # Specify admin backend registrations
 admin.site.register(MapViewer, MapViewerAdmin)
-#admin.site.register(BaseLayer, BaseLayerAdmin)
-#admin.site.register(Template)
-#admin.site.register(Component)
+# admin.site.register(BaseLayer, BaseLayerAdmin)
+# admin.site.register(Template)
+# admin.site.register(Component)

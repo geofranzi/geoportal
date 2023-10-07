@@ -1,5 +1,7 @@
 from django.db import models
+
 from layers.models import Layer
+
 
 # Create your models here.
 class ValidationLayer(Layer):

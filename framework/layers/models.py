@@ -1,8 +1,9 @@
-from django.db import models
-from django.contrib.auth.models import User, Group
-from django.http import Http404, HttpResponse
-from rest_framework import serializers
 from urllib.request import urlopen
+
+from django.contrib.auth.models import (Group, User,)
+from django.db import models
+from django.http import (Http404, HttpResponse,)
+from rest_framework import serializers
 
 from webgis import settings
 
@@ -45,8 +46,8 @@ class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact
         fields = (
-        'first_name', 'last_name', 'position', 'address', 'postcode', 'city', 'country', 'state', 'email', 'organisation', 'telephone', 'fax', 'mobile',
-        'website')
+            'first_name', 'last_name', 'position', 'address', 'postcode', 'city', 'country', 'state', 'email', 'organisation', 'telephone', 'fax', 'mobile',
+            'website')
 
 
 # ISO 19115 Codelists
@@ -82,7 +83,7 @@ class Layer(models.Model):
     SCOPE_ID = 1
     try:
         SCOPE_ID = ISOcodelist.objects.get(identifier="dataset", code_list="MD_ScopeCode").id
-    except:
+    except Exception:
         pass
 
     scope = models.ForeignKey(ISOcodelist, limit_choices_to={'code_list': "MD_ScopeCode"}, related_name="scope", default=SCOPE_ID, on_delete=models.PROTECT)
@@ -144,7 +145,7 @@ class Layer(models.Model):
     PROGRESS_ID = 1
     try:
         PROGRESS_ID = ISOcodelist.objects.get(identifier="completed", code_list="MD_ProgressCode").id
-    except:
+    except Exception:
         pass
     progress = models.ForeignKey(ISOcodelist, related_name="progress", limit_choices_to={'code_list': 'MD_ProgressCode'}, default=PROGRESS_ID, blank=True,
                                  null=True, verbose_name="Progress", on_delete=models.PROTECT)
@@ -160,7 +161,7 @@ class Layer(models.Model):
     SPAT_REPRESENTATION_TYPE_ID = 1
     try:
         SPAT_REPRESENTATION_TYPE_ID = ISOcodelist.objects.get(identifier="vector", code_list="MD_SpatialRepresentationTypeCode").id
-    except:
+    except Exception:
         pass
     spat_representation_type = models.ForeignKey(ISOcodelist, related_name="representation_type",
                                                  limit_choices_to={'code_list': 'MD_SpatialRepresentationTypeCode'}, default=SPAT_REPRESENTATION_TYPE_ID,
@@ -212,14 +213,14 @@ class Layer(models.Model):
 
     def cache(self):
         if self.ogc_type == 'SOS':
-            from owslib.sos import SensorObservationService
+            from geojson import (Feature, FeatureCollection, Point, crs, dump,)
             from owslib.etree import etree
-            from geojson import FeatureCollection, Feature, Point, crs, dump
+            from owslib.sos import SensorObservationService
 
             # generate Sensor Observation Object
             try:
                 sos = SensorObservationService(self.ogc_link, '1.0.0')
-            except:
+            except Exception:
                 raise Http404
 
             # if given offering is not available in this SOS, raise Error
@@ -242,7 +243,7 @@ class Layer(models.Model):
                 root = etree.fromstring(sa)
                 name = root.find('{http://www.opengis.net/gml}name').text
                 point = root.find('{http://www.opengis.net/sampling/1.0}position').find('{http://www.opengis.net/gml}Point')
-                crsText = point.attrib['srsName']
+                # crsText = point.attrib['srsName']
                 procedure = root.find('{http://www.opengis.net/sampling/1.0}relatedObservation').find('{http://www.opengis.net/om/1.0}Observation').find(
                     '{http://www.opengis.net/om/1.0}procedure').attrib['{http://www.w3.org/1999/xlink}href']
                 x, y, z = point.find('{http://www.opengis.net/gml}coordinates').text.split(',')
@@ -251,7 +252,7 @@ class Layer(models.Model):
                 sensorRoot = etree.fromstring(sensor)
                 try:
                     description = sensorRoot[0][0][0].text
-                except:
+                except Exception:
                     description = name
 
                 # create new geometry and feature object from geojson package
@@ -269,11 +270,11 @@ class Layer(models.Model):
             return fcoll
 
     def download(self, request):
-        if self.download_perm == True:
+        if self.download_perm is True:
             if not request.user.is_authenticated():
                 raise HttpResponse('Layer download is protected. You are not authenticated. Please log in.')
             elif request.user not in self.download_users.all() and len(
-                    set(list(request.user.groups.all())) & set(list(self.download_groups.all()))) == 0 and request.user.is_superuser != True:
+                    set(list(request.user.groups.all())) & set(list(self.download_groups.all()))) == 0 and request.user.is_superuser is not True:
                 raise HttpResponse('Layer download is protected. You are not allowed to download this layer.')
 
         link = None
@@ -284,7 +285,7 @@ class Layer(models.Model):
             if self.download_type == 'wcs':
                 bbox = request.query_params.get('bbox')
                 format = request.query_params.get('outputformat')
-                if format == None:
+                if format is None:
                     format = 'GeoTIFF'
 
                 bbox = bbox.split(',')
@@ -292,11 +293,11 @@ class Layer(models.Model):
 
                 from owslib.wcs import WebCoverageService
                 wcs = WebCoverageService(self.download_url, version='1.0.0')
-                l = wcs.contents[self.download_layer]
-                resx = float(l.grid.offsetvectors[0][0])
-                resy = float(l.grid.offsetvectors[1][1]) * -1.0
-                min_x = l.boundingBoxWGS84[0]
-                min_y = l.boundingBoxWGS84[1]
+                l1 = wcs.contents[self.download_layer]
+                resx = float(l1.grid.offsetvectors[0][0])
+                resy = float(l1.grid.offsetvectors[1][1]) * -1.0
+                min_x = l1.boundingBoxWGS84[0]
+                min_y = l1.boundingBoxWGS84[1]
 
                 range_min_x = bbox[0] - min_x
                 range_min_y = bbox[1] - min_y
@@ -316,8 +317,8 @@ class Layer(models.Model):
                 bbox = ','.join([str(bbox_min_x), str(bbox_min_y), str(bbox_max_x), str(bbox_max_y)])
 
                 import requests
-                url = self.download_url + '?service=WCS&request=GetCoverage&version=1.0.0&COVERAGE=' + self.download_layer + '&BBOX=' + bbox + '&CRS=EPSG:4326&format=' + format + '&RESPONSE_CRS=EPSG:4326&RESX=' + str(
-                    resx) + '&RESY=' + str(resy)
+                url = self.download_url + '?service=WCS&request=GetCoverage&version=1.0.0&COVERAGE=' + self.download_layer + '&BBOX=' + \
+                      bbox + '&CRS=EPSG:4326&format=' + format + '&RESPONSE_CRS=EPSG:4326&RESX=' + str(resx) + '&RESY=' + str(resy)  # noqa E127
                 return url
 
                 # old code
@@ -345,8 +346,8 @@ class Layer(models.Model):
         ordering = ['title']
 
 
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+from django.db.models.signals import post_save  # noqa E402
+from django.dispatch import receiver  # noqa E402
 
 
 @receiver(post_save, sender=Layer)
@@ -373,7 +374,7 @@ class LayerInline(models.Model):
     layergroup = models.ForeignKey(Layergroup, on_delete=models.PROTECT)
 
     def __str__(self):
-        if self.title != None:
+        if self.title is not None:
             return self.title
         else:
             return self.layer.title
@@ -515,8 +516,11 @@ class MetadataSerializer(serializers.ModelSerializer):
     class Meta:
         model = Layer
         fields = (
-        'title', 'identifier', 'abstract', 'topicCategory', 'scope', 'layer_keywords', 'layer_constraints_cond', 'layer_constraints_limit', 'layer_conformity',
-        'layer_online_resource', 'ogc_link', 'ogc_layer', 'ogc_type', 'point_of_contacts', 'meta_contacts', 'date_creation', 'date_publication',
-        'date_revision', 'language', 'characterset', 'format', 'west', 'east', 'north', 'south', 'geo_description', 'spat_representation_type', 'equi_scale',
-        'resolution_distance', 'resolution_unit', 'meta_contact', 'meta_language', 'meta_characterset', 'meta_date', 'meta_lineage', 'date_begin', 'date_end',
-        'dataset_epsg')
+            'title', 'identifier', 'abstract', 'topicCategory', 'scope', 'layer_keywords', 'layer_constraints_cond', 'layer_constraints_limit',
+            'layer_conformity',
+            'layer_online_resource', 'ogc_link', 'ogc_layer', 'ogc_type', 'point_of_contacts', 'meta_contacts', 'date_creation', 'date_publication',
+            'date_revision', 'language', 'characterset', 'format', 'west', 'east', 'north', 'south', 'geo_description', 'spat_representation_type',
+            'equi_scale',
+            'resolution_distance', 'resolution_unit', 'meta_contact', 'meta_language', 'meta_characterset', 'meta_date', 'meta_lineage', 'date_begin',
+            'date_end',
+            'dataset_epsg')

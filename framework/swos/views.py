@@ -1,37 +1,36 @@
-import json
-import pycurl
-from urllib.request import urlopen
-from urllib.error import HTTPError
+import glob
 import http.client
-from io import StringIO
+import json
 import os
-import requests
 import sqlite3 as sdb
 import uuid
-import glob
 import zipfile
 from datetime import datetime
+from io import StringIO
+from urllib.error import HTTPError
+from urllib.request import urlopen
 
-from django.shortcuts import render
-from django.http import Http404, HttpResponse
-from django.template.response import TemplateResponse
-from django.http import StreamingHttpResponse
-from django.db.models import Q
-from django.db import connection
+import pycurl
+import requests
 from django.contrib.gis.db.models import Extent
-from django.utils.dateformat import format
+from django.db import connection
+from django.db.models import Q
+from django.http import (Http404, HttpResponse, StreamingHttpResponse,)
+from django.shortcuts import render
 from django.template.loader import get_template
-
-from rest_framework import serializers, status
-from rest_framework.views import APIView
+from django.template.response import TemplateResponse
+from django.utils.dateformat import format
+from rest_framework import (serializers, status,)
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from webgis import settings
-from content.models import StoryLine, StoryLinePart, StoryLineInline, StoryLineFeature, ExternalDatabase, ExternalLayer, Country, SatdataLayer
-from .models import Wetland, Product, Indicator, IndicatorSerializer, WetlandLayer
-from layers.models import LayerSerializer, MetadataSerializer
+from content.models import (Country, ExternalDatabase, ExternalLayer, SatdataLayer, StoryLine, StoryLineFeature,
+                            StoryLineInline, StoryLinePart,)
+from layers.models import (LayerSerializer, MetadataSerializer,)
 from swos.search_es import WetlandSearch
+from webgis import settings
 
+from .models import (Indicator, IndicatorSerializer, Product, Wetland, WetlandLayer,)
 
 
 # Create your views here.
@@ -481,6 +480,8 @@ class YouTube(APIView):
         return Response(videos)
 
 from collections import OrderedDict
+
+
 class SatelliteData(APIView):
     def get_object(self, pk):
         try:
@@ -1442,8 +1443,9 @@ class NationalWetlandStatistics(APIView):
         year = int(request.query_params.get('year', 0))
         if year == 0:
         	return Response({})
-        from swos.models import Wetland, WetlandLayer
         import json
+
+        from swos.models import (Wetland, WetlandLayer,)
         greece_wets = Wetland.objects.filter(country__icontains=country)
         data_all = dict()
         years_all = dict()

@@ -1,10 +1,10 @@
-from elasticsearch.helpers import bulk
 from elasticsearch import Elasticsearch
+from elasticsearch.helpers import bulk
+from elasticsearch_dsl import (Date, Document, FacetedSearch, GeoShape, Index, Keyword, TermsFacet, Text,)
 from elasticsearch_dsl.connections import connections
-from elasticsearch_dsl import Document, Text, Date, Keyword, GeoShape, Index
-from elasticsearch_dsl import FacetedSearch, TermsFacet
 
 from webgis import settings
+
 
 connections.create_connection(hosts=settings.ELASTICSEARCH_HOSTS)
 
@@ -141,7 +141,7 @@ class WetlandSearch(FacetedSearch):
 
 # Index all
 def bulk_indexing():
-    from .models import WetlandLayer, ExternalDatabase, ExternalLayer, Wetland
+    from .models import (ExternalDatabase, ExternalLayer, Wetland, WetlandLayer,)
     es = Elasticsearch()
 
     layer_index = Index('layer_index')

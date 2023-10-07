@@ -5,11 +5,12 @@ from django.contrib.gis import admin
 
 from .models import Region
 
+
 # Register your models here.
 class RegionsAdmin(admin.OSMGeoAdmin):
-    list_display = ('name', )
+    list_display = ('name',)
     ordering = ['name']
-    search_fields = ('name', )
+    search_fields = ('name',)
 
 
 admin.site.register(Region, RegionsAdmin)
