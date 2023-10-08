@@ -3,8 +3,6 @@ name: Django CI
 on:
   push:
     branches: [ '*' ]
-  pull_request:
-    branches: [ "master" ]
 
 jobs:
   build:
@@ -41,3 +39,20 @@ jobs:
         python manage.py migrate
         python manage.py check
 
+name: trigger gitlab job
+
+on:
+  push:
+    branches: [ 'master' ]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: trigger Job
+        uses: appleboy/gitlab-ci-action@master
+        with:
+          url: "https://git.uni-jena.de/api/v4/projects/3567/trigger/pipeline"
+          token: ${{ secrets.TOKEN }}
+          project_id: 100
