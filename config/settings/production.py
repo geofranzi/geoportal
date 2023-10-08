@@ -16,7 +16,7 @@ ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1", "10.149.0.38", "iknow.inf-
 # DATABASES
 # ------------------------------------------------------------------------------
 # DATABASES["default"] = env.db("DATABASE_URL")  # noqa F405
-DATABASES["default"] = env.db("DATABASE_URL2", default="postgres://postgres:postgres@127.0.0.1:5432/database")
+DATABASES["default"] = env.db("DATABASES", default="postgres://postgres:postgres@127.0.0.1:5432/database")
 DATABASES["default"]["ATOMIC_REQUESTS"] = True  # noqa F405
 DATABASES["default"]["CONN_MAX_AGE"] = env.int("CONN_MAX_AGE", default=60)  # noqa F405
 

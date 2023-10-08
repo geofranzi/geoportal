@@ -17,7 +17,7 @@ ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1", "10.149.0.38", "iknow.inf-
 X_FRAME_OPTIONS = 'allow-from http://127.0.0.1:5173/'
 
 # Using postgresSQL change local db settings here (postgres://USERNAME:PASSWORD@HOST:PORT/DATABASENAME
-DATABASES["default"] = env.db("DATABASE_URL2", default="postgis://postgres:PASSWORD@127.0.0.1:5432/climate_services_gateway")
+DATABASES["default"] = env.db("DATABASES", default="postgis://postgres:PASSWORD@127.0.0.1:5432/climate_services_gateway")
 
 # Using SQlite
 # DATABASES["default"] = env.db("DATABASE_URL2", default="sqlite:////test_db.sqlite3")
