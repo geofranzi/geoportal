@@ -22,6 +22,10 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Check Formatting
+      run: |
+        pip install flake8
+        flake8
     - name: Install Dependencies
       run: |
         sudo apt-get install libgdal-dev
@@ -32,7 +36,6 @@ jobs:
         pip install -r requirements/local.txt
     - name: Run mirgate
       run: |
-        cd framework/
         python manage.py shell -c "import django;django.db.connection.cursor().execute('SELECT InitSpatialMetaData(1);')";
         python manage.py makemigrations
         python manage.py migrate

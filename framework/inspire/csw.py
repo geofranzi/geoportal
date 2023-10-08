@@ -4,9 +4,9 @@ from django.contrib.gis.gdal import DataSource
 from django.template.loader import get_template
 from owslib.util import http_post
 
-from inspire.models import (InspireMap, InspireMapSerializer, InspireMetadataSerializer,
-                            SourceMetadataSerializer,)
+from inspire.models import (InspireMap, InspireMapSerializer, InspireMetadataSerializer, SourceMetadataSerializer,)
 from layers.models import MetadataSerializer
+from map.models import MapLayerInline
 from webgis import settings
 
 

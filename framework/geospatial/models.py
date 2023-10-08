@@ -12,7 +12,6 @@ import requests
 from django.contrib.gis.db import models
 from pycparser.ply.cpp import xrange
 
-
 # from layers.models import (Contact, ISOcodelist, KeywordInline, Layer,)
 from webgis import settings
 
