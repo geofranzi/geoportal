@@ -14,10 +14,9 @@ jobs:
       max-parallel: 4
       matrix:
         python-version: ['3.10', 3.11]
-
-    steps:
-    - env:
-          DATABASES: 'sqlite:////test_db.sqlite3'
+    env:
+          DATABASES: 'spatialite:///test_db.sqlite3'
+    steps:    
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
@@ -26,6 +25,7 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get install libgdal-dev
+        sudo apt-get install -y libsqlite3-mod-spatialite
         export CPLUS_INCLUDE_PATH=/usr/include/gdal
         export C_INCLUDE_PATH=/usr/include/gdal
         python -m pip install --upgrade pip
@@ -33,6 +33,7 @@ jobs:
     - name: Run mirgate
       run: |
         cd framework/
+        python manage.py shell -c "import django;django.db.connection.cursor().execute('SELECT InitSpatialMetaData(1);')";
         python manage.py makemigrations
         python manage.py migrate
         python manage.py check
