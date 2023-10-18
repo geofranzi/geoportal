@@ -4,7 +4,7 @@ from django.contrib import admin
 from suit.sortables import SortableTabularInline
 
 from .models import (ConformityInline, ConstraintConditionsInline, ConstraintLimitInline, Contact, ISOcodelist,
-                     KeywordInline, Layer, Layergroup, LayerInline, OnlineResourceInline,)
+                     KeywordInline, Layer, Layergroup, LayerInline, OnlineResourceInline, WorkPackage, )
 
 
 # Model form verification for BaseLayer model
@@ -172,8 +172,13 @@ class ISOcodelistAdmin(admin.ModelAdmin):
         return False
 
 
+class WorkPackageAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description')
+
+
 # Register all models with their changed admins
 admin.site.register(Layergroup, LayergroupAdmin)
 admin.site.register(Layer, LayersAdmin)
 admin.site.register(Contact, ContactsAdmin)
 admin.site.register(ISOcodelist, ISOcodelistAdmin)
+admin.site.register(WorkPackage, WorkPackageAdmin)

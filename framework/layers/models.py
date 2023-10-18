@@ -1,15 +1,25 @@
 from urllib.request import urlopen
 
-from django.contrib.auth.models import (Group, User,)
+from django.contrib.auth.models import (Group, User, )
 from django.db import models
-from django.http import (Http404, HttpResponse,)
+from django.http import (Http404, HttpResponse, )
 from rest_framework import serializers
 
 from webgis import settings
 
 
+class WorkPackage(models.Model):
+    name = models.CharField(max_length=200, blank=True)
+    title = models.CharField(max_length=200, blank=True)
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name + " (" + self.title + ")"
+
+
 # Contact model (referenced 2x in layer model for metadata contact and dataset contact)
 class Contact(models.Model):
+    title = models.CharField(max_length=200, blank=True)
     first_name = models.CharField(max_length=200, blank=True)
     last_name = models.CharField(max_length=200, blank=True)
     position = models.CharField(max_length=200, blank=True)
@@ -20,14 +30,18 @@ class Contact(models.Model):
     state = models.CharField(max_length=200, blank=True)
     email = models.CharField(max_length=200, blank=True)
     organisation = models.CharField(max_length=200, blank=True)
+    organisation_short = models.CharField(max_length=200, blank=True)
 
     telephone = models.CharField(max_length=200, blank=True)
     fax = models.CharField(max_length=200, blank=True)
     mobile = models.CharField(max_length=200, blank=True)
 
     website = models.CharField(max_length=200, blank=True)
-
-    related_org = models.ForeignKey('self', verbose_name="Related organization", null=True, blank=True, on_delete=models.PROTECT)
+    organisation_ror = models.CharField(max_length=200, blank=True, null=True)
+    person_orcid = models.CharField(max_length=200, blank=True, null=True)
+    image = models.ImageField(upload_to='contact/images/', blank=True, null=True)
+    work_packages = models.ManyToManyField(WorkPackage, blank=True)
+    related_org = models.ForeignKey('self', verbose_name='Related organization', null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         if self.first_name != '' or self.last_name != '':
@@ -213,7 +227,7 @@ class Layer(models.Model):
 
     def cache(self):
         if self.ogc_type == 'SOS':
-            from geojson import (Feature, FeatureCollection, Point, crs, dump,)
+            from geojson import (Feature, FeatureCollection, Point, crs, dump, )
             from owslib.etree import etree
             from owslib.sos import SensorObservationService
 

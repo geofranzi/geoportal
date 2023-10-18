@@ -1,5 +1,5 @@
 # from django.conf.urls import url
-from django.urls import re_path
+from django.urls import re_path, path
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from . import views
@@ -16,6 +16,7 @@ urlpatterns = [
     re_path(r'^capabilities/WMTS$', views.GetWMTSCapabilities.as_view(), name='layer_capabilities_wmts'),
     re_path(r'^sos/(?P<pk>[0-9]+)/stations$', views.GetSOSStations.as_view(), name='sos_stations'),
     re_path(r'^sos/data$', views.GetSOSObservation.as_view(), name='sos_data'),
+    path('get_contacts_website', views.get_contacts_website, name='get_contacts_website'),
 ]
 
 # Used for detail/<pk>.json
