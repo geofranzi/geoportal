@@ -2,19 +2,23 @@ import json
 from urllib.request import urlopen
 from wsgiref.util import FileWrapper
 
-from django.http import (Http404, HttpResponse,)
+from django.http import (Http404, HttpResponse, )
 from django.shortcuts import redirect
 from owslib.etree import etree
-from rest_framework import (serializers, status,)
+from rest_framework import (serializers, status, )
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from webgis import settings
 
-from .models import (Contact, KeywordInline, KeywordInlineSerializer, Layer, MetadataSerializer,)
+from .models import (Contact, KeywordInline, KeywordInlineSerializer, Layer, MetadataSerializer, )
 
 
 # Contact serializer used in LayerSerializer
+from .serializer import ContactWebsiteSerializer
+
+
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact
@@ -495,7 +499,7 @@ class GetTimeValues(APIView):
         dates = []
 
         start, end, interval = value.split('/')
-        from dateutil import (parser, rrule,)
+        from dateutil import (parser, rrule, )
         start = parser.parse(start)
         end = parser.parse(end)
 
@@ -519,3 +523,17 @@ class GetTimeValues(APIView):
                 dates.append(dt.strftime('%Y-%m-%d'))
 
         return Response({'dates': dates})
+
+
+@api_view(['GET'])
+def get_contacts_website(request):
+    try:
+        contacts = Contact.objects.exclude(first_name__exact='')
+    except Contact.DoesNotExist:
+        contacts = None
+
+    if contacts:
+        serializer = ContactWebsiteSerializer(contacts, many=True)
+        return Response(serializer.data, status=200)  # OK
+    else:
+        return HttpResponse(status=204)  # no content

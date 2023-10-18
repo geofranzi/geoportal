@@ -166,8 +166,8 @@ STATIC_URL = "/static/"
 # STATIC_URL = SUBDIR+'/static/'
 # https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/#std:setting-STATICFILES_DIRS
 STATICFILES_DIRS = (
-    os.path.join(ROOT_DIR, "static"),
-    os.path.join(os.path.dirname(ROOT_DIR), 'node_modules'),
+    os.path.join(APPS_DIR, "static"),
+    # os.path.join(os.path.dirname(ROOT_DIR), 'node_modules'),
 )
 # https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/#staticfiles-finders
 STATICFILES_FINDERS = [

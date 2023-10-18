@@ -1,0 +1,15 @@
+name: trigger gitlab job
+
+on:
+  workflow_run:
+    workflows: ["Django CI"]
+    types:
+      - completed
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: trigger Job
+        run: |
+          curl -X POST -fail -F token=${{secrets.TOKEN}} -F ref=main https://git.uni-jena.de/api/v4/projects/3567/trigger/pipeline
