@@ -3,7 +3,9 @@ import os
 import sys
 import urllib.parse
 from xml.etree import ElementTree as ET
+
 import django
+
 
 os.chdir("../..")
 sys.path.append('')
@@ -11,10 +13,11 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
 sys.path.append('framework')
 django.setup()
 
-from climate.models import CfStandardNames, Scenario, CoupledModelIntercomparisonProject, GlobalClimateModel  # noqa: E402
+from climate.models import (CfStandardNames, CoupledModelIntercomparisonProject, GlobalClimateModel,  # noqa: E402
+                            Scenario,)
 from content.models import Country  # noqa: E402
 from inspire.models import InspireTheme  # noqa: E402
-from layers.models import ISOcodelist, Contact, WorkPackage  # noqa: E402
+from layers.models import (Contact, ISOcodelist, WorkPackage,)  # noqa: E402
 
 
 def initial_fill_iso_codelist(filename):
@@ -163,7 +166,6 @@ def initial_seed_climate_contacts():
             organisation_ror="https://ror.org/01t6whv16").save()
     Contact(organisation="Namibia University of Science and Technology", country="Namibia", organisation_short="NUST", website="https://www.nust.na/",
             organisation_ror="https://ror.org/03gg1ey66").save()
-
 
     team = [
         {
@@ -415,9 +417,9 @@ def initial_seed_climate_contacts():
     for member in team:
         org = Contact.objects.filter(organisation_short=member["related_org"]).first()
         org_id = org.id
-        if member["related_org"] is "":
+        if member["related_org"] == "":
             org_id = None
-        print (org_id, member["related_org"])
+        print(org_id, member["related_org"])
         contact = Contact(title=member["title"], first_name=member["first_name"], last_name=member["last_name"], position=member["position"],
                           email=member["email"], related_org_id=org_id, website=member["website"], person_orcid=member["person_orcid"])
         contact.save()
@@ -455,6 +457,7 @@ def initial_seed_climate():
 
     GlobalClimateModel(name_short="")
 
+
 def create_seed_data():
     pass
     # initial_fill_iso_codelist('./gmxCodelists.xml')
@@ -462,6 +465,7 @@ def create_seed_data():
     # initial_fill_country()
     # initial_fill_cf_standard_names()
     initial_seed_climate_contacts()
+
 
 if __name__ == "__main__":
     import django
