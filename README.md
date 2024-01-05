@@ -44,7 +44,7 @@ http://phaenopt.info (coming soon)
 
 ## Setup
 
-### Backend setup
+### Backend setup (old)
 ```
 # install python2 versions of pip and virtualenv
 
@@ -55,6 +55,18 @@ $ virtualenv --python=python2 venv
 $ source venv/bin/activate
 # install all packages listed in requirements.txt
 $ pip install -r framework/requirements.txt
+```
+### Backend setup (new 2024)
+```
+# clone repo
+git clone https://github.com/geofranzi/geoportal.git
+# install python3 venv
+apt install python3.10-venv
+# install venv 
+python3 -m venv /opt/geoportal/venv_3_10
+source venv_3_10/bin/activate
+cd geoportal/requirements/
+pip install -r local.txt  # production.txt on server
 ```
 
 ### Database setup (with backup file)
