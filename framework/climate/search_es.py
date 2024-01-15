@@ -1,0 +1,170 @@
+from elasticsearch_dsl import (Completion, Date, Document, FacetedSearch, GeoShape, Integer, Keyword, Nested,
+                               NestedFacet, Q, TermsFacet, Text, connections,)
+
+
+# Connect with es on port
+# Todo error handling if not available
+
+
+# connections.create_connection(hosts='http://localhost:9200', timeout=20)
+connections.create_connection(hosts='https://leutra.geogr.uni-jena.de:9200', timeout=20)
+
+
+class ClimateDatasetsIndex(Document):
+    title = Text(fielddata=True, fields={'keyword': Keyword(), 'completion': Completion()})
+    dataset_id = Integer()
+    variable_standard_name_cf = Keyword()
+    variable_name = Keyword()
+    frequency = Keyword()
+    scenario = Keyword()
+    gcm = Keyword()
+    rcm = Keyword()
+    bias_correction = Keyword()
+    contact_person = Text(fielddata=True, fields={'raw': Keyword()})
+    contact_org = Text(fielddata=True, fields={'raw': Keyword()})
+    date_begin = Date()
+    date_end = Date()
+    lineage = Text()
+    geom = GeoShape()
+    link = Text()
+
+    class Index:
+        name = 'climate_index'
+
+
+class ClimateDatasetsCollectionIndex(Document):
+    frequency = Keyword()
+    scenario = Keyword()
+    gcm = Keyword()
+    rcm = Keyword()
+    bias_correction = Keyword()
+    variables = Nested(
+        multi=True,
+        properties={
+            'variable_abbr': Text(fielddata=True, fields={'keyword': Keyword()}),
+            'file_id': Text(fielddata=True, fields={'keyword': Keyword()}),
+        }
+    )
+
+    class Index:
+        name = 'climate_collection_index'
+
+
+class ClimateSearch(FacetedSearch):
+    index = 'climate_index'
+    doc_types = [ClimateDatasetsIndex, ]
+    fields = ['title^5']
+
+    facets = {
+        'title': TermsFacet(field='title', size=100),
+        'variable_standard_name_cf': TermsFacet(field='variable_standard_name_cf', size=100),
+        'variable_name': TermsFacet(field='variable_name', size=100),
+        'Variable_abbr': TermsFacet(field='Variable_abbr', size=100),
+        'frequency': TermsFacet(field='frequency', size=100),
+        'scenario': TermsFacet(field='scenario', size=100),
+        'gcm': TermsFacet(field='gcm', size=100),
+        'rcm': TermsFacet(field='rcm', size=100),
+        'bias_correction': TermsFacet(field='bias_correction', size=100),
+        'start_year': TermsFacet(field='start_year', size=100),
+        'end_year': TermsFacet(field='end_year', size=100)
+    }
+
+    # overwrite default query and to add fuzziness parameter and spatial search
+    def query(self, search, er):
+        q = super(ClimateSearch, self).search()
+
+        # spatial search (ignore_unmapped=True --> ignore indexes without geom)
+        if (self._query["south"] and self._query["north"] and self._query["east"] and self._query["west"]):
+            search_query = q.query("multi_match", fields=self.fields, query=self._query["text"], fuzziness="AUTO", operator="AND").filter(
+                'geo_shape', ignore_unmapped="True", geom=  # noqa: E251
+                {
+                    "shape": {
+                        "type": "envelope",
+                        "coordinates": [[self._query["west"], self._query["south"]],
+                                        [self._query["east"], self._query["north"]]]
+                    },
+                    "relation": "intersects"
+                }
+            )
+        else:
+            search_query = q.query("multi_match", fields=self.fields, query=self._query["text"], fuzziness="AUTO", operator="AND")
+
+        if (self._query["variable_standard_name_cf"]):
+            d = {'variable_standard_name_cf': self._query["variable_standard_name_cf"]}
+            search_query = search_query.filter('term', **d)
+        if (self._query["gcm"]):
+            d = {'gcm.raw': self._query["gcm"]}
+            search_query = search_query.filter('term', **d)
+        if (self._query["rcm"]):
+            d = {'rcm.raw': self._query["rcm"]}
+            search_query = search_query.filter('term', **d)
+        if (self._query["variable_name"]):
+            d = {'variable_name': self._query["variable_name"]}
+            search_query = search_query.filter('term', **d)
+        print(search_query.to_dict())
+        return search_query
+
+
+class ClimateCollectionSearch(FacetedSearch):
+    index = 'climate_collection_index'
+    doc_types = [ClimateDatasetsIndex, ]
+    fields = ['title^5', 'gcm']
+
+    facets = {
+        'title': TermsFacet(field='title', size=100),
+        'variable_abbr': NestedFacet('variables', TermsFacet(field='variables.variable_abbr.keyword', size=300)),
+        'file_id': NestedFacet('variables', TermsFacet(field='variables.file_id', size=300)),
+        'frequency': TermsFacet(field='frequency', size=100),
+        'scenario': TermsFacet(field='scenario', size=100),
+        'gcm': TermsFacet(field='gcm', size=100),
+        'rcm': TermsFacet(field='rcm', size=100),
+        'bias_correction': TermsFacet(field='bias_correction', size=100),
+        'start_year': TermsFacet(field='start_year', size=100),
+        'end_year': TermsFacet(field='end_year', size=100)
+    }
+
+    # overwrite default query and to add fuzziness parameter and spatial search
+    def query(self, search, er):
+        q = super(ClimateCollectionSearch, self).search()
+        search_query = q
+        # spatial search (ignore_unmapped=True --> ignore indexes without geom)
+        if self._query["south"] and self._query["north"] and self._query["east"] and self._query["west"]:
+            search_query = q.query("multi_match", fields=self.fields, query=self._query["text"], fuzziness="AUTO", operator="AND").filter(
+                'geo_shape', ignore_unmapped="True", geom=  # noqa: E251
+                {
+                    "shape": {
+                        "type": "envelope",
+                        "coordinates": [[self._query["west"], self._query["south"]],
+                                        [self._query["east"], self._query["north"]]]
+                    },
+                    "relation": "intersects"
+                }
+            )
+        else:
+            if self._query["text"]:
+                search_query = q.query("multi_match", fields=self.fields, query=self._query["text"], fuzziness="AUTO", operator="AND")
+
+        if (self._query["variable_abbr"]):
+            d = {'variables.variable_abbr.keyword': self._query["variable_abbr"]}
+            search_query = search_query.filter(
+                'nested', path='variables',
+                query=Q(
+                    'term', **d
+                ))
+
+        if (self._query["variable_abbr"]):
+            d = {'variables.variable_abbr.keyword': 'tas'}
+            search_query = search_query.filter(
+                'nested', path='variables',
+                query=Q(
+                    'term', **d
+                ))
+        if (self._query["gcm"]):
+            d = {'gcm.raw': self._query["gcm"]}
+            search_query = search_query.filter('term', **d)
+        if (self._query["rcm"]):
+            d = {'rcm.raw': self._query["rcm"]}
+            search_query = search_query.filter('term', **d)
+
+        print(search_query.to_dict())
+        return search_query

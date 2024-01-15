@@ -1,7 +1,9 @@
 import json
 import os
 import sys
+import tarfile
 import urllib.parse
+import uuid
 from xml.etree import ElementTree as ET
 
 import django
@@ -13,11 +15,13 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
 sys.path.append('framework')
 django.setup()
 
-from climate.models import (CfStandardNames, CoupledModelIntercomparisonProject, GlobalClimateModel,  # noqa: E402
-                            Scenario,)
+from climate.models import (CfStandardNames, ClimateChangeScenario, ClimateLayer, ClimateModelling,  # noqa: E402
+                            ClimateModellingBase, ClimatePeriods, ClimateProjections, ClimateVariable,
+                            CoupledModelIntercomparisonProject, GlobalClimateModel, RegionalClimateModel,)
 from content.models import Country  # noqa: E402
 from inspire.models import InspireTheme  # noqa: E402
-from layers.models import (Contact, ISOcodelist, WorkPackage,)  # noqa: E402
+from layers.models import (Contact, ISOcodelist, WorkPackage)  # noqa: E402, I001,
+# noqa: I005, I003
 
 
 def initial_fill_iso_codelist(filename):
@@ -431,31 +435,444 @@ def initial_seed_climate_contacts():
 
 
 def initial_seed_climate():
-    Scenario(name_short="RCP 2.6", code="rcp26", description="Peak in radiative forcing at ~ 3 W/m2 before 2100 and decline",
-             web_url="https://en.wikipedia.org/wiki/RCP_2.6").save()
-    Scenario(name_short="RCP 4.5", code="rcp45", description="Stabilization without overshoot pathway to 4.5 W/m2 at stabilization after 2100",
-             web_url="https://en.wikipedia.org/wiki/RCP_4.5").save()
-    Scenario(name_short="RCP 6.0", code="rcp60", description="Stabilization without overshoot pathway to 6 W/m2 at stabilization after 2100",
-             web_url="https://en.wikipedia.org/wiki/RCP_6.0").save()
-    Scenario(name_short="RCP 8.5", code="rcp85", description="Rising radiative forcing pathway leading to 8.5 W/m2 in 2100.",
-             web_url="https://en.wikipedia.org/wiki/RCP_8.5").save()
-    Scenario(name_short="SSP1", name_long="SSP 1: Sustainability - Taking the Green Road", code="ssp1", description="Sustainability - Taking the Green Road",
-             web_url="https://en.wikipedia.org/wiki/Shared_Socioeconomic_Pathways").save()
-    Scenario(name_short="SSP2", name_long="SSP 2: Middle of the Road", code="ssp2", description="Middle of the Road",
-             web_url="https://en.wikipedia.org/wiki/Shared_Socioeconomic_Pathways").save()
-    Scenario(name_short="SSP3", name_long="SSP 3: Regional Rivalry - A Rocky Road", code="ssp3", description="Regional Rivalry - A Rocky Road",
-             web_url="https://en.wikipedia.org/wiki/Shared_Socioeconomic_Pathways").save()
-    Scenario(name_short="SSP4", name_long="SSP 4: Inequality - A Road Divided", code="ssp4", description="Inequality - A Road Divided",
-             web_url="https://en.wikipedia.org/wiki/Shared_Socioeconomic_Pathways").save()
-    Scenario(name_short="SSP5", name_long="SSP 5: Fossil-fueled Development - Taking the Highway", code="ssp5",
-             description="Fossil-fueled Development - Taking the Highway", web_url="https://en.wikipedia.org/wiki/Shared_Socioeconomic_Pathways").save()
+    ClimateLayer.objects.all().delete()
+    ClimateModelling.objects.all().delete()
+    ClimateModellingBase.objects.all().delete()
+    ClimateVariable.objects.all().delete()
+    ClimateProjections.objects.all().delete()
+    ClimatePeriods.objects.all().delete()
+    GlobalClimateModel.objects.all().delete()
+    RegionalClimateModel.objects.all().delete()
+    CoupledModelIntercomparisonProject.objects.all().delete()
+    ClimateChangeScenario.objects.all().delete()
+    # return True
+    ClimateChangeScenario(name_short="RCP2.6", name_long="", code="rcp26", description="Peak in radiative forcing at ~ 3 W/m2 before 2100 and decline",
+                          web_url="https://en.wikipedia.org/wiki/RCP_2.6").save()
+    ClimateChangeScenario(name_short="RCP4.5", code="rcp45", description="Stabilization without overshoot pathway to 4.5 W/m2 at stabilization after 2100",
+                          web_url="https://en.wikipedia.org/wiki/RCP_4.5").save()
+    ClimateChangeScenario(name_short="RCP6.0", code="rcp60", description="Stabilization without overshoot pathway to 6 W/m2 at stabilization after 2100",
+                          web_url="https://en.wikipedia.org/wiki/RCP_6.0").save()
+    ClimateChangeScenario(name_short="RCP8.5", code="rcp85", description="Rising radiative forcing pathway leading to 8.5 W/m2 in 2100.",
+                          web_url="https://en.wikipedia.org/wiki/RCP_8.5").save()
+    ClimateChangeScenario(name_short="SSP1", name_long="SSP 1: Sustainability - Taking the Green Road", code="ssp1",
+                          description="Sustainability - Taking the Green Road",
+                          web_url="https://en.wikipedia.org/wiki/Shared_Socioeconomic_Pathways").save()
+    ClimateChangeScenario(name_short="SSP2", name_long="SSP 2: Middle of the Road", code="ssp2", description="Middle of the Road",
+                          web_url="https://en.wikipedia.org/wiki/Shared_Socioeconomic_Pathways").save()
+    ClimateChangeScenario(name_short="SSP3", name_long="SSP 3: Regional Rivalry - A Rocky Road", code="ssp3", description="Regional Rivalry - A Rocky Road",
+                          web_url="https://en.wikipedia.org/wiki/Shared_Socioeconomic_Pathways").save()
+    ClimateChangeScenario(name_short="SSP4", name_long="SSP 4: Inequality - A Road Divided", code="ssp4", description="Inequality - A Road Divided",
+                          web_url="https://en.wikipedia.org/wiki/Shared_Socioeconomic_Pathways").save()
+    ClimateChangeScenario(name_short="SSP5", name_long="SSP 5: Fossil-fueled Development - Taking the Highway", code="ssp5",
+                          description="Fossil-fueled Development - Taking the Highway",
+                          web_url="https://en.wikipedia.org/wiki/Shared_Socioeconomic_Pathways").save()
 
     CoupledModelIntercomparisonProject(name_short="CMIP5", code="cmip5", name_long="Coupled Model Intercomparison Project Phase 5",
                                        web_url="https://pcmdi.llnl.gov/mips/cmip5/").save()
     CoupledModelIntercomparisonProject(name_short="CMIP6", code="cmip6", name_long="Coupled Model Intercomparison Project Phase 6",
                                        web_url="https://pcmdi.llnl.gov/CMIP6/").save()
 
-    GlobalClimateModel(name_short="")
+    GlobalClimateModel(name_short="EC-EARTH", code="EC-EARTH", name_long="European Community Earth System Model").save()
+    GlobalClimateModel(name_short="NCC-NorESM1-M", code="NCC-NorESM1-M",
+                       name_long="Norwegian Climate Centre - Norwegian Earth System Model 1 - Medium Resolution").save()
+    GlobalClimateModel(name_short="MPI-M-MPI-ESM-LR", code="MPI-M-MPI-ESM-LR",
+                       name_long="Max Planck Institute for Meteorology - Max Planck Institute Earth System Model - Low Resolution").save()
+    GlobalClimateModel(name_short="MPI-M-MPI-ESM-MR", code="MPI-M-MPI-ESM-MR",
+                       name_long="Max Planck Institute for Meteorology - Max Planck Institute Earth System Model - Medium Resolution").save()
+
+    GlobalClimateModel(name_short="ECMWF-ERAINT", code="ECMWF-ERAINT",
+                       name_long="European Centre for Medium-Range Weather Forecasts - Interim Reanalysis").save()
+    GlobalClimateModel(name_short="MOHC-HadGEM2-ES", code="MOHC-HadGEM2-ES",
+                       name_long="Hadley Centre for Climate Prediction and Research - Met Office Hadley Centre Global  "
+                                 "Environment Model 2 - Earth System").save()
+
+    RegionalClimateModel(name_short="CLMcom-KIT-CCLM5-0-15", version="v1", code="CLMcom-KIT-CCLM5-0-15",
+                         name_long="Climate Limited-area Modelling Community - Karlsruhe Institute of Technology  "
+                                   "- Cosmo-Climate Limited-area Modelling 5 - 0.15").save()
+    RegionalClimateModel(name_short="GERICS-REMO2015", version="v1", code="GERICS-REMO2015",
+                         name_long="German Climate Computing Centre - Regional Model 2015").save()
+    RegionalClimateModel(name_short="ICTP-RegCM4-7", version="v0", code="ICTP-RegCM4-7",
+                         name_long="International Centre for Theoretical Physics - Regional Climate Model 4 - 7").save()
+
+    ClimatePeriods(start_date="1981-01-01", end_date="2010-12-31").save()
+    ClimatePeriods(start_date="2011-01-01", end_date="2040-12-31").save()
+    ClimatePeriods(start_date="2041-01-01", end_date="2070-12-31").save()
+    ClimatePeriods(start_date="2071-01-01", end_date="2100-12-31").save()
+    ClimatePeriods(start_date="1981-01-01", end_date="2000-12-31").save()
+    ClimatePeriods(start_date="2001-01-01", end_date="2020-12-31").save()
+    ClimatePeriods(start_date="2021-01-01", end_date="2040-12-31").save()
+    ClimatePeriods(start_date="2041-01-01", end_date="2060-12-31").save()
+    ClimatePeriods(start_date="2061-01-01", end_date="2080-12-31").save()
+    ClimatePeriods(start_date="2081-01-01", end_date="2100-12-31").save()
+
+    climateProjections = ClimateProjections.objects.create(name="30 years")
+    climateProjections.ref_period.add(ClimatePeriods.objects.filter(start_date="1981-01-01", end_date="2010-12-31").first())
+    climateProjections.proj_period.add(ClimatePeriods.objects.filter(start_date="2011-01-01", end_date="2040-12-31").first())
+    climateProjections.proj_period.add(ClimatePeriods.objects.filter(start_date="2041-01-01", end_date="2070-12-31").first())
+    climateProjections.proj_period.add(ClimatePeriods.objects.filter(start_date="2071-01-01", end_date="2100-12-31").first())
+    climateProjections.save()
+
+    climateProjections = ClimateProjections.objects.create(name="20 years")
+    climateProjections.ref_period.add(ClimatePeriods.objects.filter(start_date="1981-01-01", end_date="2000-12-31").first())
+    climateProjections.ref_period.add(ClimatePeriods.objects.filter(start_date="2001-01-01", end_date="2020-12-31").first())
+    climateProjections.proj_period.add(ClimatePeriods.objects.filter(start_date="2021-01-01", end_date="2040-12-31").first())
+    climateProjections.proj_period.add(ClimatePeriods.objects.filter(start_date="2041-01-01", end_date="2060-12-31").first())
+    climateProjections.proj_period.add(ClimatePeriods.objects.filter(start_date="2061-01-01", end_date="2080-12-31").first())
+    climateProjections.proj_period.add(ClimatePeriods.objects.filter(start_date="2081-01-01", end_date="2100-12-31").first())
+    climateProjections.save()
+
+    ClimateVariable(variable_abbr="tas", variable_standard_name_cf=CfStandardNames.objects.filter(entry_id="air_temperature").first(),
+                    variable_name="Near-Surface Air Temperature", variable_cell_methods="time: mean", variable_unit="K").save()
+    ClimateVariable(variable_abbr="tasmax", variable_standard_name_cf=CfStandardNames.objects.filter(entry_id="air_temperature").first(),
+                    variable_name="Daily Maximum Near-Surface Air Temperature", variable_cell_methods="time: maximum within days time: mean over days",
+                    variable_unit="K").save()
+    ClimateVariable(variable_abbr="tasmin", variable_standard_name_cf=CfStandardNames.objects.filter(entry_id="air_temperature").first(),
+                    variable_name="Daily Minimum Near-Surface Air Temperature", variable_cell_methods="time: minimum within days time: mean over days",
+                    variable_unit="K").save()
+    ClimateVariable(variable_abbr="pr", variable_standard_name_cf=CfStandardNames.objects.filter(entry_id="precipitation_flux").first(),
+                    variable_name="Precipitation",
+                    variable_cell_methods="time: mean", variable_unit="kg m-2 s-1").save()
+    ClimateVariable(variable_abbr="rsds",
+                    variable_standard_name_cf=CfStandardNames.objects.filter(entry_id="surface_downwelling_shortwave_flux_in_air").first(),
+                    variable_name="Surface Downwelling Shortwave Radiation", variable_cell_methods="time: mean", variable_unit="W m-2").save()
+    ClimateVariable(variable_abbr="sfcWind", variable_standard_name_cf=CfStandardNames.objects.filter(entry_id="wind_speed").first(),
+                    variable_name="Near-Surface Wind Speed", variable_cell_methods="time: mean", variable_unit="m s-1").save()
+    ClimateVariable(variable_abbr="hrus", variable_standard_name_cf=CfStandardNames.objects.filter(entry_id="relative_humidity").first(),
+                    variable_name="Near-Surface Relative Humidity", variable_cell_methods="time: mean", variable_unit="%").save()
+
+    ClimateModellingBase(project=CoupledModelIntercomparisonProject.objects.filter(name_short="CMIP5").first(),
+                         forcing_global_model=GlobalClimateModel.objects.filter(name_short="NCC-NorESM1-M").first(),
+                         regional_model=RegionalClimateModel.objects.filter(name_short="CLMcom-KIT-CCLM5-0-15").first(),
+                         experiment_id="r1i1p1").save()
+
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP8.5").first()).save()
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP2.6").first()).save()
+
+    ClimateModellingBase(project=CoupledModelIntercomparisonProject.objects.filter(name_short="CMIP5").first(),
+                         forcing_global_model=GlobalClimateModel.objects.filter(name_short="MOHC-HadGEM2-ES").first(),
+                         regional_model=RegionalClimateModel.objects.filter(name_short="CLMcom-KIT-CCLM5-0-15").first(),
+                         experiment_id="r1i1p1").save()
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP8.5").first()).save()
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP2.6").first()).save()
+
+    ClimateModellingBase(project=CoupledModelIntercomparisonProject.objects.filter(name_short="CMIP5").first(),
+                         forcing_global_model=GlobalClimateModel.objects.filter(name_short="MPI-M-MPI-ESM-LR").first(),
+                         regional_model=RegionalClimateModel.objects.filter(name_short="CLMcom-KIT-CCLM5-0-15").first(),
+                         experiment_id="r1i1p1").save()
+
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP8.5").first()).save()
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP2.6").first()).save()
+
+    ClimateModellingBase(project=CoupledModelIntercomparisonProject.objects.filter(name_short="CMIP5").first(),
+                         forcing_global_model=GlobalClimateModel.objects.filter(name_short="NCC-NorESM1-M").first(),
+                         regional_model=RegionalClimateModel.objects.filter(name_short="ICTP-RegCM4-7").first(),
+                         experiment_id="r1i1p1").save()
+
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP8.5").first()).save()
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP2.6").first()).save()
+
+    ClimateModellingBase(project=CoupledModelIntercomparisonProject.objects.filter(name_short="CMIP5").first(),
+                         forcing_global_model=GlobalClimateModel.objects.filter(name_short="MOHC-HadGEM2-ES").first(),
+                         regional_model=RegionalClimateModel.objects.filter(name_short="ICTP-RegCM4-7").first(),
+                         experiment_id="r1i1p1").save()
+
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP8.5").first()).save()
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP2.6").first()).save()
+
+    ClimateModellingBase(project=CoupledModelIntercomparisonProject.objects.filter(name_short="CMIP5").first(),
+                         forcing_global_model=GlobalClimateModel.objects.filter(name_short="MPI-M-MPI-ESM-LR").first(),
+                         regional_model=RegionalClimateModel.objects.filter(name_short="ICTP-RegCM4-7").first(),
+                         experiment_id="r1i1p1").save()
+
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP8.5").first()).save()
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP2.6").first()).save()
+
+    ClimateModellingBase(project=CoupledModelIntercomparisonProject.objects.filter(name_short="CMIP5").first(),
+                         forcing_global_model=GlobalClimateModel.objects.filter(name_short="NCC-NorESM1-M").first(),
+                         regional_model=RegionalClimateModel.objects.filter(name_short="GERICS-REMO2015").first(),
+                         experiment_id="r1i1p1").save()
+
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP8.5").first()).save()
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP2.6").first()).save()
+
+    ClimateModellingBase(project=CoupledModelIntercomparisonProject.objects.filter(name_short="CMIP5").first(),
+                         forcing_global_model=GlobalClimateModel.objects.filter(name_short="MOHC-HadGEM2-ES").first(),
+                         regional_model=RegionalClimateModel.objects.filter(name_short="GERICS-REMO2015").first(),
+                         experiment_id="r1i1p1").save()
+
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP8.5").first()).save()
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP2.6").first()).save()
+
+    ClimateModellingBase(project=CoupledModelIntercomparisonProject.objects.filter(name_short="CMIP5").first(),
+                         forcing_global_model=GlobalClimateModel.objects.filter(name_short="MPI-M-MPI-ESM-LR").first(),
+                         regional_model=RegionalClimateModel.objects.filter(name_short="GERICS-REMO2015").first(),
+                         experiment_id="r1i1p1").save()
+
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP8.5").first()).save()
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP2.6").first()).save()
+
+
+def read_and_insert_data():
+    myPath = "/opt/rbis/www/tippecc_data/WITS_regional_bias_corrected"
+    filesList = []
+
+    for path, subdirs, files in os.walk(myPath):
+        for name in files:
+            filesList.append(os.path.join(path, name))
+
+    theDict = dict()
+    for something in filesList:  # Calculate size for all files here.
+        theStats = os.stat(something)
+        theDict[something] = theStats
+
+    for item in theDict:
+        print(item.replace("/opt/rbis/www/", "http://leutra.geogr.uni-jena.de/"), round(theDict[item].st_size / (pow(1024, 2)), 2), "MB")
+        if item.endswith("tar"):
+            tar = tarfile.open(item)
+            tar.getmembers()
+            for member in tar.getmembers():
+                print(member)
+                path = member.path
+                title = member.name
+                variable = title.split("_")[4]
+                gcm = title.split("_")[3]
+                rcm = title.split("_")[1]
+                insert_climate_data(path, title, variable, gcm, rcm, theDict[item].st_size)
+        if item.endswith(".nc"):
+            path = os.path.basename(item)
+            title = item.split("/")[-1]
+            variable = title.split("_")[4]
+            gcm = title.split("_")[3]
+            rcm = title.split("_")[1]
+            insert_climate_data(path, title, variable, gcm, rcm, theDict[item].st_size)
+
+
+def test_instet_climate_data():
+    path = "/opt/rbis/www/TIPPECC_CLMcom-KIT-CCLM5-0-15_v1_NCC-NorESM1-M_pr_Afr_day_1950_2100.nc"
+    # TIPPECC_CLMcom-KIT-CCLM5-0-15_v1_NCC-NorESM1-M_tas_Afr_day_1950_2100.nc"
+    title = path.split("/")[-1]
+    variable = title.split("_")[4]
+    gcm = title.split("_")[3]
+    rcm = title.split("_")[1]
+    insert_climate_data(path, title, variable, gcm, rcm, "23234")
+
+
+def insert_climate_data(path, title, variable, gcm, rcm, size):
+    meta_climate_layer = {}
+    meta_climate_layer['title'] = title
+    meta_climate_layer['variable_id'] = ClimateVariable.objects.filter(variable_abbr=variable).first().id
+
+    meta_climate_layer['local_path'] = path
+    meta_climate_layer['file_name'] = title
+    meta_climate_layer['climate_dataset_id'] = ClimateModelling.objects.filter(modellingBase__project__name_short="CMIP5",
+                                                                               modellingBase__forcing_global_model__name_short=gcm,
+                                                                               modellingBase__regional_model__name_short=rcm,
+                                                                               modellingBase__experiment_id="r1i1p1",
+                                                                               scenario__name_short="RCP8.5").first().id
+
+    meta_climate_layer['date_begin'] = "1950-01-01"
+    meta_climate_layer['date_end'] = "2100-12-31"
+
+    meta_climate_layer['size'] = size
+    #####
+    meta_climate_layer['progress_id'] = ISOcodelist.objects.filter(identifier="completed").first().id
+
+    meta_climate_layer['abstract'] = "Abstract"
+    meta_climate_layer['meta_lineage'] = "The dataset was created by merging the following datasets: XXX."
+
+    meta_climate_layer['status'] = "internal"
+    meta_climate_layer['frequency'] = "daily"
+
+    meta_climate_layer['west'] = 10.01
+    meta_climate_layer['east'] = 51.81
+    meta_climate_layer['south'] = -35.97
+    meta_climate_layer['north'] = -5.17
+
+    meta_climate_layer['date_publication'] = "2023-01-01"
+    meta_climate_layer['date_creation'] = "2018-01-01"
+    meta_climate_layer['date_revision'] = "2018-01-01"
+
+    check_create_climate_layer(meta_climate_layer)
+
+
+def check_create_climate_layer(meta_climate_layer):
+    meta_new = {}
+    meta_add = {}
+
+    meta_new['dataset_id'] = meta_climate_layer['climate_dataset_id']
+    meta_new['variable_id'] = meta_climate_layer['variable_id']
+    meta_new['local_path'] = meta_climate_layer['local_path']
+    meta_new['size'] = meta_climate_layer['size']
+    meta_new['frequency'] = meta_climate_layer['frequency']
+    #  meta_new['satus'] = meta_climate_layer['status']
+
+    # Title
+    meta_new['title'] = meta_climate_layer['title']
+    # meta_new['alternative_title'] = meta_climate_layer['alternative_title']
+    # topic category
+    meta_add['topicCategory'] = ["climatologyMeteorologyAtmosphere"]
+
+    # use tracking id? or chreate new UUID?
+    meta_new['identifier'] = uuid.uuid4().hex
+
+    # Country
+    # countries = {item.name: item for item in Country.objects.all()}
+    # meta['country'] = countries["Germany"]
+
+    meta_new['meta_language'] = "en"
+
+    # Abstract #todo create for LANDSURF and TIPPECC
+    meta_new['abstract'] = meta_climate_layer['abstract']
+
+    # Keywords
+    # meta_add = read_keywords(meta_add, df.iloc[i, 8], i)
+
+    # given extent
+    meta_new['west'] = meta_climate_layer['west']
+    meta_new['east'] = meta_climate_layer['east']
+    meta_new['south'] = meta_climate_layer['south']
+    meta_new['north'] = meta_climate_layer['north']
+
+    # time period #todo
+
+    meta_new['date_begin'] = meta_climate_layer['date_begin']
+    meta_new['date_end'] = meta_climate_layer['date_end']
+
+    # change dates
+    if meta_climate_layer['date_creation']:
+        meta_new['date_creation'] = meta_climate_layer['date_creation']
+    if meta_climate_layer['date_publication']:
+        meta_new['date_publication'] = meta_climate_layer['date_publication']
+    if meta_climate_layer['date_revision']:
+        meta_new['date_revision'] = meta_climate_layer['date_revision']
+
+    # progress
+    meta_new['progress_id'] = meta_climate_layer['progress_id']
+
+    # denominator todo
+    # meta_new['denominator'] = "1"
+
+    # meta_new['resolution_distance'] = "0.1"
+    # meta_new['resolution_unit'] = "cm"
+
+    # meta_new['dataset_epsg'] = df.iloc[i, 6]
+
+    # meta_add["data_source"] = {}
+    # meta_add["data_source"] = df.iloc[i, 4].split(",")
+
+    # Lineage
+    # source_link = ""
+    # if len(meta_add['data_source']) > 0:
+    #    for data_source in meta_add['data_source']:
+    # try:
+    #         print(data_source.strip())
+    #        layer = SourceLayer.objects.get(title__exact=data_source.strip())
+    #         source_link = str(
+    #              source_link) + " " + layer.title + " (https://geoportal.geodaten.niedersachsen.de/harvest/srv/ger/catalog.search#/metadata/" + str(
+    #              layer.identifier) + ")"
+    # except Exception as e:
+    #     print (str(e))
+    meta_new['meta_lineage'] = meta_climate_layer['meta_lineage']
+    # meta_new[
+    #     'meta_lineage'] = "Der Datensatz setzt sich aus folgenden Quelldaten zusammen: " + source_link + ". Hinweis: Die Quelldaten werden zu " \
+    #                                                                                                      "unterschiedlichen Zeitpunkten aktualisiert und " \
+    #                                                                                                      "mit dem jeweiligen Aktualitätsstand in diesem " \
+    #                                                                                                      "Datensatz abgebildet. "
+
+    # Use limitation
+    # ""Es gelten keine Bedingungen" oder "Bedingungen unbekannt" " Nutzungseinschränkungen: Nutzungsbedingungen:
+    #  meta_add['layer_constraints_limit'] = []
+    #  if (not type(df.iloc[i,30]) is float):
+    #      if df.iloc[i, 30] == "keine":
+    #          meta_add['layer_constraints_limit'].append("Es gelten keine Bedingungen")
+    #      else:
+    #          meta_add['layer_constraints_limit'].append(df.iloc[i,30])
+    #  else:
+    #      meta_add['layer_constraints_limit'].append("Bedingungen unbekannt")
+
+    # meta_new["meta_file_info"] = df.iloc[i, 14]
+
+    print(meta_add)
+
+    # meta['scope']
+    # print(df.iloc[i, 1])
+    # print(df.iloc[i, 13])
+
+    # meta_add['point_of_contacts_id'] = [
+    #    Contact.objects.get(Q(organisation__contains=str(df.iloc[i, 13]) + ":") & ~Q(organisation__contains=str(df.iloc[i, 13]) + ".")).id]
+    # except:
+    #    print ("Contact not found" + df.iloc[i, 13] + "Line:" + str(i))
+    # meta_new['point_of_contacts_id'] = 26
+    #   pass
+    #  check_create_new_contact(df.iloc[i,11], df.iloc[i,12])
+    # meta_new['internal_access_constraint'] = df.iloc[i,13]
+    # meta_new['internal_legal_basis'] = df.iloc[i,14]
+    # meta_new['internal_contact'] = Contact.objects.get(email=df.iloc[i,12])
+    # meta_new['internal_comment'] = df.iloc[i,31]
+
+    #  meta_new[""]
+    print("save")
+    print(meta_new)
+
+    layer = ClimateLayer(**meta_new)
+    layer.save()
+
+    # todo
+    # meta_new["data_source"] =
+    # if len(meta_add['data_source']) > 0:
+    #     for data_source in meta_add['data_source']:
+    #         try:
+    #             layer.data_source.add(SourceLayer.objects.get(title__exact=data_source.strip()).id)
+    #         except Exception as e:
+    #             print(str(e))
+
+    layer.topicCategory.clear()
+    if len(meta_add['topicCategory']) > 0:
+        for topic_cat in meta_add['topicCategory']:
+            try:
+                layer.topicCategory.add(ISOcodelist.objects.get(identifier=topic_cat).id)
+            except Exception as e:
+                print(str(e))
+
+    # layer.inspire_theme.clear()
+    # add_inspire_theme(meta_add, layer)
+
+    # layer.layer_keywords.clear()
+    # add_keywords(meta_add, layer, "layer")
+
+    # layer.point_of_contacts.clear()
+    # for contact in meta_add['point_of_contacts_id']:
+    #    try:
+    #        layer.point_of_contacts.add(Contact.objects.get(id=contact).id)
+    #    except Exception as e:
+    #        print(str(e))
+
+
+#  ConstraintConditionsInline.objects.filter(layer=layer).delete()
+#  if meta_add['layer_constraints_limit']:
+#      for const_cond in meta_add['layer_constraints_limit']:
+#          try:
+#              ConstraintConditionsInline(constraints_cond=const_cond, layer=layer).save()
+#          except Exception as e:
+#              print (e)
 
 
 def create_seed_data():
@@ -464,7 +881,10 @@ def create_seed_data():
     # initial_fill_inspire_themes()
     # initial_fill_country()
     # initial_fill_cf_standard_names()
-    initial_seed_climate_contacts()
+    # initial_seed_climate_contacts()
+    # initial_seed_climate()
+    # insert_climate_data()
+    # test_instet_climate_data()
 
 
 if __name__ == "__main__":
