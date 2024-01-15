@@ -26,6 +26,7 @@ jobs:
         flake8
     - name: Install Dependencies
       run: |
+        sudo apt-get update
         sudo apt-get install libgdal-dev
         sudo apt-get install -y libsqlite3-mod-spatialite
         export CPLUS_INCLUDE_PATH=/usr/include/gdal
