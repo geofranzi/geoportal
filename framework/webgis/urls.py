@@ -29,6 +29,7 @@ urlpatterns = [
                   # re_path(r'^validation/', include('validation.urls')),
                   re_path(r'^admin/', admin.site.urls),
                   re_path(r'^login/$', auth_views.LoginView.as_view(), name='LoginView'),
+                  re_path(r'^climate/', include('climate.urls')),
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:
