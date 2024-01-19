@@ -1,8 +1,8 @@
 from django.contrib.gis import admin
 
 from .models import (CfStandardNames, ClimateChangeScenario, ClimateLayer, ClimateModelling, ClimateModellingBase,
-                     ClimatePeriods, ProcessingMethod, ClimateVariable, CoupledModelIntercomparisonProject, GlobalClimateModel,
-                     RegionalClimateModel,)
+                     ClimatePeriods, ClimateVariable, CoupledModelIntercomparisonProject, GlobalClimateModel,
+                     ProcessingMethod, RegionalClimateModel,)
 
 
 class CfStandardNamesAdmin(admin.ModelAdmin):
