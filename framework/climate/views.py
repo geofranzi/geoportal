@@ -191,6 +191,7 @@ class ElasticsearchCollections(APIView):
         search['bias_correction'] = request.query_params.get("bias_correction")
         search['start_year'] = request.query_params.get("start_year")
         search['end_year'] = request.query_params.get("end_year")
+        search['processing_method'] = request.query_params.get("processing_method")
 
         ws = ClimateCollectionSearch(search)
         count = ws.count()  # Total count of result)
@@ -235,7 +236,7 @@ class ElasticsearchCollections(APIView):
         list_order["variable_name"] = 15
         list_order["frequency"] = 16
         list_order["scenario"] = 17
-        list_order["bias_correction"] = 18
+        list_order["processing_method"] = 18
         list_order["start_year"] = 19
         list_order["end_year"] = 20
         list_order["variable_abbr"] = 21
@@ -291,6 +292,5 @@ def bulk_indexing():
         )
         print(obj)
         obj.save()
-
 
 # bulk_indexing()

@@ -7,7 +7,7 @@ from elasticsearch_dsl import (Completion, Date, Document, FacetedSearch, GeoSha
 
 
 # connections.create_connection(hosts='http://localhost:9200', timeout=20)
-connections.create_connection(hosts='https://leutra.geogr.uni-jena.de:9200', timeout=20)
+connections.create_connection(hosts='https://leutra.geogr.uni-jena.de:443/es1453d', timeout=20)
 
 
 class ClimateDatasetsIndex(Document):
@@ -38,6 +38,7 @@ class ClimateDatasetsCollectionIndex(Document):
     gcm = Keyword()
     rcm = Keyword()
     bias_correction = Keyword()
+    processing_method = Keyword()
     variables = Nested(
         multi=True,
         properties={
@@ -58,6 +59,7 @@ class ClimateSearch(FacetedSearch):
     facets = {
         'title': TermsFacet(field='title', size=100),
         'variable_standard_name_cf': TermsFacet(field='variable_standard_name_cf', size=100),
+        'processing_method': TermsFacet(field='processing_method', size=100),
         'variable_name': TermsFacet(field='variable_name', size=100),
         'Variable_abbr': TermsFacet(field='Variable_abbr', size=100),
         'frequency': TermsFacet(field='frequency', size=100),
@@ -118,7 +120,7 @@ class ClimateCollectionSearch(FacetedSearch):
         'scenario': TermsFacet(field='scenario', size=100),
         'gcm': TermsFacet(field='gcm', size=100),
         'rcm': TermsFacet(field='rcm', size=100),
-        'bias_correction': TermsFacet(field='bias_correction', size=100),
+        'processing_method': TermsFacet(field='processing_method', size=100),
         'start_year': TermsFacet(field='start_year', size=100),
         'end_year': TermsFacet(field='end_year', size=100)
     }
@@ -144,27 +146,29 @@ class ClimateCollectionSearch(FacetedSearch):
             if self._query["text"]:
                 search_query = q.query("multi_match", fields=self.fields, query=self._query["text"], fuzziness="AUTO", operator="AND")
 
-        if (self._query["variable_abbr"]):
-            d = {'variables.variable_abbr.keyword': self._query["variable_abbr"]}
-            search_query = search_query.filter(
-                'nested', path='variables',
-                query=Q(
-                    'term', **d
-                ))
+        if self._query["variable_abbr"]:
+            for var in self._query["variable_abbr"].split(","):
+                d = {'variables.variable_abbr.keyword': var}
+                search_query = search_query.filter(
+                    'nested', path='variables',
+                    query=Q(
+                        'term', **d
+                    ))
 
-        if (self._query["variable_abbr"]):
-            d = {'variables.variable_abbr.keyword': 'tas'}
-            search_query = search_query.filter(
-                'nested', path='variables',
-                query=Q(
-                    'term', **d
-                ))
-        if (self._query["gcm"]):
-            d = {'gcm.raw': self._query["gcm"]}
-            search_query = search_query.filter('term', **d)
-        if (self._query["rcm"]):
-            d = {'rcm.raw': self._query["rcm"]}
-            search_query = search_query.filter('term', **d)
+        if self._query["gcm"]:
+            for gmc in self._query["gcm"].split(","):
+                d = {'gcm': gmc}
+                search_query = search_query.filter('term', **d)
+
+        if self._query["rcm"]:
+            for rcm in self._query["rcm"].split(","):
+                d = {'rcm': rcm}
+                search_query = search_query.filter('term', **d)
+
+        if self._query["processing_method"]:
+            for processing_method in self._query["processing_method"].split(","):
+                d = {'processing_method': processing_method}
+                search_query = search_query.filter('term', **d)
 
         print(search_query.to_dict())
         return search_query
