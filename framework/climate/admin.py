@@ -1,7 +1,7 @@
 from django.contrib.gis import admin
 
 from .models import (CfStandardNames, ClimateChangeScenario, ClimateLayer, ClimateModelling, ClimateModellingBase,
-                     ClimatePeriods, ClimateVariable, CoupledModelIntercomparisonProject, GlobalClimateModel,
+                     ClimatePeriods, ProcessingMethod, ClimateVariable, CoupledModelIntercomparisonProject, GlobalClimateModel,
                      RegionalClimateModel,)
 
 
@@ -50,6 +50,8 @@ class GlobalClimateModelAdmin(admin.ModelAdmin):
 class RegionalClimateModelAdmin(admin.ModelAdmin):
     list_display = ('name_short',)
 
+class ProcessingMethodAdmin(admin.ModelAdmin):
+    list_display = ('name',)
 
 admin.site.register(CfStandardNames, CfStandardNamesAdmin)
 admin.site.register(ClimateLayer, ClimateLayerAdmin)
@@ -61,4 +63,5 @@ admin.site.register(ClimateChangeScenario, ClimateChangeScenarioAdmin)
 admin.site.register(CoupledModelIntercomparisonProject, CoupledModelIntercomparisonProjectAdmin)
 admin.site.register(GlobalClimateModel, GlobalClimateModelAdmin)
 admin.site.register(RegionalClimateModel, RegionalClimateModelAdmin)
+admin.site.register(ProcessingMethod, ProcessingMethodAdmin)
 admin.site.site_header = 'Climate Administration'
