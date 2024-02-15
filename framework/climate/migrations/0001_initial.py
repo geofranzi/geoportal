@@ -8,10 +8,7 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-        ('layers', '0018_remove_contact_work_packages_contact_work_packages'),
-    ]
-
+   
     operations = [
         migrations.CreateModel(
             name='CfStandardNames',

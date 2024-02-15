@@ -10,6 +10,7 @@ urlpatterns = [
     path('download', views.download, name='download'),
     path('search', views.Elasticsearch.as_view(), name="search"),
     path('search_collection', views.ElasticsearchCollections.as_view(), name="search_collection"),
+    path('search_indicator', views.ElasticsearchIndicators.as_view(), name="search_indicator"),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns, allowed=['json'])

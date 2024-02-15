@@ -38,7 +38,7 @@ class ClimateDatasetsCollectionIndex(Document):
     gcm = Keyword()
     rcm = Keyword()
     bias_correction = Keyword()
-    processing_method = Keyword()
+    processing_method = Keyword() 
     variables = Nested(
         multi=True,
         properties={
@@ -49,6 +49,29 @@ class ClimateDatasetsCollectionIndex(Document):
 
     class Index:
         name = 'climate_collection_index'
+
+class ClimateIndicatorIndex(Document):
+    frequency = Keyword()
+    scenario = Keyword()
+    gcm = Keyword()
+    rcm = Keyword()
+    indicator = Keyword()
+    year_begin = Keyword()
+    year_end = Keyword()
+    periode = Keyword()
+    title = Keyword()
+    dataset = Keyword()
+    variables = Nested(
+        multi=True,
+        properties={
+            'variable_abbr': Text(fielddata=True, fields={'keyword': Keyword()}),
+            'file_id': Text(fielddata=True, fields={'keyword': Keyword()}),
+        }
+    )
+
+    class Index:
+        name = 'climate_indicator_index'
+
 
 
 class ClimateSearch(FacetedSearch):
@@ -168,6 +191,100 @@ class ClimateCollectionSearch(FacetedSearch):
         if self._query["processing_method"]:
             for processing_method in self._query["processing_method"].split(","):
                 d = {'processing_method': processing_method}
+                search_query = search_query.filter('term', **d)
+
+        print(search_query.to_dict())
+        return search_query
+        
+class ClimateIndicatorSearch(FacetedSearch):
+    index = 'climate_indicator_index'
+    doc_types = [ClimateIndicatorIndex, ]
+    fields = ['title^5', 'gcm']
+
+    facets = {
+        'dataset': TermsFacet(field='dataset', size=200),
+        'variable_abbr': NestedFacet('variables', TermsFacet(field='variables.variable_abbr.keyword', size=300)),
+        'file_id': NestedFacet('variables', TermsFacet(field='variables.file_id', size=300)),
+        'frequency': TermsFacet(field='frequency', size=100),
+        'scenario': TermsFacet(field='scenario', size=100),
+        'gcm': TermsFacet(field='gcm', size=100),
+        'rcm': TermsFacet(field='rcm', size=100),
+        'indicator': TermsFacet(field='indicator', size=100),
+        'year_begin': TermsFacet(field='year_begin', size=100),
+        'year_end': TermsFacet(field='year_end', size=100),
+        'periode': TermsFacet(field='periode', size=100),
+        'title': TermsFacet(field='title', size=200),
+
+    }
+
+    # overwrite default query and to add fuzziness parameter and spatial search
+    def query(self, search, er):
+        q = super(ClimateIndicatorSearch, self).search()
+        search_query = q
+        # spatial search (ignore_unmapped=True --> ignore indexes without geom)
+        if self._query["south"] and self._query["north"] and self._query["east"] and self._query["west"]:
+            search_query = q.query("multi_match", fields=self.fields, query=self._query["text"], fuzziness="AUTO", operator="AND").filter(
+                'geo_shape', ignore_unmapped="True", geom=  # noqa: E251
+                {
+                    "shape": {
+                        "type": "envelope",
+                        "coordinates": [[self._query["west"], self._query["south"]],
+                                        [self._query["east"], self._query["north"]]]
+                    },
+                    "relation": "intersects"
+                }
+            )
+        else:
+            if self._query["text"]:
+                search_query = q.query("multi_match", fields=self.fields, query=self._query["text"], fuzziness="AUTO", operator="AND")
+
+        if self._query["variable_abbr"]:
+            for var in self._query["variable_abbr"].split(","):
+                d = {'variables.variable_abbr.keyword': var}
+                search_query = search_query.filter(
+                    'nested', path='variables',
+                    query=Q(
+                        'term', **d
+                    ))
+
+        if self._query["gcm"]:
+            for gmc in self._query["gcm"].split(","):
+                d = {'gcm': gmc}
+                search_query = search_query.filter('term', **d)
+
+        if self._query["rcm"]:
+            for rcm in self._query["rcm"].split(","):
+                d = {'rcm': rcm}
+                search_query = search_query.filter('term', **d)
+
+        if self._query["indicator"]:
+            for indicator in self._query["indicator"].split(","):
+                d = {'indicator': indicator}
+                search_query = search_query.filter('term', **d)
+
+        if self._query["scenario"]:
+            for scenario in self._query["scenario"].split(","):
+                d = {'scenario': scenario}
+                search_query = search_query.filter('term', **d)
+
+        if self._query["year_begin"]:
+            for year_begin in self._query["year_begin"].split(","):
+                d = {'year_begin': year_begin}
+                search_query = search_query.filter('term', **d)
+
+        if self._query["year_end"]:
+            for year_end in self._query["year_end"].split(","):
+                d = {'year_end': year_end}
+                search_query = search_query.filter('term', **d)
+
+        if self._query["periode"]:
+            for periode in self._query["periode"].split(","):
+                d = {'periode': periode}
+                search_query = search_query.filter('term', **d)
+
+        if self._query["dataset"]:
+            for dataset in self._query["dataset"].split(","):
+                d = {'dataset': dataset}
                 search_query = search_query.filter('term', **d)
 
         print(search_query.to_dict())

@@ -89,7 +89,9 @@ class ProcessingMethod(models.Model):
     description = models.TextField(blank=True, null=True)
     ref_url = models.TextField(max_length=500, blank=True, null=True)
     ref_citation = models.TextField(max_length=500, blank=True, null=True)
-
+    
+    def __str__(self):
+        return self.name
 
 class ClimatePeriods(models.Model):
     start_date = models.DateField(blank=True, null=True)
@@ -167,7 +169,7 @@ class ClimateLayer(Layer):  # resolution use Layer
     @property
     def download_path(self):
         if self.local_path is not None and self.file_name is not None:
-            return self.local_path.replace("/opt/rbis/www/", "https://leutra.geogr.uni-jena.de/") + "/" + self.file_name
+            return "https://leutra.geogr.uni-jena.de/backend_geoportal/climate/download?id=" + str(self.id)
         else:
             return ""
 
