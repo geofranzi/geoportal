@@ -74,6 +74,7 @@ THIRD_PARTY_APPS = [
     'allauth',
     'allauth.account',
     'authapi',
+    'corsheaders',
     'cronjobs',
     'djgeojson',
     'dj_rest_auth',
@@ -95,6 +96,7 @@ LOCAL_APPS = [
     'csw',
     'swos',
     'phaenopt',
+    'climate',
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -143,6 +145,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -195,7 +199,7 @@ UGLIFYJS_EXTRA_ARGS = (
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-root
 MEDIA_ROOT = str(APPS_DIR / "media")
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-url
-MEDIA_URL = SUBDIR + '/media/'
+MEDIA_URL = "/media/"
 
 # TEMPLATES
 # ------------------------------------------------------------------------------
@@ -249,6 +253,7 @@ FIXTURE_DIRS = (str(APPS_DIR / "fixtures"),)
 SESSION_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#csrf-cookie-httponly
 CSRF_COOKIE_HTTPONLY = True
+CSRF_TRUSTED_ORIGINS = ['http://leutra.geogr.uni-jena.de']
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-browser-xss-filter
 SECURE_BROWSER_XSS_FILTER = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
@@ -368,16 +373,17 @@ REST_FRAMEWORK = {
 }
 
 # django-cors-headers - https://github.com/adamchainz/django-cors-headers#setup
-CORS_URLS_REGEX = r"^/(api|users|datasets|viz|search|projects|iknow|viz_smon|planthub.kg_visualization)/.*$"
+CORS_URLS_REGEX = r"^/(api|users|datasets|viz|search|projects|iknow|viz_smon|planthub.kg_visualization|climate)/.*$"
 
 # Your stuff...
 # ------------------------------------------------------------------------------
 # Allow all or only a certain address
-# CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWED_ORIGINS = [
-    'http://127.0.0.1:5173',
-]
-CORS_ALLOW_HEADERS = ('Authorization', 'Content-Type', 'Cache-Control', 'X-Requested-With')
+CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ALLOWED_ORIGINS = [
+#     'http://127.0.0.1:5173',
+# ]
+
+# CORS_ALLOW_HEADERS = ('Authorization', 'Content-Type', 'Cache-Control', 'X-Requested-With')
 
 # BLAZEGRAPH Settings
 BLAZEGRAPH_URL = 'http://localhost:9999/'
