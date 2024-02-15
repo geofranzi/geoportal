@@ -17,7 +17,7 @@ django.setup()
 
 from climate.models import (CfStandardNames, ClimateChangeScenario, ClimateLayer, ClimateModelling,  # noqa: E402
                             ClimateModellingBase, ClimatePeriods, ClimateProjections, ClimateVariable,
-                            CoupledModelIntercomparisonProject, GlobalClimateModel, RegionalClimateModel,)
+                            CoupledModelIntercomparisonProject, GlobalClimateModel, ProcessingMethod, RegionalClimateModel,)
 from content.models import Country  # noqa: E402
 from inspire.models import InspireTheme  # noqa: E402
 from layers.models import (Contact, ISOcodelist, WorkPackage)  # noqa: E402, I001,
@@ -25,10 +25,14 @@ from layers.models import (Contact, ISOcodelist, WorkPackage)  # noqa: E402, I00
 
 
 def initial_fill_iso_codelist(filename):
+    print(filename)
+    filename = "/opt/geoportal_tippecc/geoportal/framework/gmxCodelists.xml"
     ISOcodelist.objects.all().delete()
 
     base = os.path.splitext(filename)[0]
+    print(base)
     meta_file = base + '.xml'
+    print(os.path.exists(meta_file))
     if not os.path.exists(meta_file):
         return None
 
@@ -127,6 +131,17 @@ def initial_fill_country():
 
 
 def initial_fill_cf_standard_names():
+    ClimateLayer.objects.all().delete()
+    ClimateModelling.objects.all().delete()
+    ClimateModellingBase.objects.all().delete()
+    ClimateVariable.objects.all().delete()
+    ClimateProjections.objects.all().delete()
+    ClimatePeriods.objects.all().delete()
+    GlobalClimateModel.objects.all().delete()
+    RegionalClimateModel.objects.all().delete()
+    CoupledModelIntercomparisonProject.objects.all().delete()
+    ClimateChangeScenario.objects.all().delete()
+    CfStandardNames.objects.all().delete()
     url = "https://raw.githubusercontent.com/cf-convention/cf-convention.github.io/main/Data/cf-standard-names/current/src/cf-standard-name-table.xml"
     response = urllib.request.urlopen(url)
     # ISOcodelist.objects.all().delete()
@@ -136,15 +151,19 @@ def initial_fill_cf_standard_names():
     print(tree)
     print(root)
     for entry in root.findall('entry'):
-        print(entry.get('id'))
+        # print(entry.get('id'))
         canonical_units = entry.find('canonical_units')
         grib = entry.find('grib')
         amip = entry.find('amip')
         description = entry.find('description')
-        print(grib.text, amip.text, description.text)
+        # print(grib.text, amip.text, description.text)
         cf_standard = CfStandardNames(entry_id=entry.get("id"), canonical_units=canonical_units.text, grib=grib.text, amip=amip.text,
                                       description=description.text)
-        cf_standard.save()
+        try:
+            cf_standard.save()
+        except:
+            print(grib.text, amip.text, description.text)
+            pass
 
 
 def initial_seed_climate_contacts():
@@ -436,6 +455,7 @@ def initial_seed_climate_contacts():
 
 def initial_seed_climate():
     ClimateLayer.objects.all().delete()
+    ProcessingMethod.objects.all().delete()
     ClimateModelling.objects.all().delete()
     ClimateModellingBase.objects.all().delete()
     ClimateVariable.objects.all().delete()
@@ -535,10 +555,12 @@ def initial_seed_climate():
     ClimateVariable(variable_abbr="rsds",
                     variable_standard_name_cf=CfStandardNames.objects.filter(entry_id="surface_downwelling_shortwave_flux_in_air").first(),
                     variable_name="Surface Downwelling Shortwave Radiation", variable_cell_methods="time: mean", variable_unit="W m-2").save()
-    ClimateVariable(variable_abbr="sfcWind", variable_standard_name_cf=CfStandardNames.objects.filter(entry_id="wind_speed").first(),
+    ClimateVariable(variable_abbr="sfcwind", variable_standard_name_cf=CfStandardNames.objects.filter(entry_id="wind_speed").first(),
                     variable_name="Near-Surface Wind Speed", variable_cell_methods="time: mean", variable_unit="m s-1").save()
-    ClimateVariable(variable_abbr="hrus", variable_standard_name_cf=CfStandardNames.objects.filter(entry_id="relative_humidity").first(),
+    ClimateVariable(variable_abbr="hurs", variable_standard_name_cf=CfStandardNames.objects.filter(entry_id="relative_humidity").first(),
                     variable_name="Near-Surface Relative Humidity", variable_cell_methods="time: mean", variable_unit="%").save()
+    ClimateVariable(variable_abbr="prf", variable_standard_name_cf=CfStandardNames.objects.filter(entry_id="precipitation_flux").first(),
+                    variable_name="Precipitation Flux", variable_cell_methods="time: mean", variable_unit="kg m-2 s-1").save()
 
     ClimateModellingBase(project=CoupledModelIntercomparisonProject.objects.filter(name_short="CMIP5").first(),
                          forcing_global_model=GlobalClimateModel.objects.filter(name_short="NCC-NorESM1-M").first(),
@@ -628,10 +650,21 @@ def initial_seed_climate():
                      scenario=ClimateChangeScenario.objects.filter(name_short="RCP8.5").first()).save()
     ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
                      scenario=ClimateChangeScenario.objects.filter(name_short="RCP2.6").first()).save()
+    
+    ClimateModellingBase(project=CoupledModelIntercomparisonProject.objects.filter(name_short="CMIP5").first(),
+                         forcing_global_model=GlobalClimateModel.objects.filter(name_short="MPI-M-MPI-ESM-MR").first(),
+                         regional_model=RegionalClimateModel.objects.filter(name_short="ICTP-RegCM4-7").first(),
+                         experiment_id="r1i1p1").save()
 
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP8.5").first()).save()
+    ClimateModelling(modellingBase=ClimateModellingBase.objects.last(),
+                     scenario=ClimateChangeScenario.objects.filter(name_short="RCP2.6").first()).save()
 
-def read_and_insert_data():
-    myPath = "/opt/rbis/www/tippecc_data/WITS_regional_bias_corrected"
+    ProcessingMethod(name="Bias corrected").save()
+
+def read_and_insert_data(myPath, processing):
+
     filesList = []
 
     for path, subdirs, files in os.walk(myPath):
@@ -650,19 +683,25 @@ def read_and_insert_data():
             tar.getmembers()
             for member in tar.getmembers():
                 print(member)
-                path = member.path
-                title = member.name
-                variable = title.split("_")[4]
-                gcm = title.split("_")[3]
-                rcm = title.split("_")[1]
-                insert_climate_data(path, title, variable, gcm, rcm, theDict[item].st_size)
-        if item.endswith(".nc"):
-            path = os.path.basename(item)
-            title = item.split("/")[-1]
-            variable = title.split("_")[4]
-            gcm = title.split("_")[3]
-            rcm = title.split("_")[1]
-            insert_climate_data(path, title, variable, gcm, rcm, theDict[item].st_size)
+                if member.name.endswith(".nc"):
+                    path = item
+                    title = member.name.split("/")[-1]
+                    variable = title.split("_")[4]
+                    gcm = title.split("_")[3]
+                    rcm = title.split("_")[1]
+                    start = title.split("_")[7]
+                    end = title.split("_")[8].split(".")[0]
+                    if not ClimateLayer.objects.filter(title=title).first():
+                        insert_climate_data(path, title, variable, gcm, rcm, member.size, processing, start, end)
+     #   if item.endswith(".nc"):
+         #   path = os.path.basename(item)
+         #   title = item.split("/")[-1]
+         #   variable = title.split("_")[4]
+        #    gcm = title.split("_")[3]
+         #   rcm = title.split("_")[1]
+          #  insert_climate_data(path, title, variable, gcm, rcm, theDict[item].st_size)
+           # add info for unpacked files
+
 
 
 def test_instet_climate_data():
@@ -675,10 +714,14 @@ def test_instet_climate_data():
     insert_climate_data(path, title, variable, gcm, rcm, "23234")
 
 
-def insert_climate_data(path, title, variable, gcm, rcm, size):
+def insert_climate_data(path, title, variable, gcm, rcm, size, processing, start, end):
     meta_climate_layer = {}
     meta_climate_layer['title'] = title
     meta_climate_layer['variable_id'] = ClimateVariable.objects.filter(variable_abbr=variable).first().id
+    try:
+        meta_climate_layer['procesing_method_id'] = ProcessingMethod.objects.filter(name=processing).first().id
+    except:
+        pass
 
     meta_climate_layer['local_path'] = path
     meta_climate_layer['file_name'] = title
@@ -688,8 +731,8 @@ def insert_climate_data(path, title, variable, gcm, rcm, size):
                                                                                modellingBase__experiment_id="r1i1p1",
                                                                                scenario__name_short="RCP8.5").first().id
 
-    meta_climate_layer['date_begin'] = "1950-01-01"
-    meta_climate_layer['date_end'] = "2100-12-31"
+    meta_climate_layer['date_begin'] = start + "-01-01"
+    meta_climate_layer['date_end'] = end + "-12-31"
 
     meta_climate_layer['size'] = size
     #####
@@ -720,8 +763,13 @@ def check_create_climate_layer(meta_climate_layer):
     meta_new['dataset_id'] = meta_climate_layer['climate_dataset_id']
     meta_new['variable_id'] = meta_climate_layer['variable_id']
     meta_new['local_path'] = meta_climate_layer['local_path']
+    meta_new['file_name'] = meta_climate_layer['file_name']
     meta_new['size'] = meta_climate_layer['size']
     meta_new['frequency'] = meta_climate_layer['frequency']
+    try:
+        meta_new['processing_method_id'] = meta_climate_layer['procesing_method_id']
+    except:
+        pass
     #  meta_new['satus'] = meta_climate_layer['status']
 
     # Title
@@ -885,7 +933,13 @@ def create_seed_data():
     # initial_seed_climate()
     # insert_climate_data()
     # test_instet_climate_data()
-
+    ClimateLayer.objects.all().delete()
+    myPath = "/opt/rbis/www/tippecc_data/WITS_regional_bias_corrected"
+    read_and_insert_data(myPath, "Bias corrected")
+    myPath = "/opt/rbis/www/tippecc_data/WITS_regional_not_bias_corrected"
+    read_and_insert_data(myPath, "")
+    myPath = "/opt/rbis/www/tippecc_data/LANDSURF_indictorb"
+    read_and_insert_data(myPath, "")
 
 if __name__ == "__main__":
     import django
