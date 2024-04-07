@@ -3,9 +3,13 @@ import mimetypes
 import os
 import sys
 import requests
+import json
+import uuid
 
+from django.conf import settings
 from django.http import HttpResponse
-from django.http import StreamingHttpResponse
+from django.http import (HttpResponse, HttpResponseBadRequest, StreamingHttpResponse, JsonResponse)
+from django.views.decorators.csrf import csrf_exempt
 from elasticsearch_dsl import Index
 from elasticsearch_dsl.connections import connections 
 from rest_framework.decorators import api_view
@@ -21,6 +25,124 @@ import cf_xarray as cfxr
 import tarfile
 import pwd
 import grp
+
+import xclim.indices
+from xclim import testing
+
+
+
+#URLTXTFILES_DIR = os.path.join(settings.STATICFILES_DIRS[0], 'urltxtfiles')
+URLTXTFILES_DIR = "/opt/rbis/www/tippecc_data/tmp/"
+TESTCONTENT_DIR = "/opt/rbis/www/tippecc_data/tmp/water_budget"
+GENERAL_API_URL = 'https://leutra.geogr.uni-jena.de/backend_geoportal/'
+FORBIDDEN_CHARACTERS = ['/', '\\', '.', '-', ':', '@', '&', '^', '>', '<', '~', '$']
+HASH_LENGTH = 32
+
+
+# mainly for the wget request, returns a txt file with urls (to download) based on the
+# request parameter 'hash'  
+class TextFileView(APIView):
+    def get(self, request):
+        hash_param = request.GET.get('hash', default=None)
+
+        if hash_param is None:
+            return HttpResponseBadRequest()
+
+        if len(str(hash_param)) != HASH_LENGTH:
+            return HttpResponseBadRequest()
+
+        for c in FORBIDDEN_CHARACTERS:
+            if c in str(hash_param):
+                return HttpResponseBadRequest()
+
+        hashed_filename = str(hash_param) + ".txt"
+        file_path = os.path.join(URLTXTFILES_DIR, hashed_filename)
+
+        try:
+            content = open(file_path, 'r').read()
+            response = StreamingHttpResponse(content)
+            response['Content-Type'] = 'text/plain; charset=utf8'
+            return response
+        except Exception:
+            return HttpResponseBadRequest()
+
+
+# reads a user selection of files and saves them in a textfile
+# returns a wget request, that when executed, downloads all selected files        
+class SelectionForWgetView(APIView):
+    def post(self, request):
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+
+        foldercontent = os.listdir(TESTCONTENT_DIR)
+
+        # for all requested files in requestbody, check if they really exist
+        for entry in body:
+            if entry not in foldercontent:
+                return HttpResponseBadRequest()
+
+        url_content = ""
+        for entry in body:
+            url_content += GENERAL_API_URL + "/climate/get_file?name=" + entry + "\n"
+
+        # print(f"Body: {body}")
+        # test_content = "https://svelte.dev/images/twitter-thumbnail.jpg\nhttps://datascientest.com/en/wp-content/uploads/sites/9/2023/05/django1.jpg\nhttps://miro.medium.com/v2/resize:fit:712/0*QXkyD4rFK7ivYf9-.png"
+
+        unique_filehash = str(uuid.uuid4().hex)
+        unique_filename = unique_filehash + ".txt"
+
+        # TODO: - proper file writing here (with...)
+        try:
+            file = open(os.path.join(URLTXTFILES_DIR, unique_filename), 'w')
+            file.write(url_content)
+            file.close()
+        except Exception(e):
+            print(e)
+            return HttpResponseBadRequest()
+
+        response = JsonResponse({'wget-command': f"wget --content-disposition --input-file \"https://leutra.geogr.uni-jena.de/backend_geoportal/climate/get_climate_txt?hash={unique_filehash}\""})
+
+        return response
+
+
+# returns all filenames of the specified directory ('TESTCONTENT_DIR' rn)
+class ContentView(APIView):
+    def get(self, request):
+        foldercontent = os.listdir(TESTCONTENT_DIR)
+
+        # custom code to filter foldercontent (if really needed) --> here
+        # ...
+
+        print(foldercontent)
+
+        response = JsonResponse({'content': foldercontent})
+        return response
+
+
+# returns a single file (if it is present in the specified directory ('TESTCONTENT_DIR' rn)
+class GetFileView(APIView):
+    def get(self, request):
+        filename = request.GET.get('name', default=None)
+
+        foldercontent = os.listdir(TESTCONTENT_DIR)
+        print("FILENAME: ", filename)
+        print("FOLDERCONTENT: ", foldercontent)
+        if filename not in foldercontent:
+            return HttpResponseBadRequest()
+
+        test_file = open(os.path.join(TESTCONTENT_DIR, filename), 'rb')
+        response = HttpResponse(content=test_file)
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        return response
+
+
+@api_view(['GET'])
+def test_xclim(request):
+        year_end = "1951"
+        tasmax = testing.open_dataset("/opt/xclim/"+ year_end +"/tasmax_"+ year_end +"_.nc")  
+       
+        return Response("sdfsdf", status=200)
 
 @api_view(['GET'])
 def get_climate_layers(request):
@@ -88,11 +210,12 @@ def download(request):
                 extract_specific_files(tar_file_path, extract_to, file_list)
                 filepath = extract_to + file
         else:
-            filepath = filepath + climate_layer.file_name
+            pass
 
         print("Text coordinates")
         if  request.query_params.get("latmin") and request.query_params.get("latmax") and request.query_params.get("lonmin") and request.query_params.get("lonmax"):
             print("All true")
+            extract_to = '/opt/rbis/www/tippecc_data/tmp/'
             latmin = request.query_params.get("latmin")
             latmax = request.query_params.get("latmax")
             lonmin = request.query_params.get("lonmin")
@@ -312,11 +435,11 @@ class ElasticsearchCollections(APIView):
         for hit in response:
             print(hit.to_dict())
 
-            # topics = []
-            # if hasattr(hit, 'topiccat'):
-            #     if hit.topiccat:
-            #         for topic in hit.topiccat:
-            #             topics.append({'val': topic})
+            variables = []
+            if hasattr(hit, 'variables'):
+                if hit.variables:
+                    for variable in hit.variables:
+                        variables.append({'val': variable})
 
             # keywords = []
             # if hasattr(hit, 'keywords'):
@@ -326,8 +449,8 @@ class ElasticsearchCollections(APIView):
             #         for keyword in hit.keywords:
             #             keywords.append({'val': keyword})
             if hit.meta.index == "climate_collection_index":
-                hits.append({'score': round(hit.meta.score, 3), 'scenario': hit.scenario, 'gcm': hit.gcm, 'rcm': hit.rcm, 'processing_method': hit.processing_method, 'file_id': hit.file_id})
-
+                hits.append({'score': round(hit.meta.score, 3), 'scenario': hit.scenario, 'gcm': hit.gcm, 'rcm': hit.rcm, 'processing_method': hit.processing_method})
+        
         list_order["title"] = 11
         list_order["variables"] = 12
         list_order["gcm"] = 13
@@ -510,15 +633,16 @@ def bulk_indexing():
                               'start_year': file.date_begin, 'date_begin': file.date_end})
             if file.processing_method:
                 processing_method = str(file.processing_method.name)
-        obj = ClimateDatasetsCollectionIndex(
-            rcm=str(climateDatasetCollection.modellingBase.regional_model),
-            gcm=str(climateDatasetCollection.modellingBase.forcing_global_model),
-            scenario=str(climateDatasetCollection.scenario),
-            processing_method=str(processing_method),
-            variables=variables,
-        )
-        print(obj)
-        obj.save()
+        if len(variables) > 0:
+            obj = ClimateDatasetsCollectionIndex(
+                rcm=str(climateDatasetCollection.modellingBase.regional_model),
+                gcm=str(climateDatasetCollection.modellingBase.forcing_global_model),
+                scenario=str(climateDatasetCollection.scenario),
+                processing_method=str(processing_method),
+                variables=variables,
+            )
+            print(obj)
+            obj.save()
 
 
 def read_and_insert_ind_index_data(myPath, dataset_):
@@ -665,4 +789,4 @@ def read_and_insert_ind_index_slice_data(myPath, dataset_):
 #read_and_insert_ind_index_data("/opt/rbis/www/tippecc_data/LANDSURF_indictor/full_period", "monthly")
 #read_and_insert_ind_index_slice_data("/opt/rbis/www/tippecc_data/LANDSURF_indictor/slices20", "mean 20 years")
 #read_and_insert_ind_index_slice_data("/opt/rbis/www/tippecc_data/LANDSURF_indictor/slices30", "mean 30 years")
-# bulk_indexing()
+#bulk_indexing()
