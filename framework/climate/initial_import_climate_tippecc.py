@@ -1087,13 +1087,15 @@ def read_and_insert_data(myPath, processing):
                             start,
                             end,
                         )
-    #   if item.endswith(".nc"):
-    #   path = os.path.basename(item)
-    #   title = item.split("/")[-1]
-    #   variable = title.split("_")[4]
-    #    gcm = title.split("_")[3]
-    #   rcm = title.split("_")[1]
-    #  insert_climate_data(path, title, variable, gcm, rcm, theDict[item].st_size)
+        if item.endswith(".nc"):
+            path = item
+            title = item.split("/")[-1]
+            variable = title.split("_")[4]
+            gcm = title.split("_")[3]
+            rcm = title.split("_")[1]
+            start = title.split("_")[7]
+            end = title.split("_")[8].split(".")[0]
+            insert_climate_data(path, title, variable, gcm, rcm, theDict[item].st_size, processing, start, end)
     # add info for unpacked files
 
 
@@ -1343,12 +1345,14 @@ def create_seed_data():
     # insert_climate_data()
     # test_instet_climate_data()
     ClimateLayer.objects.all().delete()
-    myPath = "/opt/rbis/www/tippecc_data/WITS_regional_bias_corrected"
-    read_and_insert_data(myPath, "Bias corrected")
-    myPath = "/opt/rbis/www/tippecc_data/WITS_regional_not_bias_corrected"
+    #myPath = "/opt/rbis/www/tippecc_data/WITS_regional_bias_corrected"
+    #read_and_insert_data(myPath, "Bias corrected")
+    #myPath = "/opt/rbis/www/tippecc_data/WITS_regional_not_bias_corrected"
+    #read_and_insert_data(myPath, "")
+    myPath = "/opt/rbis/www/tippecc_data/WITS_raw"
     read_and_insert_data(myPath, "")
-    myPath = "/opt/rbis/www/tippecc_data/LANDSURF_indictorb"
-    read_and_insert_data(myPath, "")
+    #myPath = "/opt/rbis/www/tippecc_data/LANDSURF_indictorb"
+    #read_and_insert_data(myPath, "")
 
 
 if __name__ == "__main__":
