@@ -20,27 +20,30 @@ from .models import ClimateLayer
 from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex, ClimateDatasetsIndex, ClimateIndicatorIndex, ClimateSearch, ClimateIndicatorSearch)
 from .serializer import ClimateLayerSerializer
 
-import xarray as xr
-import cf_xarray as cfxr
+from datetime import datetime
+
+# import xarray as xr
+# import cf_xarray as cfxr
 import tarfile
 import pwd
 import grp
 
-import xclim.indices
+# import xclim.indices
 from xclim import testing
 
 
 
-#URLTXTFILES_DIR = os.path.join(settings.STATICFILES_DIRS[0], 'urltxtfiles')
+# URLTXTFILES_DIR = os.path.join(settings.STATICFILES_DIRS[0], 'urltxtfiles')
 URLTXTFILES_DIR = "/opt/rbis/www/tippecc_data/tmp/"
 TESTCONTENT_DIR = "/opt/rbis/www/tippecc_data/tmp/water_budget"
+
 GENERAL_API_URL = 'https://leutra.geogr.uni-jena.de/backend_geoportal/'
 FORBIDDEN_CHARACTERS = ['/', '\\', '.', '-', ':', '@', '&', '^', '>', '<', '~', '$']
 HASH_LENGTH = 32
 
 
 # mainly for the wget request, returns a txt file with urls (to download) based on the
-# request parameter 'hash'  
+# request parameter 'hash'
 class TextFileView(APIView):
     def get(self, request):
         hash_param = request.GET.get('hash', default=None)
@@ -110,12 +113,29 @@ class ContentView(APIView):
     def get(self, request):
         foldercontent = os.listdir(TESTCONTENT_DIR)
 
-        # custom code to filter foldercontent (if really needed) --> here
-        # ...
+        dir_content = []
 
-        print(foldercontent)
+        for i, f in enumerate(foldercontent):
+            full_filename = TESTCONTENT_DIR + '/' + f
+            file_stats = os.stat(full_filename)
 
-        response = JsonResponse({'content': foldercontent})
+            dir_content_element = []
+            dir_content_element.append(f)
+            dir_content_element.append(str(file_stats.st_size / (1024 * 1024)) + " MB")
+            creation_date = None
+
+            try:
+                # other OS
+                creation_date = file_stats.st_birthtime
+            except AttributeError:
+                # We're probably on Linux. No easy way to get creation dates here,
+                # so we'll settle for when its content was last modified.
+                creation_date = datetime.fromtimestamp(file_stats.st_mtime).strftime('%Y-%m-%d %H:%M')
+
+            dir_content_element.append(creation_date)
+            dir_content.append(dir_content_element)
+
+        response = JsonResponse({'content': dir_content})
         return response
 
 
