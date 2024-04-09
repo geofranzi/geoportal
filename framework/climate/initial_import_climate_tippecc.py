@@ -1345,14 +1345,14 @@ def create_seed_data():
     # insert_climate_data()
     # test_instet_climate_data()
     ClimateLayer.objects.all().delete()
-    #myPath = "/opt/rbis/www/tippecc_data/WITS_regional_bias_corrected"
-    #read_and_insert_data(myPath, "Bias corrected")
-    #myPath = "/opt/rbis/www/tippecc_data/WITS_regional_not_bias_corrected"
-    #read_and_insert_data(myPath, "")
+    # myPath = "/opt/rbis/www/tippecc_data/WITS_regional_bias_corrected"
+    # read_and_insert_data(myPath, "Bias corrected")
+    # myPath = "/opt/rbis/www/tippecc_data/WITS_regional_not_bias_corrected"
+    # read_and_insert_data(myPath, "")
     myPath = "/opt/rbis/www/tippecc_data/WITS_raw"
     read_and_insert_data(myPath, "")
-    #myPath = "/opt/rbis/www/tippecc_data/LANDSURF_indictorb"
-    #read_and_insert_data(myPath, "")
+    # myPath = "/opt/rbis/www/tippecc_data/LANDSURF_indictorb"
+    # read_and_insert_data(myPath, "")
 
 
 if __name__ == "__main__":
