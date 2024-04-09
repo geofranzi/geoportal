@@ -89,7 +89,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=255, unique=True)),
-                ('type', models.CharField(blank=True, choices=[('Bias Correction', 'Bias Correction'), ('Downscaling', 'Downscaling'), ('Other', 'Other'), ('', 'None')], null=True)),
+                ('type', models.CharField(max_length=255, blank=True, choices=[('Bias Correction', 'Bias Correction'), ('Downscaling', 'Downscaling'), ('Other', 'Other'), ('', 'None')], null=True)),
                 ('description', models.TextField(blank=True, null=True)),
                 ('ref_url', models.TextField(blank=True, max_length=500, null=True)),
                 ('ref_citation', models.TextField(blank=True, max_length=500, null=True)),
