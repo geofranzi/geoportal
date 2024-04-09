@@ -7,7 +7,10 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     initial = True
-
+    
+    dependencies = [
+        ('layers', '0013_alter_layer_progress_alter_layer_scope_and_more'),
+    ]
    
     operations = [
         migrations.CreateModel(
