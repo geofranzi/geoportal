@@ -85,13 +85,14 @@ class CfStandardNames(models.Model):
 class ProcessingMethod(models.Model):
     TYPE = ("Bias Correction", "Bias Correction"), ("Downscaling", "Downscaling"), ("Other", "Other"), ("", "None")
     name = models.CharField(max_length=255, unique=True)
-    type = models.CharField(choices=TYPE, blank=True, null=True)
+    type = models.CharField(max_length=255, choices=TYPE, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     ref_url = models.TextField(max_length=500, blank=True, null=True)
     ref_citation = models.TextField(max_length=500, blank=True, null=True)
-    
+
     def __str__(self):
         return self.name
+
 
 class ClimatePeriods(models.Model):
     start_date = models.DateField(blank=True, null=True)

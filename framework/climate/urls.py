@@ -5,7 +5,7 @@ from . import views
 
 
 urlpatterns = [
-    path('test_xclim', views.test_xclim, name='test_xclim'), 
+    path('test_xclim', views.test_xclim, name='test_xclim'),
     path('get_climate_layers', views.get_climate_layers, name='get_climate_layers'),
     path('get_climate_layer', views.get_climate_layer, name='get_climate_layer'),
     path('download', views.download, name='download'),

@@ -38,7 +38,7 @@ class ClimateDatasetsCollectionIndex(Document):
     gcm = Keyword()
     rcm = Keyword()
     bias_correction = Keyword()
-    processing_method = Keyword() 
+    processing_method = Keyword()
     variables = Nested(
         multi=True,
         properties={
@@ -49,6 +49,7 @@ class ClimateDatasetsCollectionIndex(Document):
 
     class Index:
         name = 'climate_collection_index'
+
 
 class ClimateIndicatorIndex(Document):
     frequency = Keyword()
@@ -71,7 +72,6 @@ class ClimateIndicatorIndex(Document):
 
     class Index:
         name = 'climate_indicator_index'
-
 
 
 class ClimateSearch(FacetedSearch):
@@ -195,7 +195,8 @@ class ClimateCollectionSearch(FacetedSearch):
 
         print(search_query.to_dict())
         return search_query
-        
+
+
 class ClimateIndicatorSearch(FacetedSearch):
     index = 'climate_indicator_index'
     doc_types = [ClimateIndicatorIndex, ]

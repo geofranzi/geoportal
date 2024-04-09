@@ -50,8 +50,10 @@ class GlobalClimateModelAdmin(admin.ModelAdmin):
 class RegionalClimateModelAdmin(admin.ModelAdmin):
     list_display = ('name_short',)
 
+
 class ProcessingMethodAdmin(admin.ModelAdmin):
     list_display = ('name',)
+
 
 admin.site.register(CfStandardNames, CfStandardNamesAdmin)
 admin.site.register(ClimateLayer, ClimateLayerAdmin)

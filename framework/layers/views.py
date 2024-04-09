@@ -2,19 +2,17 @@ import json
 from urllib.request import urlopen
 from wsgiref.util import FileWrapper
 
-from django.http import (Http404, HttpResponse, )
+from django.http import (Http404, HttpResponse,)
 from django.shortcuts import redirect
 from owslib.etree import etree
-from rest_framework import (serializers, status, )
+from rest_framework import (serializers, status,)
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from webgis import settings
 
-from .models import (Contact, KeywordInline, KeywordInlineSerializer, Layer, MetadataSerializer, )
-
-
+from .models import (Contact, KeywordInline, KeywordInlineSerializer, Layer, MetadataSerializer,)
 # Contact serializer used in LayerSerializer
 from .serializer import ContactWebsiteSerializer
 
@@ -499,7 +497,7 @@ class GetTimeValues(APIView):
         dates = []
 
         start, end, interval = value.split('/')
-        from dateutil import (parser, rrule, )
+        from dateutil import (parser, rrule,)
         start = parser.parse(start)
         end = parser.parse(end)
 
