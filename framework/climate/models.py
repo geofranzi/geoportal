@@ -89,9 +89,10 @@ class ProcessingMethod(models.Model):
     description = models.TextField(blank=True, null=True)
     ref_url = models.TextField(max_length=500, blank=True, null=True)
     ref_citation = models.TextField(max_length=500, blank=True, null=True)
-    
+
     def __str__(self):
         return self.name
+
 
 class ClimatePeriods(models.Model):
     start_date = models.DateField(blank=True, null=True)
