@@ -117,7 +117,7 @@ class ContentView(APIView):
 
             dir_content_element = []
             dir_content_element.append(f)
-            dir_content_element.append(str(file_stats.st_size / (1024 * 1024)) + " MB")
+            dir_content_element.append(str(round(file_stats.st_size / (1024 * 1024), 4)) + " MB")
             creation_date = None
 
             try:
