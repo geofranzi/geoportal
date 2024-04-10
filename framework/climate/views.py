@@ -96,7 +96,7 @@ class SelectionForWgetView(APIView):
 
         response = JsonResponse(
             {
-                "wget-command": 'wget --content-disposition --input-file' +
+                "wget-command": 'wget --content-disposition --input-file ' +
                 f'"https://leutra.geogr.uni-jena.de/backend_geoportal/climate/get_climate_txt?hash={unique_filehash}"'
             }
         )
