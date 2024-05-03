@@ -96,7 +96,7 @@ class SelectionForWgetView(APIView):
 
         response = JsonResponse(
             {
-                "wget-command": 'wget --content-disposition --input-file' +
+                "wget-command": 'wget --content-disposition --input-file ' +
                 f'"https://leutra.geogr.uni-jena.de/backend_geoportal/climate/get_climate_txt?hash={unique_filehash}"'
             }
         )
@@ -117,7 +117,7 @@ class ContentView(APIView):
 
             dir_content_element = []
             dir_content_element.append(f)
-            dir_content_element.append(str(file_stats.st_size / (1024 * 1024)) + " MB")
+            dir_content_element.append(self.sizeof_fmt(file_stats.st_size))
             creation_date = None
 
             try:
@@ -135,6 +135,14 @@ class ContentView(APIView):
 
         response = JsonResponse({"content": dir_content})
         return response
+
+    def sizeof_fmt(self, num, suffix="B"):
+        for unit in ("", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"):
+            if abs(num) < 1024.0:
+                return f"{num:3.1f} {unit}{suffix}"
+            num /= 1024.0
+
+        return f"{num:.1f}Yi{suffix}"
 
 
 # returns a single file (if it is present in the specified directory ('TESTCONTENT_DIR' rn)
