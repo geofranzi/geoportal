@@ -29,7 +29,12 @@ from .serializer import ClimateLayerSerializer
 
 # URLTXTFILES_DIR = os.path.join(settings.STATICFILES_DIRS[0], 'urltxtfiles')
 URLTXTFILES_DIR = "/opt/rbis/www/tippecc_data/tmp/"
-TESTCONTENT_DIR = "/opt/rbis/www/tippecc_data/tmp/water_budget"
+#TESTCONTENT_DIR = "/opt/rbis/www/tippecc_data/tmp/water_budget"
+
+folder_list = {}
+folder_list["water_budget"] = "/opt/rbis/www/tippecc_data/tmp/water_budget"
+folder_list["water_budget_bias"] = "/opt/rbis/www/tippecc_data/tmp/water_budget/bias"
+
 
 GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
 FORBIDDEN_CHARACTERS = ["/", "\\", ".", "-", ":", "@", "&", "^", ">", "<", "~", "$"]
@@ -70,8 +75,8 @@ class SelectionForWgetView(APIView):
     def post(self, request):
         body_unicode = request.body.decode("utf-8")
         body = json.loads(body_unicode)
-
-        foldercontent = os.listdir(TESTCONTENT_DIR)
+        type = request.GET.get("type", default=None)
+        foldercontent = os.listdir(folder_list[type])
 
         # for all requested files in requestbody, check if they really exist
         for entry in body:
@@ -80,7 +85,7 @@ class SelectionForWgetView(APIView):
 
         url_content = ""
         for entry in body:
-            url_content += GENERAL_API_URL + "/climate/get_file?name=" + entry + "\n"
+            url_content += GENERAL_API_URL + "/climate/get_file?name=" + entry + "&type="+ type + "\n"
 
         unique_filehash = str(uuid.uuid4().hex)
         unique_filename = unique_filehash + ".txt"
@@ -107,8 +112,11 @@ class SelectionForWgetView(APIView):
 # returns all filenames of the specified directory ('TESTCONTENT_DIR' rn)
 class ContentView(APIView):
     def get(self, request):
+        
+        folder = request.GET.get("type", default=None)
+        TESTCONTENT_DIR = folder_list[folder]
         foldercontent = os.listdir(TESTCONTENT_DIR)
-
+        
         dir_content = []
 
         for i, f in enumerate(foldercontent):
@@ -149,6 +157,10 @@ class ContentView(APIView):
 class GetFileView(APIView):
     def get(self, request):
         filename = request.GET.get("name", default=None)
+        folder = request.GET.get("type", default=None)
+
+        TESTCONTENT_DIR = folder_list[folder]
+
 
         foldercontent = os.listdir(TESTCONTENT_DIR)
         print("FILENAME: ", filename)
