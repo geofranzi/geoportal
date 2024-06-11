@@ -257,3 +257,12 @@ class ProvenanceInline(models.Model):
 
     def __str__(self):
         return self.relation_type + " " + self.target.name
+
+
+class NcFile(models.Model):
+    filepath = models.CharField(max_length=2048, unique=True)
+    num_bands = models.IntegerField()
+    band_metadata = models.JSONField()
+
+    def __str__(self):
+        return self.filepath

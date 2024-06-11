@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime
 
 import requests
+from django.conf import settings
 from django.http import (HttpResponse, HttpResponseBadRequest, JsonResponse, StreamingHttpResponse,)
 from elasticsearch_dsl import Index
 from elasticsearch_dsl.connections import connections
@@ -27,13 +28,21 @@ from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex,
 from .serializer import ClimateLayerSerializer
 
 
-# URLTXTFILES_DIR = os.path.join(settings.STATICFILES_DIRS[0], 'urltxtfiles')
-URLTXTFILES_DIR = "/opt/rbis/www/tippecc_data/tmp/"
-#TESTCONTENT_DIR = "/opt/rbis/www/tippecc_data/tmp/water_budget"
+URLTXTFILES_DIR = os.path.join(settings.STATICFILES_DIRS[0], 'urltxtfiles')
+CACHED_TIFS_DIR = os.path.join(settings.STATICFILES_DIRS[0], 'cached_tifs')
+WATER_BUDGET_DIR = os.path.join(settings.STATICFILES_DIRS[0], 'test_content')
+WATER_BUDGET_BIAS_DIR = os.path.join(settings.STATICFILES_DIRS[0], 'water_budget_bias')
 
 folder_list = {}
-folder_list["water_budget"] = "/opt/rbis/www/tippecc_data/tmp/water_budget"
-folder_list["water_budget_bias"] = "/opt/rbis/www/tippecc_data/tmp/water_budget/bias"
+folder_list["water_budget"] = WATER_BUDGET_DIR
+folder_list["water_budget_bias"] = WATER_BUDGET_BIAS_DIR
+
+# URLTXTFILES_DIR = "/opt/rbis/www/tippecc_data/tmp/"
+# WATER_BUDGET_DIR = "/opt/rbis/www/tippecc_data/tmp/water_budget"
+
+# folder_list = {}
+# folder_list["water_budget"] = "/opt/rbis/www/tippecc_data/tmp/water_budget"
+# folder_list["water_budget_bias"] = "/opt/rbis/www/tippecc_data/tmp/water_budget/bias"
 
 
 GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
@@ -80,12 +89,13 @@ class SelectionForWgetView(APIView):
 
         # for all requested files in requestbody, check if they really exist
         for entry in body:
+            # TODO: change to patchcheck
             if entry not in foldercontent:
                 return HttpResponseBadRequest()
 
         url_content = ""
         for entry in body:
-            url_content += GENERAL_API_URL + "/climate/get_file?name=" + entry + "&type="+ type + "\n"
+            url_content += GENERAL_API_URL + "/climate/get_file?name=" + entry + "&type=" + type + "\n"
 
         unique_filehash = str(uuid.uuid4().hex)
         unique_filename = unique_filehash + ".txt"
@@ -109,18 +119,17 @@ class SelectionForWgetView(APIView):
         return response
 
 
-# returns all filenames of the specified directory ('TESTCONTENT_DIR' rn)
+# returns all filenames of the specified directory ('WATER_BUDGET_DIR' rn)
 class ContentView(APIView):
     def get(self, request):
-        
         folder = request.GET.get("type", default=None)
-        TESTCONTENT_DIR = folder_list[folder]
-        foldercontent = os.listdir(TESTCONTENT_DIR)
-        
+        source_dir = folder_list[folder]
+        foldercontent = os.listdir(source_dir)
+
         dir_content = []
 
         for i, f in enumerate(foldercontent):
-            full_filename = TESTCONTENT_DIR + "/" + f
+            full_filename = source_dir + "/" + f
             file_stats = os.stat(full_filename)
 
             dir_content_element = []
@@ -160,7 +169,6 @@ class GetFileView(APIView):
         folder = request.GET.get("type", default=None)
 
         TESTCONTENT_DIR = folder_list[folder]
-
 
         foldercontent = os.listdir(TESTCONTENT_DIR)
         print("FILENAME: ", filename)
