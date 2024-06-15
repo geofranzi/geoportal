@@ -10,35 +10,257 @@ import sys
 import tarfile
 import uuid
 from datetime import datetime
+from pathlib import Path
+from subprocess import (PIPE, Popen,)
 
 import requests
 from django.http import (HttpResponse, HttpResponseBadRequest, JsonResponse, StreamingHttpResponse,)
 from elasticsearch_dsl import Index
 from elasticsearch_dsl.connections import connections
+from osgeo import gdal
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 # import xclim.indices
 from xclim import testing
 
-from .models import ClimateLayer
+from .models import (ClimateLayer, TempResultFile,)
 from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex, ClimateDatasetsIndex,
                         ClimateIndicatorIndex, ClimateIndicatorSearch, ClimateSearch,)
 from .serializer import ClimateLayerSerializer
 
 
-# URLTXTFILES_DIR = os.path.join(settings.STATICFILES_DIRS[0], 'urltxtfiles')
-URLTXTFILES_DIR = "/opt/rbis/www/tippecc_data/tmp/"
-#TESTCONTENT_DIR = "/opt/rbis/www/tippecc_data/tmp/water_budget"
-
-folder_list = {}
-folder_list["water_budget"] = "/opt/rbis/www/tippecc_data/tmp/water_budget"
-folder_list["water_budget_bias"] = "/opt/rbis/www/tippecc_data/tmp/water_budget/bias"
-
-
+# GENERAL_API_URL = "http://127.0.0.1:8000/"
 GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
 FORBIDDEN_CHARACTERS = ["/", "\\", ".", "-", ":", "@", "&", "^", ">", "<", "~", "$"]
 HASH_LENGTH = 32
+
+TEMP_FOLDER_TYPES = [
+    "water_budget",
+    "water_budget_bias",
+    "kaariba"
+]
+
+folder_list = {}
+folder_list['raw'] = {}
+folder_list['cache'] = {}
+
+# LOCAL paths
+# TEMP_ROOT = settings.STATICFILES_DIRS[0]
+# TEMP_RAW = os.path.join(TEMP_ROOT, "tippecctmp/raw")
+# TEMP_CACHE = os.path.join(TEMP_ROOT, "tippecctmp/cache")
+# TEMP_URL = os.path.join(TEMP_ROOT, "tippecctmp/url")
+# URLTXTFILES_DIR = TEMP_URL
+
+# SERVER paths
+TEMP_ROOT = "/opt/rbis/www/tippecc_data/tmp"
+TEMP_RAW = "/opt/rbis/www/tippecc_data/tmp/raw"
+TEMP_CACHE = "/opt/rbis/www/tippecc_data/tmp/cache"
+URLTXTFILES_DIR = "/opt/rbis/www/tippecc_data/tmp/url"
+
+for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
+    folder_list['raw'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_RAW, TEMP_FOLDER_TYPE)
+    folder_list['cache'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_CACHE, TEMP_FOLDER_TYPE)
+
+    # print("FOLDER_LIST")
+    # print(folder_list)
+
+# SPECIFICATIONS [temp results]
+#  - download single file
+#      - as .nc, .tif
+#      - .tif needs version check, and thus database entry
+#      - .tif may need to be generated, thus needs metadata check
+#  - download multiple files
+#      - same requirements as single file BUT
+#      - possibly many .tif files need generating and database accesses
+
+#  - display content of one specific temp result folder
+#      - collect filenames, stats, filechange-date, (..)
+#      - used for frontend visualisation
+#      - mostly done, only adaptations
+
+#  - select filenames for wget script, to be saved in a txt file
+#      - needs safe file selection and hashing of the txt file
+#      - done, only adaptations
+
+#  - route that returns a txt file (for usage in wget script)
+#      - part of a 2 steps process to remember and serve filenames from a hashed txt
+#      - mostly done, only adaptations
+
+# 3 Main Functionalities:
+#  - 1. properly/safely handling foldertype and filename request parameters
+#       and providing cleaned paths for file access
+#  - 2. easy access point to read the filenames corresponding db object
+#       ( metadata, versioncheck, ..)
+#  - 3. serve and maybe generate first -> file for download
+
+
+def parse_temp_foldertype_from_param(foldertype: str):
+    try:
+        idx = TEMP_FOLDER_TYPES.index(foldertype)
+        return TEMP_FOLDER_TYPES[idx]
+    except Exception:
+        return False
+
+
+# Safely returns an actual filename from the raw directory of temp result files
+# based on given foldertype and filename string - request parameters.
+# TODO: - add function to parse as list
+def parse_temp_filename_from_param(filename: str, foldertype: str):
+    foldertype = parse_temp_foldertype_from_param(foldertype)
+    if foldertype is False:
+        return False
+
+    try:
+        folder = os.listdir(folder_list['raw'][foldertype])
+        idx = folder.index(filename)
+        return folder[idx]
+    except Exception:
+        return False
+
+
+def extract_ncfile_metadata(filename: str, dir_in: str):
+    filepath = os.path.join(dir_in, filename)
+    if not os.path.isfile(filepath):
+        return False, "file not found"
+
+    process = Popen(["gdalinfo", filepath, "-json", "-mm"], stdout=PIPE, stderr=PIPE)
+    # process = Popen(f"gdalinfo data/tif_data/{input_filename} -json")
+    stdout, stderr = process.communicate()
+    metadata = stdout.decode("utf-8")
+
+    JSON_metadata = json.loads(metadata)
+
+    if "bands" not in JSON_metadata:
+        return False, "band metadata missing in file"
+
+    net_cdf_times = None
+    try:
+        net_cdf: str = JSON_metadata["metadata"][""]["NETCDF_DIM_time_VALUES"]
+        net_cdf = net_cdf.replace("{", "").replace("}", "").replace(" ", "")
+        net_cdf_times = json.dumps(net_cdf.split(","))
+    except Exception:
+        return False, "netcdf times missing in file"
+
+    complete_band_metadata = {}
+    num_bands = len(JSON_metadata["bands"])
+
+    try:
+        for i, band_metadata in enumerate(JSON_metadata["bands"]):
+            band_collect = {}
+            band_collect["min"] = band_metadata["computedMin"]
+            band_collect["max"] = band_metadata["computedMax"]
+            band_collect["NETCDF_DIM_time"] = band_metadata["metadata"][""][
+                "NETCDF_DIM_time"
+            ]
+            band_collect["index"] = i + 1
+            complete_band_metadata[str(i + 1)] = band_collect
+    except Exception:
+        return False, "missing metadata key,value pairs"
+
+    new_doc = None
+    try:
+        print("Attempting file metadata save: ")
+        print(
+            f"filepath: {filepath}\nnum_bands:{num_bands}\nnet_cdf_times:{net_cdf_times}"
+        )
+        new_doc = TempResultFile(
+
+            filename=filename,
+            num_bands=num_bands,
+            band_metadata=complete_band_metadata,
+            net_cdf_times=net_cdf_times,
+        )
+        new_doc.save()
+    except Exception as e:
+        print(e)
+        return False, "could not save file metadata to database"
+
+    return True, new_doc
+
+
+def cache_tif_from_nc(filename_in: str, foldertype: str):
+    filepath_in = os.path.join(folder_list['raw'][foldertype], filename_in)
+    if not os.path.isfile(filepath_in):
+        return False
+
+    filename_out = Path(filename_in).stem + ".tif"
+    filepath_out = os.path.join(folder_list['cache'][foldertype], filename_out)
+
+    # print(f"filename_out: {filename_out}")
+    # print(f"filepath_in: {filepath_in}")
+    # print(f"filepath_out: {filepath_out}")
+    try:
+        ds = gdal.Open(filepath_in)
+        gdal.Translate(filepath_out, ds, format="Gtiff")
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+
+def copy_filename_as_tif(f: str):
+    return f"{Path(f).stem}.tif"
+
+
+def is_temp_file_cached(raw_filename: str, foldertype: str):
+    tif_filename = copy_filename_as_tif(raw_filename)
+    tif_path = os.path.join(folder_list['cache'][foldertype], tif_filename)
+
+    if not os.path.isfile(tif_path):
+        return False
+
+    return False
+    # file exists
+    # - now check if db object exists and both raw and cached file match version
+
+
+# @api_view(["GET"])
+def get_ncfile_metadata(request):
+    filename = parse_temp_filename_from_param(request.GET.get("name", default=None))
+    foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
+
+    if foldertype is False or filename is False:
+        return HttpResponseBadRequest()
+
+    filepath_in = os.path.join(folder_list['raw'][foldertype], filename)
+
+    if not os.path.isfile(filepath_in):
+        return HttpResponse(status=204)
+
+    # file exists
+    # - now try to read from database, and return OR
+    # - if this fails -> try to extract from file, save to db, and return
+
+
+# test_file_name = "CLMcom-KIT-CCLM5-0-15_v1_MOHC-HadGEM2-ES__water_budget_all__yearsum_mean_2080_2099.nc"
+
+# def test_init_nc():
+#     filenames = [test_file_name]
+#     folder = "water_budget"
+
+#     for n in filenames:
+#         succ, helper = extract_ncfile_metadata(n, folder_list[folder])
+
+#         if not succ:
+#             fail_msg = helper
+#             print("Could not extract metadata:", fail_msg)
+#         else:
+#             new_file_object: TempResultFile = helper
+#             print("Extracted metadata for file: ", n)
+#             print(new_file_object.band_metadata)
+
+
+# def test_nc():
+#     folder = "water_budget"
+
+    # file does not exist
+    # print(TempResultFile.get_file_metadata("qwr<wet<set"))
+
+    # caching files
+    # print(is_temp_file_cached(test_file_name))
+    # succ = cache_tif_from_nc(test_file_name, folder_list[folder])
+    # print(is_temp_file_cached(Path(test_file_name).stem))
 
 
 # mainly for the wget request, returns a txt file with urls (to download) based on the
@@ -76,16 +298,25 @@ class SelectionForWgetView(APIView):
         body_unicode = request.body.decode("utf-8")
         body = json.loads(body_unicode)
         type = request.GET.get("type", default=None)
-        foldercontent = os.listdir(folder_list[type])
+        foldercontent = os.listdir(folder_list['raw'][type])
 
+        print(foldercontent)
         # for all requested files in requestbody, check if they really exist
         for entry in body:
             if entry not in foldercontent:
+                print(entry)
                 return HttpResponseBadRequest()
 
         url_content = ""
         for entry in body:
-            url_content += GENERAL_API_URL + "/climate/get_file?name=" + entry + "&type="+ type + "\n"
+            url_content += (
+                GENERAL_API_URL
+                + "/climate/get_file?name="
+                + entry
+                + "&type="
+                + type
+                + "\n"
+            )
 
         unique_filehash = str(uuid.uuid4().hex)
         unique_filename = unique_filehash + ".txt"
@@ -101,26 +332,26 @@ class SelectionForWgetView(APIView):
 
         response = JsonResponse(
             {
-                "wget-command": 'wget --content-disposition --input-file ' +
-                f'"https://leutra.geogr.uni-jena.de/backend_geoportal/climate/get_climate_txt?hash={unique_filehash}"'
+                "wget-command": "wget --content-disposition --input-file "
+                + f'"https://leutra.geogr.uni-jena.de/backend_geoportal/climate/get_climate_txt?hash={unique_filehash}"'
             }
         )
 
         return response
 
 
-# returns all filenames of the specified directory ('TESTCONTENT_DIR' rn)
+# returns all filenames of the specified directory ('WATER_BUDGET_DIR' rn)
 class ContentView(APIView):
     def get(self, request):
-        
+
         folder = request.GET.get("type", default=None)
-        TESTCONTENT_DIR = folder_list[folder]
-        foldercontent = os.listdir(TESTCONTENT_DIR)
-        
+        source_dir = folder_list['raw'][folder]
+        foldercontent = os.listdir(source_dir)
+
         dir_content = []
 
         for i, f in enumerate(foldercontent):
-            full_filename = TESTCONTENT_DIR + "/" + f
+            full_filename = source_dir + "/" + f
             file_stats = os.stat(full_filename)
 
             dir_content_element = []
@@ -159,8 +390,7 @@ class GetFileView(APIView):
         filename = request.GET.get("name", default=None)
         folder = request.GET.get("type", default=None)
 
-        TESTCONTENT_DIR = folder_list[folder]
-
+        TESTCONTENT_DIR = folder_list['raw'][folder]
 
         foldercontent = os.listdir(TESTCONTENT_DIR)
         print("FILENAME: ", filename)
@@ -168,11 +398,14 @@ class GetFileView(APIView):
         if filename not in foldercontent:
             return HttpResponseBadRequest()
 
-        test_file = open(os.path.join(TESTCONTENT_DIR, filename), "rb")
-        response = HttpResponse(content=test_file)
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        try:
+            with open(os.path.join(TESTCONTENT_DIR, filename), "rb") as test_file:
+                response = HttpResponse(content=test_file)
+                response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
-        return response
+                return response
+        except Exception:
+            return HttpResponse(204)
 
 
 @api_view(["GET"])

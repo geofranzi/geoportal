@@ -257,3 +257,30 @@ class ProvenanceInline(models.Model):
 
     def __str__(self):
         return self.relation_type + " " + self.target.name
+
+
+class TempResultFile(models.Model):
+    CATEGORIES = ("water_budget", "water_budget"), ("water_budget_bias", "water_budget_bias"), ("kaariba", "kaariba")
+    categorized_filename = models.CharField(max_length=500, unique=True, null=True)
+    filename = models.CharField(max_length=400, null=True)
+    category = models.CharField(max_length=255, choices=CATEGORIES, null=True)
+    num_bands = models.IntegerField()
+    band_metadata = models.JSONField(default=dict)
+    net_cdf_times = models.JSONField(default=dict)
+
+    def get_file_metadata(categorized_filename: str):
+        try:
+            o: TempResultFile = TempResultFile.objects.get(categorized_filename=categorized_filename)
+        except Exception:
+            return None
+
+        combined_metadata = {
+            'num_bands': o.num_bands,
+            'band_metadata': o.band_metadata,
+            'net_cdf_times': o.net_cdf_times
+        }
+
+        return combined_metadata
+
+    def __str__(self):
+        return self.filename
