@@ -359,89 +359,87 @@ def init_temp_results_folders(force_update=False, delete_outdated=False, delete_
     # print(is_temp_file_cached(Path(test_file_name).stem))
 
 # TODO:
-#   - [ ] rewrite some of the Views to methods (easier syntax)
 #   - [ ] adapt temp routes to new handling
 # mainly for the wget request, returns a txt file with urls (to download) based on the
 # request parameter 'hash'
-class TextFileView(APIView):
-    def get(self, request):
-        hash_param = request.GET.get("hash", default=None)
+@api_view(["GET"])
+def get_temp_urls(request):
+    hash_param = request.GET.get("hash", default=None)
 
-        if hash_param is None:
+    if hash_param is None:
+        return HttpResponseBadRequest()
+
+    if len(str(hash_param)) != HASH_LENGTH:
+        return HttpResponseBadRequest()
+
+    for c in FORBIDDEN_CHARACTERS:
+        if c in str(hash_param):
             return HttpResponseBadRequest()
 
-        if len(str(hash_param)) != HASH_LENGTH:
-            return HttpResponseBadRequest()
+    hashed_filename = str(hash_param) + ".txt"
+    file_path = os.path.join(URLTXTFILES_DIR, hashed_filename)
 
-        for c in FORBIDDEN_CHARACTERS:
-            if c in str(hash_param):
-                return HttpResponseBadRequest()
-
-        hashed_filename = str(hash_param) + ".txt"
-        file_path = os.path.join(URLTXTFILES_DIR, hashed_filename)
-
-        try:
-            content = open(file_path, "r").read()
-            response = StreamingHttpResponse(content)
-            response["Content-Type"] = "text/plain; charset=utf8"
-            return response
-        except Exception:
-            return HttpResponseBadRequest()
+    try:
+        content = open(file_path, "r").read()
+        response = StreamingHttpResponse(content)
+        response["Content-Type"] = "text/plain; charset=utf8"
+        return response
+    except Exception:
+        return HttpResponseBadRequest()
 
 
 # reads a user selection of files and saves them in a textfile
 # returns a wget request, that when executed, downloads all selected files
-class SelectionForWgetView(APIView):
-    def post(self, request):
-        body_unicode = request.body.decode("utf-8")
-        body = json.loads(body_unicode)
-        type = request.GET.get("type", default=None)
-        foldercontent = os.listdir(folder_list['raw'][type])
+@api_view(["POST"])
+def select_temp_urls(request):
+    body_unicode = request.body.decode("utf-8")
+    body = json.loads(body_unicode)
+    type = request.GET.get("type", default=None)
+    foldercontent = os.listdir(folder_list['raw'][type])
 
-        print(foldercontent)
-        # for all requested files in requestbody, check if they really exist
-        for entry in body:
-            if entry not in foldercontent:
-                print(entry)
-                return HttpResponseBadRequest()
-
-        url_content = ""
-        for entry in body:
-            url_content += (
-                GENERAL_API_URL
-                + "/climate/get_file?name="
-                + entry
-                + "&type="
-                + type
-                + "\n"
-            )
-
-        unique_filehash = str(uuid.uuid4().hex)
-        unique_filename = unique_filehash + ".txt"
-
-        # TODO: - proper file writing here (with...)
-        try:
-            file = open(os.path.join(URLTXTFILES_DIR, unique_filename), "w")
-            file.write(url_content)
-            file.close()
-        except Exception as e:
-            print(e)
+    print(foldercontent)
+    # for all requested files in requestbody, check if they really exist
+    for entry in body:
+        if entry not in foldercontent:
+            print(entry)
             return HttpResponseBadRequest()
 
-        response = JsonResponse(
-            {
-                "wget-command": "wget --content-disposition --input-file "
-                + f'"https://leutra.geogr.uni-jena.de/backend_geoportal/climate/get_climate_txt?hash={unique_filehash}"'
-            }
+    url_content = ""
+    for entry in body:
+        url_content += (
+            GENERAL_API_URL
+            + "/climate/get_temp_file?name="
+            + entry
+            + "&type="
+            + type
+            + "\n"
         )
 
-        return response
+    unique_filehash = str(uuid.uuid4().hex)
+    unique_filename = unique_filehash + ".txt"
+
+    # TODO: - proper file writing here (with...)
+    try:
+        file = open(os.path.join(URLTXTFILES_DIR, unique_filename), "w")
+        file.write(url_content)
+        file.close()
+    except Exception as e:
+        print(e)
+        return HttpResponseBadRequest()
+
+    response = JsonResponse(
+        {
+            "wget-command": "wget --content-disposition --input-file "
+            + f'"https://leutra.geogr.uni-jena.de/backend_geoportal/climate/get_temp_urls?hash={unique_filehash}"'
+        }
+    )
+
+    return response
 
 
 # returns all filenames of the specified directory ('WATER_BUDGET_DIR' rn)
-class ContentView(APIView):
+class FolderContentView(APIView):
     def get(self, request):
-
         folder = request.GET.get("type", default=None)
         source_dir = folder_list['raw'][folder]
         foldercontent = os.listdir(source_dir)
@@ -483,7 +481,7 @@ class ContentView(APIView):
 
 
 # returns a single file (if it is present in the specified directory ('TESTCONTENT_DIR' rn)
-class GetFileView(APIView):
+class TempDownloadView(APIView):
     def get(self, request):
         filename = request.GET.get("name", default=None)
         folder = request.GET.get("type", default=None)
