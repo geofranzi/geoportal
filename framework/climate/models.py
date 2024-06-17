@@ -267,20 +267,38 @@ class TempResultFile(models.Model):
     num_bands = models.IntegerField()
     band_metadata = models.JSONField(default=dict)
     net_cdf_times = models.JSONField(default=dict)
+    st_mtime_nc = models.CharField(max_length=255, null=True)
+    st_mtime_tif = models.CharField(max_length=255, null=True)
 
-    def get_file_metadata(categorized_filename: str):
+    def get_by_cat_filename(cat_filename: str):
+        o = None
         try:
-            o: TempResultFile = TempResultFile.objects.get(categorized_filename=categorized_filename)
+            o: TempResultFile = TempResultFile.objects.get(categorized_filename=cat_filename)
         except Exception:
             return None
 
+        return o
+
+    def get_file_metadata(self):
         combined_metadata = {
-            'num_bands': o.num_bands,
-            'band_metadata': o.band_metadata,
-            'net_cdf_times': o.net_cdf_times
+            'num_bands': self.num_bands,
+            'band_metadata': self.band_metadata,
+            'net_cdf_times': self.net_cdf_times
         }
 
         return combined_metadata
 
+    def check_raw_version(self, version):
+        if str(version) != self.st_mtime_nc:
+            return False
+        else:
+            return True
+
+    def check_cache_version(self, version):
+        if str(version) != self.st_mtime_tif:
+            return False
+        else:
+            return True
+
     def __str__(self):
-        return self.filename
+        return str(self.filename)

@@ -16,6 +16,7 @@ urlpatterns = [
     path('select_for_wget', views.SelectionForWgetView.as_view(), name='select_for_wget'),
     path('get_content', views.ContentView.as_view(), name='get_content'),
     path('get_file', views.GetFileView.as_view(), name='get_file'),
+    path('get_temp_file_metadata', views.get_ncfile_metadata, name='get_ncfile_metadata')
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns, allowed=['json'])

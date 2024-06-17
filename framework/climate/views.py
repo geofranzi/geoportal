@@ -14,6 +14,7 @@ from pathlib import Path
 from subprocess import (PIPE, Popen,)
 
 import requests
+# from django.conf import settings
 from django.http import (HttpResponse, HttpResponseBadRequest, JsonResponse, StreamingHttpResponse,)
 from elasticsearch_dsl import Index
 from elasticsearch_dsl.connections import connections
@@ -34,6 +35,10 @@ from .serializer import ClimateLayerSerializer
 GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
 FORBIDDEN_CHARACTERS = ["/", "\\", ".", "-", ":", "@", "&", "^", ">", "<", "~", "$"]
 HASH_LENGTH = 32
+TEMP_FILESIZE_LIMIT = 10    # MB
+TEMP_NUM_BANDS_LIMIT = 250  # Integer
+
+# test_file_name = "CLMcom-KIT-CCLM5-0-15_v1_MOHC-HadGEM2-ES__water_budget_all__yearsum_mean_2080_2099.nc"
 
 TEMP_FOLDER_TYPES = [
     "water_budget",
@@ -95,6 +100,10 @@ for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
 #  - 3. serve and maybe generate first -> file for download
 
 
+def delete_all_temp_results():
+    TempResultFile.objects.all().delete()
+
+
 def parse_temp_foldertype_from_param(foldertype: str):
     try:
         idx = TEMP_FOLDER_TYPES.index(foldertype)
@@ -119,20 +128,45 @@ def parse_temp_filename_from_param(filename: str, foldertype: str):
         return False
 
 
-def extract_ncfile_metadata(filename: str, dir_in: str):
+def check_temp_result_filesize(filepath: str):
+    size = (os.stat(filepath).st_size / 1024) / 1024  # MB
+    if size > TEMP_FILESIZE_LIMIT:
+        return False
+    else:
+        return True
+
+
+def temp_cat_filename(category: str, filename: str):
+    return os.path.join(category, filename)
+
+
+def copy_filename_as_tif(f: str):
+    return f"{Path(f).stem}.tif"
+
+
+def extract_ncfile_metadata(filename: str, dir_in: str, file_category: str):
     filepath = os.path.join(dir_in, filename)
     if not os.path.isfile(filepath):
         return False, "file not found"
 
-    process = Popen(["gdalinfo", filepath, "-json", "-mm"], stdout=PIPE, stderr=PIPE)
-    # process = Popen(f"gdalinfo data/tif_data/{input_filename} -json")
-    stdout, stderr = process.communicate()
-    metadata = stdout.decode("utf-8")
+    JSON_metadata = None
+    try:
+        # reading metadata via gdalinfo script
+        process = Popen(["gdalinfo", filepath, "-json", "-mm"], stdout=PIPE, stderr=PIPE)
+        # process = Popen(f"gdalinfo data/tif_data/{input_filename} -json")
+        stdout, stderr = process.communicate()
+        metadata = stdout.decode("utf-8")
 
-    JSON_metadata = json.loads(metadata)
+        JSON_metadata = json.loads(metadata)
+    except Exception:
+        # print(e)
+        return False, "gdalinfo could not process file correctly"
 
+    # checking and parsing needed metadata values
     if "bands" not in JSON_metadata:
         return False, "band metadata missing in file"
+
+    num_bands = len(JSON_metadata["bands"])
 
     net_cdf_times = None
     try:
@@ -142,8 +176,8 @@ def extract_ncfile_metadata(filename: str, dir_in: str):
     except Exception:
         return False, "netcdf times missing in file"
 
+    # assembling metadata values
     complete_band_metadata = {}
-    num_bands = len(JSON_metadata["bands"])
 
     try:
         for i, band_metadata in enumerate(JSON_metadata["bands"]):
@@ -158,6 +192,20 @@ def extract_ncfile_metadata(filename: str, dir_in: str):
     except Exception:
         return False, "missing metadata key,value pairs"
 
+    st_mtime_nc = None
+    try:
+        # this is also used for converted version(s) of the file
+        # like tif. when a TempResultFile does not match the
+        # st_mtime of the file, the file is not up to date and should
+        # probably be deleted
+        filestats = os.stat(filepath)
+        st_mtime_nc = filestats.st_mtime
+    except Exception:
+        return False, "could not read file stats"
+
+    # filename with category prefix, unique over all TempResultFiles
+    cat_filename = temp_cat_filename(file_category, filename)
+
     new_doc = None
     try:
         print("Attempting file metadata save: ")
@@ -165,11 +213,13 @@ def extract_ncfile_metadata(filename: str, dir_in: str):
             f"filepath: {filepath}\nnum_bands:{num_bands}\nnet_cdf_times:{net_cdf_times}"
         )
         new_doc = TempResultFile(
-
+            categorized_filename=cat_filename,
             filename=filename,
             num_bands=num_bands,
             band_metadata=complete_band_metadata,
             net_cdf_times=net_cdf_times,
+            st_mtime_nc=st_mtime_nc,
+            category=file_category
         )
         new_doc.save()
     except Exception as e:
@@ -179,7 +229,7 @@ def extract_ncfile_metadata(filename: str, dir_in: str):
     return True, new_doc
 
 
-def cache_tif_from_nc(filename_in: str, foldertype: str):
+def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFile):
     filepath_in = os.path.join(folder_list['raw'][foldertype], filename_in)
     if not os.path.isfile(filepath_in):
         return False
@@ -193,32 +243,36 @@ def cache_tif_from_nc(filename_in: str, foldertype: str):
     try:
         ds = gdal.Open(filepath_in)
         gdal.Translate(filepath_out, ds, format="Gtiff")
+        fileversion_out = os.stat(filepath_out).st_mtime
+        temp_doc.st_mtime_tif = fileversion_out
         return True
     except Exception as e:
         print(e)
         return False
 
 
-def copy_filename_as_tif(f: str):
-    return f"{Path(f).stem}.tif"
-
-
-def is_temp_file_cached(raw_filename: str, foldertype: str):
+def is_temp_file_cached(raw_filename: str, foldertype: str, temp_doc: TempResultFile):
     tif_filename = copy_filename_as_tif(raw_filename)
     tif_path = os.path.join(folder_list['cache'][foldertype], tif_filename)
 
     if not os.path.isfile(tif_path):
         return False
 
-    return False
-    # file exists
-    # - now check if db object exists and both raw and cached file match version
+    tif_version = os.stat(tif_path).st_mtime
+    if not temp_doc.check_cache_version(tif_version):
+        # TODO:
+        # - band- and size-check, tif creation
+        # - check for success
+        False
+
+    # file exists, and version matches
+    return True
 
 
-# @api_view(["GET"])
+@api_view(["GET"])
 def get_ncfile_metadata(request):
-    filename = parse_temp_filename_from_param(request.GET.get("name", default=None))
     foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
+    filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
 
     if foldertype is False or filename is False:
         return HttpResponseBadRequest()
@@ -228,12 +282,54 @@ def get_ncfile_metadata(request):
     if not os.path.isfile(filepath_in):
         return HttpResponse(status=204)
 
-    # file exists
-    # - now try to read from database, and return OR
-    # - if this fails -> try to extract from file, save to db, and return
+    cat_filename = temp_cat_filename(foldertype, filename)
+    temp_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
+
+    # file does not exist in database
+    if temp_doc is None:
+        # TODO: - Try to extract?
+        return HttpResponse("Raw File not in database", status=204)
+
+    # version check
+    fileversion = os.stat(filepath_in).st_mtime
+    if not temp_doc.check_raw_version(fileversion):
+        # TODO: - Delete and try to extract?
+        return HttpResponse("Raw File Version mismatch", status=204)
+
+    metadata = temp_doc.get_file_metadata()
+    response = JsonResponse({'metadata': metadata})
+
+    return response
 
 
-# test_file_name = "CLMcom-KIT-CCLM5-0-15_v1_MOHC-HadGEM2-ES__water_budget_all__yearsum_mean_2080_2099.nc"
+def init_temp_results_folders(force_update=False, delete_outdated=False, delete_all=False):
+    if delete_outdated and delete_all:
+        delete_outdated = False
+
+    if delete_all:
+        delete_all_temp_results()
+
+    folder_categories = folder_list['raw'].keys()
+    for cat in folder_categories:
+        folder_root_path = folder_list['raw'][cat]
+        filenames = os.listdir(folder_root_path)
+        for name in filenames:
+            filepath = os.path.join(folder_root_path, name)
+            if not check_temp_result_filesize(filepath):
+                continue
+
+            succ, msg = extract_ncfile_metadata(name, folder_root_path, cat)
+
+            if not succ:
+                print(f"Failed to extract metadata on filename: {name} in category: {cat}")
+                print(f"Reason: {msg}")
+                continue
+
+            # post creation handling (?)
+
+
+# init_temp_results_folders()
+
 
 # def test_init_nc():
 #     filenames = [test_file_name]
@@ -262,7 +358,9 @@ def get_ncfile_metadata(request):
     # succ = cache_tif_from_nc(test_file_name, folder_list[folder])
     # print(is_temp_file_cached(Path(test_file_name).stem))
 
-
+# TODO:
+#   - [ ] rewrite some of the Views to methods (easier syntax)
+#   - [ ] adapt temp routes to new handling
 # mainly for the wget request, returns a txt file with urls (to download) based on the
 # request parameter 'hash'
 class TextFileView(APIView):
