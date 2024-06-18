@@ -260,6 +260,7 @@ class ProvenanceInline(models.Model):
 
 
 class TempResultFile(models.Model):
+    NUM_BANDS_TIF_LIMIT = 250
     CATEGORIES = ("water_budget", "water_budget"), ("water_budget_bias", "water_budget_bias"), ("kaariba", "kaariba")
     categorized_filename = models.CharField(max_length=500, unique=True, null=True)
     filename = models.CharField(max_length=400, null=True)
@@ -299,6 +300,11 @@ class TempResultFile(models.Model):
             return False
         else:
             return True
+
+    def tif_convertable(self):
+        if self.num_bands is None or self.num_bands > self.NUM_BANDS_TIF_LIMIT:
+            return False
+        return True
 
     def __str__(self):
         return str(self.filename)
