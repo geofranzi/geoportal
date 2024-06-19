@@ -553,7 +553,7 @@ class FolderContentView(APIView):
                 # [filename, filesize, creation date, number of bands]
 
                 dir_content.append(dir_content_element)
-            except Exception as e:
+            except Exception:
                 # file could not be read (this should only ever happen when
                 # serverfiles and folder_content go out of sync)
                 # print("FILEREAD ERROR: ", e)
@@ -614,16 +614,17 @@ class TempDownloadView(APIView):
     def serve_file(self, filepath, filename):
         print(f"Serving file: {filename}")
         # ==== this is for local testing
-        testpath = "/home/erik/repos/geoportal_repos/geoportal/framework/static/tippecctmp/url/da7c9d09f8634bf5a19665568ec45f7d.txt"
-        response = None
-        with open(testpath, "r") as test_file:
-            response = HttpResponse(content=test_file)
-            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return HttpResponse(status=501)
+        # testpath = "/home/erik/repos/geoportal_repos/geoportal/framework/static/tippecctmp/url/da7c9d09f8634bf5a19665568ec45f7d.txt"
+        # response = None
+        # with open(testpath, "r") as test_file:
+        #     response = HttpResponse(content=test_file)
+        #     response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
-        if response is not None:
-            return response
-        else:
-            return HttpResponse("Could not read the file content", status=204)
+        # if response is not None:
+        #     return response
+        # else:
+        #     return HttpResponse("Could not read the file content", status=204)
         # ====
 
     def serve_tif_file(self, filepath, filename, foldertype):
