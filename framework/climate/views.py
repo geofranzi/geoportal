@@ -101,12 +101,13 @@ for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
 #  - 3. serve and maybe generate first -> file for download
 
 # TODO:
+#   - maybe add a soft init function, to only read in filenames/paths and filesize of
+#     the temporary result files
 #   - route to request access to cached file
 #       - (most of functionality to gain valid access to the
 #       cached file is already in TempDownloadView)
 #       - makes sure file exists, and returns file url for frontend visualisation
 #   - finalize get_temp_metadata route
-#   - add num_bands and reformat FolderContent response
 
 
 def delete_all_temp_results():
@@ -157,6 +158,14 @@ def parse_urltxt_filename_from_param(hash: str):
 
 def check_temp_result_filesize(filepath: str):
     size = (os.stat(filepath).st_size / 1024) / 1024  # MB
+    if size > TEMP_FILESIZE_LIMIT:
+        return False
+    else:
+        return True
+
+
+def check_temp_result_filesize_from_st_size(st_size):
+    size = (st_size / 1024) / 1024  # MB
     if size > TEMP_FILESIZE_LIMIT:
         return False
     else:
@@ -237,6 +246,7 @@ def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, 
         # probably be deleted
         filestats = os.stat(filepath)
         st_mtime_nc = filestats.st_mtime
+        st_size_nc = filestats.st_size
     except Exception:
         return False, "could not read file stats"
 
@@ -253,6 +263,7 @@ def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, 
             band_metadata=complete_band_metadata,
             net_cdf_times=net_cdf_times,
             st_mtime_nc=st_mtime_nc,
+            st_size_nc=st_size_nc,
             category=file_category
         )
         new_doc.save()
@@ -494,25 +505,60 @@ class FolderContentView(APIView):
         source_dir = folder_list['raw'][foldertype]
         foldercontent = os.listdir(source_dir)
 
+        folder_info = dict.fromkeys(foldercontent, None)
+        cat_foldercontent = []
+        for f in foldercontent:
+            cat_foldercontent.append(temp_cat_filename(foldertype, f))
+
+        # print(TempResultFile.objects.filter(categorized_filename=cat_foldercontent[0]))
+        # print(TempResultFile.objects.filter(categorized_filename__in=cat_foldercontent))
+        for f_res in TempResultFile.objects.filter(categorized_filename__in=cat_foldercontent):
+            if f_res.filename in folder_info:
+                folder_info[f_res.filename] = {}
+                folder_info[f_res.filename]['num_bands'] = f_res.num_bands
+                tif_cached = is_temp_file_cached(f_res.filename, foldertype, f_res)
+                folder_info[f_res.filename]['tif_cached'] = tif_cached
+                folder_info[f_res.filename]['tif_convertable'] = f_res.tif_convertable()
+                folder_info[f_res.filename]['fileversion'] = f_res.st_mtime_nc
+
         dir_content = []
 
         for i, f in enumerate(foldercontent):
-            full_filename = os.path.join(source_dir, f)
-            file_stats = os.stat(full_filename)
+            try:
+                full_filename = os.path.join(source_dir, f)
+                file_stats = os.stat(full_filename)
+                creation_date = None
+                creation_date = datetime.fromtimestamp(file_stats.st_mtime).strftime(
+                    "%Y-%m-%d %H:%M"
+                )
 
-            dir_content_element = []
-            dir_content_element.append(f)
-            dir_content_element.append(self.sizeof_fmt(file_stats.st_size))
-            creation_date = None
+                dir_content_element = []
+                dir_content_element.append(f)
+                dir_content_element.append(self.sizeof_fmt(file_stats.st_size))
+                dir_content_element.append(creation_date)
 
-            creation_date = datetime.fromtimestamp(file_stats.st_mtime).strftime(
-                "%Y-%m-%d %H:%M"
-            )
+                file_info = folder_info[f]
+                # manual version check file <> database
+                if file_info is not None:
+                    if file_info['fileversion'] != str(file_stats.st_mtime):
+                        file_info = None
 
-            dir_content_element.append(creation_date)
-            dir_content.append(dir_content_element)
+                # manual filesize check
+                file_info['in_size_limit'] = check_temp_result_filesize_from_st_size(file_stats.st_size)
 
-        print(f"Requeste: {foldertype} content:\n{dir_content}")
+                # now either None (no database info) or file_info
+                dir_content_element.append(file_info)
+
+                # Current format:
+                # [filename, filesize, creation date, number of bands]
+
+                dir_content.append(dir_content_element)
+            except Exception as e:
+                # file could not be read (this should only ever happen when
+                # serverfiles and folder_content go out of sync)
+                # print("FILEREAD ERROR: ", e)
+                continue
+        # print(f"Requested: {foldertype} content:\n{dir_content}")
 
         response = JsonResponse({"content": dir_content})
         return response

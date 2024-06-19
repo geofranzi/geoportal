@@ -270,6 +270,7 @@ class TempResultFile(models.Model):
     net_cdf_times = models.JSONField(default=dict)
     st_mtime_nc = models.CharField(max_length=255, null=True)
     st_mtime_tif = models.CharField(max_length=255, null=True)
+    st_size_nc = models.CharField(max_length=255, null=True)
 
     def get_by_cat_filename(cat_filename: str):
         o = None
