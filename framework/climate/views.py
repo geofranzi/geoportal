@@ -105,7 +105,6 @@ for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
 #       - (most of functionality to gain valid access to the
 #       cached file is already in TempDownloadView)
 #       - makes sure file exists, and returns file url for frontend visualisation
-#   - finalize get_temp_metadata route
 
 
 def delete_all_temp_results():
@@ -400,7 +399,7 @@ def init_temp_results_folders(force_update=False, delete_all=False):
     print(f"Finished TempResultFiles Init. Created {created_objs_counter} database objects.")
 
 
-init_temp_results_folders()
+# init_temp_results_folders()
 
 
 # def test_init_nc():
@@ -439,7 +438,9 @@ def get_ncfile_metadata(request):
     if foldertype is False or filename is False:
         return HttpResponseBadRequest()
 
+    source_dir = folder_list['raw'][foldertype]
     filepath_in = os.path.join(folder_list['raw'][foldertype], filename)
+    fileversion = os.stat(filepath_in).st_mtime
 
     if not os.path.isfile(filepath_in):
         return HttpResponse(status=204)
@@ -447,16 +448,32 @@ def get_ncfile_metadata(request):
     cat_filename = temp_cat_filename(foldertype, filename)
     temp_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
 
+    if not check_temp_result_filesize(filepath_in):
+        return HttpResponse("File too big to extract metadata", status=204)
+
     # file does not exist in database
     if temp_doc is None:
-        # TODO: - Try to extract?
-        return HttpResponse("Raw File not in database", status=204)
+        succ, msg = extract_ncfile_metadata(filename, source_dir, foldertype)
+        if succ:
+            new_doc: TempResultFile = msg
+            return JsonResponse({'metadata': new_doc.get_file_metadata()})
+        else:
+            return HttpResponse("Could not extraxt metadata from file.", status=204)
 
     # version check
-    fileversion = os.stat(filepath_in).st_mtime
     if not temp_doc.check_raw_version(fileversion):
-        # TODO: - Delete and try to extract?
-        return HttpResponse("Raw File Version mismatch", status=204)
+        succ, msg = extract_ncfile_metadata(filename, source_dir, foldertype)
+        if succ:
+            new_doc: TempResultFile = msg
+            return JsonResponse({'metadata': new_doc.get_file_metadata()})
+        else:
+            return HttpResponse("Could not extraxt metadata from file.", status=204)
+
+    # TODO:
+    # it can still happen, that there is a file within the size limit, which
+    # we have a up to date database object associated, but not yet read the
+    # metadata. (fields are Null in that case)
+    # - decide on a handling here
 
     metadata = temp_doc.get_file_metadata()
     response = JsonResponse({'metadata': metadata})
