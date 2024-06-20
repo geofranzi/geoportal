@@ -56,7 +56,7 @@ class ProcessingMethodAdmin(admin.ModelAdmin):
 
 
 class TempResultFileAdmin(admin.ModelAdmin):
-    list_display = ('filename',)
+    list_display = ('filename', 'category',)
 
 
 admin.site.register(CfStandardNames, CfStandardNamesAdmin)

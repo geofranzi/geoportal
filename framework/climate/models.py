@@ -265,7 +265,7 @@ class TempResultFile(models.Model):
     categorized_filename = models.CharField(max_length=500, unique=True, null=True)
     filename = models.CharField(max_length=400, null=True)
     category = models.CharField(max_length=255, choices=CATEGORIES, null=True)
-    num_bands = models.IntegerField()
+    num_bands = models.IntegerField(null=True)
     band_metadata = models.JSONField(default=dict)
     net_cdf_times = models.JSONField(default=dict)
     st_mtime_nc = models.CharField(max_length=255, null=True)
@@ -308,4 +308,4 @@ class TempResultFile(models.Model):
         return True
 
     def __str__(self):
-        return str(self.filename)
+        return f"[{self.category}] {str(self.filename)}"

@@ -101,8 +101,6 @@ for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
 #  - 3. serve and maybe generate first -> file for download
 
 # TODO:
-#   - maybe add a soft init function, to only read in filenames/paths and filesize of
-#     the temporary result files
 #   - route to request access to cached file
 #       - (most of functionality to gain valid access to the
 #       cached file is already in TempDownloadView)
@@ -180,20 +178,80 @@ def copy_filename_as_tif(f: str):
     return f"{Path(f).stem}.tif"
 
 
+def extract_ncfile_lite(filename: str, source_dir: str, file_category: str, force_update=False):
+    cat_filename = temp_cat_filename(file_category, filename)
+    filepath = os.path.join(source_dir, filename)
+    if not os.path.isfile(filepath):
+        return False, "file not found"
+
+    st_mtime_nc = None
+    try:
+        # this is also used for converted version(s) of the file
+        # like tif. when a TempResultFile does not match the
+        # st_mtime of the file, the file is not up to date and should
+        # probably be deleted
+        filestats = os.stat(filepath)
+        st_mtime_nc = filestats.st_mtime
+        st_size_nc = filestats.st_size
+    except Exception:
+        return False, "could not read file stats"
+
+    try:
+        old_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
+        # check if a database object for that file already exists
+        if old_doc is not None:
+            # if version mismatch or force_update -> delete object
+            if force_update or not old_doc.check_raw_version(st_mtime_nc):
+                old_doc.delete()
+    except Exception:
+        pass
+
+    new_doc = None
+    try:
+        # lite creation (without metadata and tif file)
+        new_doc = TempResultFile(
+            categorized_filename=cat_filename,
+            filename=filename,
+            st_mtime_nc=st_mtime_nc,
+            st_size_nc=st_size_nc,
+            category=file_category
+        )
+        new_doc.save()
+    except Exception:
+        # print(e)
+        return False, "could not save file metadata to database"
+
+    return True, new_doc
+
+
 def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, force_update=False):
     # filename with category prefix, unique over all TempResultFiles
     cat_filename = temp_cat_filename(file_category, filename)
 
-    if force_update:
-        try:
-            old_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
-            old_doc.delete()
-        except Exception:
-            pass
-
     filepath = os.path.join(source_dir, filename)
     if not os.path.isfile(filepath):
         return False, "file not found"
+
+    try:
+        # this is also used for converted version(s) of the file
+        # like tif. when a TempResultFile does not match the
+        # st_mtime of the file, the file is not up to date and should
+        # probably be deleted
+        filestats = os.stat(filepath)
+        st_mtime_nc = filestats.st_mtime
+        st_size_nc = filestats.st_size
+    except Exception:
+        return False, "could not read file stats"
+
+    try:
+        old_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
+        # check if a database object for that file already exists
+        if old_doc is not None:
+            # if version mismatch or force_update -> delete object
+            if not old_doc.check_raw_version(st_mtime_nc) or force_update:
+                old_doc.delete()
+    except Exception:
+        pass
 
     JSON_metadata = None
     try:
@@ -238,24 +296,12 @@ def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, 
     except Exception:
         return False, "missing metadata key,value pairs"
 
-    st_mtime_nc = None
-    try:
-        # this is also used for converted version(s) of the file
-        # like tif. when a TempResultFile does not match the
-        # st_mtime of the file, the file is not up to date and should
-        # probably be deleted
-        filestats = os.stat(filepath)
-        st_mtime_nc = filestats.st_mtime
-        st_size_nc = filestats.st_size
-    except Exception:
-        return False, "could not read file stats"
-
     new_doc = None
     try:
-        print("Attempting file metadata save: ")
-        print(
-            f"filepath: {filepath}\nnum_bands:{num_bands}\nnet_cdf_times:{net_cdf_times}"
-        )
+        # print("Attempting file metadata save: ")
+        # print(
+        #     f"filepath: {filepath}\nnum_bands:{num_bands}\nnet_cdf_times:{net_cdf_times}"
+        # )
         new_doc = TempResultFile(
             categorized_filename=cat_filename,
             filename=filename,
@@ -267,8 +313,8 @@ def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, 
             category=file_category
         )
         new_doc.save()
-    except Exception as e:
-        print(e)
+    except Exception:
+        # print(e)
         return False, "could not save file metadata to database"
 
     return True, new_doc
@@ -351,33 +397,43 @@ def get_ncfile_metadata(request):
     return response
 
 
-def init_temp_results_folders(force_update=False, delete_outdated=False, delete_all=False):
-    if delete_outdated and delete_all:
-        delete_outdated = False
-
+def init_temp_results_folders(force_update=False, delete_all=False):
     if delete_all:
         delete_all_temp_results()
 
     folder_categories = folder_list['raw'].keys()
+    created_objs_counter = 0
     for cat in folder_categories:
+        print(f"Initiating TempResultFiles folder with category: {cat}")
         folder_root_path = folder_list['raw'][cat]
         filenames = os.listdir(folder_root_path)
         for name in filenames:
             filepath = os.path.join(folder_root_path, name)
+
             if not check_temp_result_filesize(filepath):
-                continue
+                # if file exceeds size limit, we do not extract metadata
+                succ, msg = extract_ncfile_lite(name, folder_root_path, cat, force_update=force_update)
+                if not succ:
+                    # print(f"Failed to extract lite on filename: {name} in category: {cat}")
+                    # print(f"Reason: {msg}")
+                    continue
+                else:
+                    created_objs_counter += 1
+            else:
+                succ, msg = extract_ncfile_metadata(name, folder_root_path, cat, force_update=force_update)
 
-            succ, msg = extract_ncfile_metadata(name, folder_root_path, cat, force_update=force_update)
-
-            if not succ:
-                print(f"Failed to extract metadata on filename: {name} in category: {cat}")
-                print(f"Reason: {msg}")
-                continue
+                if not succ:
+                    # print(f"Failed to extract metadata on filename: {name} in category: {cat}")
+                    # print(f"Reason: {msg}")
+                    continue
+                else:
+                    created_objs_counter += 1
 
             # post creation handling (?)
+    print(f"Finished TempResultFiles Init. Created {created_objs_counter} database objects.")
 
 
-# init_temp_results_folders()
+init_temp_results_folders()
 
 
 # def test_init_nc():
@@ -399,13 +455,14 @@ def init_temp_results_folders(force_update=False, delete_outdated=False, delete_
 # def test_nc():
 #     folder = "water_budget"
 
-    # file does not exist
-    # print(TempResultFile.get_file_metadata("qwr<wet<set"))
+#     # file does not exist
+#     print(TempResultFile.get_file_metadata("qwr<wet<set"))
 
-    # caching files
-    # print(is_temp_file_cached(test_file_name))
-    # succ = cache_tif_from_nc(test_file_name, folder_list[folder])
-    # print(is_temp_file_cached(Path(test_file_name).stem))
+#     # caching files
+#     print(is_temp_file_cached(test_file_name))
+#     succ = cache_tif_from_nc(test_file_name, folder_list[folder])
+#     print(is_temp_file_cached(Path(test_file_name).stem))
+
 
 @api_view(["GET"])
 def get_temp_urls(request):
