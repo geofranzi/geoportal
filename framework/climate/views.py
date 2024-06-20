@@ -178,6 +178,50 @@ def copy_filename_as_tif(f: str):
     return f"{Path(f).stem}.tif"
 
 
+def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFile):
+    filepath_in = os.path.join(folder_list['raw'][foldertype], filename_in)
+    if not os.path.isfile(filepath_in):
+        return False, "No raw file"
+
+    if not check_temp_result_filesize(filepath_in):
+        return False, "Raw file too big"
+
+    if not temp_doc.tif_convertable():
+        return False, "Raw file not tif convertable"
+
+    filename_out = copy_filename_as_tif(filename_in)
+    filepath_out = os.path.join(folder_list['cache'][foldertype], filename_out)
+
+    # print(f"filename_out: {filename_out}")
+    # print(f"filepath_in: {filepath_in}")
+    # print(f"filepath_out: {filepath_out}")
+    try:
+        ds = gdal.Open(filepath_in)
+        gdal.Translate(filepath_out, ds, format="Gtiff")
+        fileversion_out = os.stat(filepath_out).st_mtime
+        temp_doc.st_mtime_tif = fileversion_out
+        temp_doc.save()
+        return True, ""
+    except Exception as e:
+        print(e)
+        return False, "Conversion failed"
+
+
+def is_temp_file_cached(raw_filename: str, foldertype: str, temp_doc: TempResultFile):
+    tif_filename = copy_filename_as_tif(raw_filename)
+    tif_path = os.path.join(folder_list['cache'][foldertype], tif_filename)
+
+    if not os.path.isfile(tif_path):
+        return False
+
+    tif_version = os.stat(tif_path).st_mtime
+    if not temp_doc.check_cache_version(tif_version):
+        return False
+
+    # file exists, and version matches
+    return True
+
+
 def extract_ncfile_lite(filename: str, source_dir: str, file_category: str, force_update=False):
     cat_filename = temp_cat_filename(file_category, filename)
     filepath = os.path.join(source_dir, filename)
@@ -320,83 +364,6 @@ def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, 
     return True, new_doc
 
 
-def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFile):
-    filepath_in = os.path.join(folder_list['raw'][foldertype], filename_in)
-    if not os.path.isfile(filepath_in):
-        return False, "No raw file"
-
-    if not check_temp_result_filesize(filepath_in):
-        return False, "Raw file too big"
-
-    if not temp_doc.tif_convertable():
-        return False, "Raw file not tif convertable"
-
-    filename_out = copy_filename_as_tif(filename_in)
-    filepath_out = os.path.join(folder_list['cache'][foldertype], filename_out)
-
-    # print(f"filename_out: {filename_out}")
-    # print(f"filepath_in: {filepath_in}")
-    # print(f"filepath_out: {filepath_out}")
-    try:
-        ds = gdal.Open(filepath_in)
-        gdal.Translate(filepath_out, ds, format="Gtiff")
-        fileversion_out = os.stat(filepath_out).st_mtime
-        temp_doc.st_mtime_tif = fileversion_out
-        temp_doc.save()
-        return True, ""
-    except Exception as e:
-        print(e)
-        return False, "Conversion failed"
-
-
-def is_temp_file_cached(raw_filename: str, foldertype: str, temp_doc: TempResultFile):
-    tif_filename = copy_filename_as_tif(raw_filename)
-    tif_path = os.path.join(folder_list['cache'][foldertype], tif_filename)
-
-    if not os.path.isfile(tif_path):
-        return False
-
-    tif_version = os.stat(tif_path).st_mtime
-    if not temp_doc.check_cache_version(tif_version):
-        return False
-
-    # file exists, and version matches
-    return True
-
-
-@api_view(["GET"])
-def get_ncfile_metadata(request):
-    foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
-    filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
-
-    if foldertype is False or filename is False:
-        return HttpResponseBadRequest()
-
-    filepath_in = os.path.join(folder_list['raw'][foldertype], filename)
-
-    if not os.path.isfile(filepath_in):
-        return HttpResponse(status=204)
-
-    cat_filename = temp_cat_filename(foldertype, filename)
-    temp_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
-
-    # file does not exist in database
-    if temp_doc is None:
-        # TODO: - Try to extract?
-        return HttpResponse("Raw File not in database", status=204)
-
-    # version check
-    fileversion = os.stat(filepath_in).st_mtime
-    if not temp_doc.check_raw_version(fileversion):
-        # TODO: - Delete and try to extract?
-        return HttpResponse("Raw File Version mismatch", status=204)
-
-    metadata = temp_doc.get_file_metadata()
-    response = JsonResponse({'metadata': metadata})
-
-    return response
-
-
 def init_temp_results_folders(force_update=False, delete_all=False):
     if delete_all:
         delete_all_temp_results()
@@ -462,6 +429,39 @@ init_temp_results_folders()
 #     print(is_temp_file_cached(test_file_name))
 #     succ = cache_tif_from_nc(test_file_name, folder_list[folder])
 #     print(is_temp_file_cached(Path(test_file_name).stem))
+
+
+@api_view(["GET"])
+def get_ncfile_metadata(request):
+    foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
+    filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
+
+    if foldertype is False or filename is False:
+        return HttpResponseBadRequest()
+
+    filepath_in = os.path.join(folder_list['raw'][foldertype], filename)
+
+    if not os.path.isfile(filepath_in):
+        return HttpResponse(status=204)
+
+    cat_filename = temp_cat_filename(foldertype, filename)
+    temp_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
+
+    # file does not exist in database
+    if temp_doc is None:
+        # TODO: - Try to extract?
+        return HttpResponse("Raw File not in database", status=204)
+
+    # version check
+    fileversion = os.stat(filepath_in).st_mtime
+    if not temp_doc.check_raw_version(fileversion):
+        # TODO: - Delete and try to extract?
+        return HttpResponse("Raw File Version mismatch", status=204)
+
+    metadata = temp_doc.get_file_metadata()
+    response = JsonResponse({'metadata': metadata})
+
+    return response
 
 
 @api_view(["GET"])
