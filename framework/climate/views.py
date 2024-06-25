@@ -201,8 +201,8 @@ def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFil
         temp_doc.st_mtime_tif = fileversion_out
         temp_doc.save()
         return True, ""
-    except Exception as e:
-        print(e)
+    except Exception:
+        # print(e)
         return False, "Conversion failed"
 
 
@@ -398,36 +398,71 @@ def init_temp_results_folders(force_update=False, delete_all=False):
             # post creation handling (?)
     print(f"Finished TempResultFiles Init. Created {created_objs_counter} database objects.")
 
-
 # init_temp_results_folders()
 
 
-# def test_init_nc():
-#     filenames = [test_file_name]
-#     folder = "water_budget"
+@api_view(["GET"])
+def access_tif_from_ncfile(request):
+    foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
+    filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
 
-#     for n in filenames:
-#         succ, helper = extract_ncfile_metadata(n, folder_list[folder])
+    if foldertype is False or filename is False:
+        return HttpResponseBadRequest()
 
-#         if not succ:
-#             fail_msg = helper
-#             print("Could not extract metadata:", fail_msg)
-#         else:
-#             new_file_object: TempResultFile = helper
-#             print("Extracted metadata for file: ", n)
-#             print(new_file_object.band_metadata)
+    filepath = os.path.join(folder_list['raw'][foldertype], filename)
+    cat_filename = temp_cat_filename(foldertype, filename)
+    temp_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
 
+    # indicates that the database entry for current file
+    # needs to be updated
+    update_doc = False
+    if temp_doc is None:
+        update_doc = True
+    else:
+        fileversion = os.stat(filepath).st_mtime
+        if not temp_doc.check_raw_version(fileversion):
+            update_doc = True
 
-# def test_nc():
-#     folder = "water_budget"
+    if update_doc:
+        succ, msg = extract_ncfile_metadata(filename, folder_list['raw'][foldertype], foldertype, force_update=True)
+        if not succ:
+            # could not extract raw file metadata ...
+            # thus can not properly translate to tif
+            return HttpResponse(f"Could not extract raw file metadata. Reason: {msg}", status=204)
 
-#     # file does not exist
-#     print(TempResultFile.get_file_metadata("qwr<wet<set"))
+        temp_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
+        if temp_doc is None:
+            # could not extract raw file metadata ...
+            # thus can not properly translate to tif
+            return HttpResponse("Could not extract raw file metadata", status=204)
 
-#     # caching files
-#     print(is_temp_file_cached(test_file_name))
-#     succ = cache_tif_from_nc(test_file_name, folder_list[folder])
-#     print(is_temp_file_cached(Path(test_file_name).stem))
+    # indicates that the corresponding tif file
+    # needs to be updated/recreated
+    update_tif = update_doc
+    if not is_temp_file_cached(filename, foldertype, temp_doc):
+        update_tif = True
+
+    if update_tif:
+        succ, msg = cache_tif_from_nc(filename, foldertype, temp_doc)
+        if not succ:
+            # The raw file could not be converted
+            # print(f"The raw file could not be converted. Reason: {msg}")
+            return HttpResponse(f"The raw file could not be converted. Reason: {msg}", status=204)
+
+    tif_filename = copy_filename_as_tif(filename)
+    # cache_dir = folder_list['cache'][foldertype]
+    # tif_filepath = os.path.join(cache_dir, tif_filename)
+
+    data = {
+        'filename': tif_filename,
+
+        # hardcoded for now, because i'm not absolutely sure on the format
+        # TODO: - replace domain and path with variable
+        # 'route': f"http://127.0.0.1:8000/static/tippecctmp/cache/{foldertype}/{tif_filename}"
+        'route': f"https://leutra.geogr.uni-jena.de/tippecc_data/tippecctmp/{foldertype}/{tif_filename}"
+    }
+
+    return JsonResponse({'filedata': data})
 
 
 @api_view(["GET"])
@@ -499,7 +534,6 @@ def get_temp_urls(request):
         response = StreamingHttpResponse(content)
         response["Content-Type"] = "text/plain; charset=utf8"
 
-        print("RETURNING FILE CONTENT")
         return response
     except Exception:
         return HttpResponseBadRequest()
@@ -552,8 +586,8 @@ def select_temp_urls(request):
     try:
         with open(os.path.join(URLTXTFILES_DIR, unique_filename), "w") as file:
             file.write(url_content)
-    except Exception as e:
-        print(e)
+    except Exception:
+        # print(e)
         return HttpResponse("Something went wrong when saving your selection", status=204)
 
     response = JsonResponse(
@@ -659,9 +693,7 @@ class TempDownloadView(APIView):
         filetype = parse_temp_filetype_from_param(request.GET.get("filetype", default=None))
         filetype = 'tif'
 
-        print("Handling File Download")
         if not foldertype or not filename or not filetype:
-            print("Request parameters invalid")
             return HttpResponseBadRequest("Request parameters invalid")
 
         source_dir = folder_list['raw'][foldertype]
@@ -686,19 +718,16 @@ class TempDownloadView(APIView):
         #     return HttpResponse(204)
 
     def serve_file(self, filepath, filename):
-        print(f"Serving file: {filename}")
         # ==== this is for local testing
-        return HttpResponse(status=501)
-        # testpath = "/home/erik/repos/geoportal_repos/geoportal/framework/static/tippecctmp/url/da7c9d09f8634bf5a19665568ec45f7d.txt"
-        # response = None
-        # with open(testpath, "r") as test_file:
-        #     response = HttpResponse(content=test_file)
-        #     response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response = None
+        with open(filepath, "rb") as test_file:
+            response = HttpResponse(content=test_file)
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
-        # if response is not None:
-        #     return response
-        # else:
-        #     return HttpResponse("Could not read the file content", status=204)
+        if response is not None:
+            return response
+        else:
+            return HttpResponse("Could not read the file content", status=204)
         # ====
 
     def serve_tif_file(self, filepath, filename, foldertype):
@@ -733,8 +762,6 @@ class TempDownloadView(APIView):
         update_tif = update_doc
         if not is_temp_file_cached(filename, foldertype, temp_doc):
             update_tif = True
-        print("CACHED")
-        print(is_temp_file_cached(filename, foldertype, temp_doc))
 
         if update_tif:
             succ, msg = cache_tif_from_nc(filename, foldertype, temp_doc)
@@ -742,8 +769,6 @@ class TempDownloadView(APIView):
                 # The raw file could not be converted
                 # print(f"The raw file could not be converted. Reason: {msg}")
                 return HttpResponse(f"The raw file could not be converted. Reason: {msg}", status=204)
-
-        print(f"UPDATED DOC: {update_doc} || UPDATED TIF: {update_tif}")
 
         tif_filename = copy_filename_as_tif(filename)
         cache_dir = folder_list['cache'][foldertype]
