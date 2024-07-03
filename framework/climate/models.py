@@ -257,3 +257,55 @@ class ProvenanceInline(models.Model):
 
     def __str__(self):
         return self.relation_type + " " + self.target.name
+
+
+class TempResultFile(models.Model):
+    NUM_BANDS_TIF_LIMIT = 250
+    CATEGORIES = ("water_budget", "water_budget"), ("water_budget_bias", "water_budget_bias"), ("kaariba", "kaariba")
+    categorized_filename = models.CharField(max_length=500, unique=True, null=True)
+    filename = models.CharField(max_length=400, null=True)
+    category = models.CharField(max_length=255, choices=CATEGORIES, null=True)
+    num_bands = models.IntegerField(null=True)
+    band_metadata = models.JSONField(default=dict)
+    net_cdf_times = models.JSONField(default=dict)
+    st_mtime_nc = models.CharField(max_length=255, null=True)
+    st_mtime_tif = models.CharField(max_length=255, null=True)
+    st_size_nc = models.CharField(max_length=255, null=True)
+
+    def get_by_cat_filename(cat_filename: str):
+        o = None
+        try:
+            o: TempResultFile = TempResultFile.objects.get(categorized_filename=cat_filename)
+        except Exception:
+            return None
+
+        return o
+
+    def get_file_metadata(self):
+        combined_metadata = {
+            'num_bands': self.num_bands,
+            'band_metadata': self.band_metadata,
+            'net_cdf_times': self.net_cdf_times
+        }
+
+        return combined_metadata
+
+    def check_raw_version(self, version):
+        if str(version) != self.st_mtime_nc:
+            return False
+        else:
+            return True
+
+    def check_cache_version(self, version):
+        if str(version) != self.st_mtime_tif:
+            return False
+        else:
+            return True
+
+    def tif_convertable(self):
+        if self.num_bands is None or self.num_bands > self.NUM_BANDS_TIF_LIMIT:
+            return False
+        return True
+
+    def __str__(self):
+        return f"[{self.category}] {str(self.filename)}"

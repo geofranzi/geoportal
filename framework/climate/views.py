@@ -10,136 +10,663 @@ import sys
 import tarfile
 import uuid
 from datetime import datetime
+from pathlib import Path
+from subprocess import (PIPE, Popen,)
 
 import requests
+# from django.conf import settings
 from django.http import (HttpResponse, HttpResponseBadRequest, JsonResponse, StreamingHttpResponse,)
 from elasticsearch_dsl import Index
 from elasticsearch_dsl.connections import connections
+from osgeo import gdal
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 # import xclim.indices
 from xclim import testing
 
-from .models import ClimateLayer
+from .models import (ClimateLayer, TempResultFile,)
 from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex, ClimateDatasetsIndex,
                         ClimateIndicatorIndex, ClimateIndicatorSearch, ClimateSearch,)
 from .serializer import ClimateLayerSerializer
 
 
-# URLTXTFILES_DIR = os.path.join(settings.STATICFILES_DIRS[0], 'urltxtfiles')
-URLTXTFILES_DIR = "/opt/rbis/www/tippecc_data/tmp/"
-#TESTCONTENT_DIR = "/opt/rbis/www/tippecc_data/tmp/water_budget"
-
-folder_list = {}
-folder_list["water_budget"] = "/opt/rbis/www/tippecc_data/tmp/water_budget"
-folder_list["water_budget_bias"] = "/opt/rbis/www/tippecc_data/tmp/water_budget/bias"
-
-
+# GENERAL_API_URL = "http://127.0.0.1:8000/"
 GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
 FORBIDDEN_CHARACTERS = ["/", "\\", ".", "-", ":", "@", "&", "^", ">", "<", "~", "$"]
 HASH_LENGTH = 32
+TEMP_FILESIZE_LIMIT = 10    # MB
+TEMP_NUM_BANDS_LIMIT = 250  # Integer
+ALLOWED_FILETYPES = ['nc', 'tif']
+
+# test_file_name = "CLMcom-KIT-CCLM5-0-15_v1_MOHC-HadGEM2-ES__water_budget_all__yearsum_mean_2080_2099.nc"
+
+TEMP_FOLDER_TYPES = [
+    "water_budget",
+    "water_budget_bias",
+    "kaariba"
+]
+
+folder_list = {}
+folder_list['raw'] = {}
+folder_list['cache'] = {}
+
+# LOCAL paths
+# TEMP_ROOT = settings.STATICFILES_DIRS[0]
+# TEMP_RAW = os.path.join(TEMP_ROOT, "tippecctmp/raw")
+# TEMP_CACHE = os.path.join(TEMP_ROOT, "tippecctmp/cache")
+# TEMP_URL = os.path.join(TEMP_ROOT, "tippecctmp/url")
+# URLTXTFILES_DIR = TEMP_URL
+
+# SERVER paths
+TEMP_ROOT = "/opt/rbis/www/tippecc_data/tmp"
+TEMP_RAW = "/opt/rbis/www/tippecc_data/tmp/raw"
+TEMP_CACHE = "/opt/rbis/www/tippecc_data/tmp/cache"
+URLTXTFILES_DIR = "/opt/rbis/www/tippecc_data/tmp/url"
+
+for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
+    folder_list['raw'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_RAW, TEMP_FOLDER_TYPE)
+    folder_list['cache'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_CACHE, TEMP_FOLDER_TYPE)
+
+    # print("FOLDER_LIST")
+    # print(folder_list)
+
+# SPECIFICATIONS [temp results]
+#  - download single file
+#      - as .nc, .tif
+#      - .tif needs version check, and thus database entry
+#      - .tif may need to be generated, thus needs metadata check
+#  - download multiple files
+#      - same requirements as single file BUT
+#      - possibly many .tif files need generating and database accesses
+
+#  - display content of one specific temp result folder
+#      - collect filenames, stats, filechange-date, (..)
+#      - used for frontend visualisation
+#      - mostly done, only adaptations
+
+#  - select filenames for wget script, to be saved in a txt file
+#      - needs safe file selection and hashing of the txt file
+#      - done, only adaptations
+
+#  - route that returns a txt file (for usage in wget script)
+#      - part of a 2 steps process to remember and serve filenames from a hashed txt
+#      - mostly done, only adaptations
+
+# 3 Main Functionalities:
+#  - 1. properly/safely handling foldertype and filename request parameters
+#       and providing cleaned paths for file access
+#  - 2. easy access point to read the filenames corresponding db object
+#       ( metadata, versioncheck, ..)
+#  - 3. serve and maybe generate first -> file for download
+
+# TODO:
+#   - route to request access to cached file
+#       - (most of functionality to gain valid access to the
+#       cached file is already in TempDownloadView)
+#       - makes sure file exists, and returns file url for frontend visualisation
 
 
-# mainly for the wget request, returns a txt file with urls (to download) based on the
-# request parameter 'hash'
-class TextFileView(APIView):
-    def get(self, request):
-        hash_param = request.GET.get("hash", default=None)
-
-        if hash_param is None:
-            return HttpResponseBadRequest()
-
-        if len(str(hash_param)) != HASH_LENGTH:
-            return HttpResponseBadRequest()
-
-        for c in FORBIDDEN_CHARACTERS:
-            if c in str(hash_param):
-                return HttpResponseBadRequest()
-
-        hashed_filename = str(hash_param) + ".txt"
-        file_path = os.path.join(URLTXTFILES_DIR, hashed_filename)
-
-        try:
-            content = open(file_path, "r").read()
-            response = StreamingHttpResponse(content)
-            response["Content-Type"] = "text/plain; charset=utf8"
-            return response
-        except Exception:
-            return HttpResponseBadRequest()
+def delete_all_temp_results():
+    TempResultFile.objects.all().delete()
 
 
-# reads a user selection of files and saves them in a textfile
-# returns a wget request, that when executed, downloads all selected files
-class SelectionForWgetView(APIView):
-    def post(self, request):
-        body_unicode = request.body.decode("utf-8")
-        body = json.loads(body_unicode)
-        type = request.GET.get("type", default=None)
-        foldercontent = os.listdir(folder_list[type])
+def parse_temp_foldertype_from_param(foldertype: str):
+    try:
+        idx = TEMP_FOLDER_TYPES.index(foldertype)
+        return TEMP_FOLDER_TYPES[idx]
+    except Exception:
+        return False
 
-        # for all requested files in requestbody, check if they really exist
-        for entry in body:
-            if entry not in foldercontent:
-                return HttpResponseBadRequest()
 
-        url_content = ""
-        for entry in body:
-            url_content += GENERAL_API_URL + "/climate/get_file?name=" + entry + "&type="+ type + "\n"
+# Safely returns an actual filename from the raw directory of temp result files
+# based on given foldertype and filename string - request parameters.
+# TODO: - add function to parse as list
+def parse_temp_filename_from_param(filename: str, foldertype: str):
+    foldertype = parse_temp_foldertype_from_param(foldertype)
+    if foldertype is False:
+        return False
 
-        unique_filehash = str(uuid.uuid4().hex)
-        unique_filename = unique_filehash + ".txt"
+    try:
+        folder = os.listdir(folder_list['raw'][foldertype])
+        idx = folder.index(filename)
+        return folder[idx]
+    except Exception:
+        return False
 
-        # TODO: - proper file writing here (with...)
-        try:
-            file = open(os.path.join(URLTXTFILES_DIR, unique_filename), "w")
-            file.write(url_content)
-            file.close()
-        except Exception as e:
-            print(e)
-            return HttpResponseBadRequest()
 
-        response = JsonResponse(
-            {
-                "wget-command": 'wget --content-disposition --input-file ' +
-                f'"https://leutra.geogr.uni-jena.de/backend_geoportal/climate/get_climate_txt?hash={unique_filehash}"'
-            }
+def parse_temp_filetype_from_param(filetype: str):
+    try:
+        idx = ALLOWED_FILETYPES.index(filetype)
+        return ALLOWED_FILETYPES[idx]
+    except Exception:
+        return False
+
+
+def parse_urltxt_filename_from_param(hash: str):
+    filename = f"{hash}.txt"
+    try:
+        folder = os.listdir(URLTXTFILES_DIR)
+        idx = folder.index(filename)
+        return folder[idx]
+    except Exception:
+        return False
+
+
+def check_temp_result_filesize(filepath: str):
+    size = (os.stat(filepath).st_size / 1024) / 1024  # MB
+    if size > TEMP_FILESIZE_LIMIT:
+        return False
+    else:
+        return True
+
+
+def check_temp_result_filesize_from_st_size(st_size):
+    size = (st_size / 1024) / 1024  # MB
+    if size > TEMP_FILESIZE_LIMIT:
+        return False
+    else:
+        return True
+
+
+def temp_cat_filename(category: str, filename: str):
+    return os.path.join(category, filename)
+
+
+def copy_filename_as_tif(f: str):
+    return f"{Path(f).stem}.tif"
+
+
+def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFile):
+    filepath_in = os.path.join(folder_list['raw'][foldertype], filename_in)
+    if not os.path.isfile(filepath_in):
+        return False, "No raw file"
+
+    if not check_temp_result_filesize(filepath_in):
+        return False, "Raw file too big"
+
+    if not temp_doc.tif_convertable():
+        return False, "Raw file not tif convertable"
+
+    filename_out = copy_filename_as_tif(filename_in)
+    filepath_out = os.path.join(folder_list['cache'][foldertype], filename_out)
+
+    # print(f"filename_out: {filename_out}")
+    # print(f"filepath_in: {filepath_in}")
+    # print(f"filepath_out: {filepath_out}")
+    try:
+        ds = gdal.Open(filepath_in)
+        gdal.Translate(filepath_out, ds, format="Gtiff")
+        fileversion_out = os.stat(filepath_out).st_mtime
+        temp_doc.st_mtime_tif = fileversion_out
+        temp_doc.save()
+        return True, ""
+    except Exception:
+        # print(e)
+        return False, "Conversion failed"
+
+
+def is_temp_file_cached(raw_filename: str, foldertype: str, temp_doc: TempResultFile):
+    tif_filename = copy_filename_as_tif(raw_filename)
+    tif_path = os.path.join(folder_list['cache'][foldertype], tif_filename)
+
+    if not os.path.isfile(tif_path):
+        return False
+
+    tif_version = os.stat(tif_path).st_mtime
+    if not temp_doc.check_cache_version(tif_version):
+        return False
+
+    # file exists, and version matches
+    return True
+
+
+def extract_ncfile_lite(filename: str, source_dir: str, file_category: str, force_update=False):
+    cat_filename = temp_cat_filename(file_category, filename)
+    filepath = os.path.join(source_dir, filename)
+    if not os.path.isfile(filepath):
+        return False, "file not found"
+
+    st_mtime_nc = None
+    try:
+        # this is also used for converted version(s) of the file
+        # like tif. when a TempResultFile does not match the
+        # st_mtime of the file, the file is not up to date and should
+        # probably be deleted
+        filestats = os.stat(filepath)
+        st_mtime_nc = filestats.st_mtime
+        st_size_nc = filestats.st_size
+    except Exception:
+        return False, "could not read file stats"
+
+    try:
+        old_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
+        # check if a database object for that file already exists
+        if old_doc is not None:
+            # if version mismatch or force_update -> delete object
+            if force_update or not old_doc.check_raw_version(st_mtime_nc):
+                old_doc.delete()
+    except Exception:
+        pass
+
+    new_doc = None
+    try:
+        # lite creation (without metadata and tif file)
+        new_doc = TempResultFile(
+            categorized_filename=cat_filename,
+            filename=filename,
+            st_mtime_nc=st_mtime_nc,
+            st_size_nc=st_size_nc,
+            category=file_category
         )
+        new_doc.save()
+    except Exception:
+        # print(e)
+        return False, "could not save file metadata to database"
+
+    return True, new_doc
+
+
+def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, force_update=False):
+    # filename with category prefix, unique over all TempResultFiles
+    cat_filename = temp_cat_filename(file_category, filename)
+
+    filepath = os.path.join(source_dir, filename)
+    if not os.path.isfile(filepath):
+        return False, "file not found"
+
+    try:
+        # this is also used for converted version(s) of the file
+        # like tif. when a TempResultFile does not match the
+        # st_mtime of the file, the file is not up to date and should
+        # probably be deleted
+        filestats = os.stat(filepath)
+        st_mtime_nc = filestats.st_mtime
+        st_size_nc = filestats.st_size
+    except Exception:
+        return False, "could not read file stats"
+
+    try:
+        old_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
+        # check if a database object for that file already exists
+        if old_doc is not None:
+            # if version mismatch or force_update -> delete object
+            if not old_doc.check_raw_version(st_mtime_nc) or force_update:
+                old_doc.delete()
+    except Exception:
+        pass
+
+    JSON_metadata = None
+    try:
+        # reading metadata via gdalinfo script
+        process = Popen(["gdalinfo", filepath, "-json", "-mm"], stdout=PIPE, stderr=PIPE)
+        # process = Popen(f"gdalinfo data/tif_data/{input_filename} -json")
+        stdout, stderr = process.communicate()
+        metadata = stdout.decode("utf-8")
+
+        JSON_metadata = json.loads(metadata)
+    except Exception:
+        # print(e)
+        return False, "gdalinfo could not process file correctly"
+
+    # checking and parsing needed metadata values
+    if "bands" not in JSON_metadata:
+        return False, "band metadata missing in file"
+
+    num_bands = len(JSON_metadata["bands"])
+
+    net_cdf_times = None
+    try:
+        net_cdf: str = JSON_metadata["metadata"][""]["NETCDF_DIM_time_VALUES"]
+        net_cdf = net_cdf.replace("{", "").replace("}", "").replace(" ", "")
+        net_cdf_times = json.dumps(net_cdf.split(","))
+    except Exception:
+        return False, "netcdf times missing in file"
+
+    # assembling metadata values
+    complete_band_metadata = {}
+
+    try:
+        for i, band_metadata in enumerate(JSON_metadata["bands"]):
+            band_collect = {}
+            band_collect["min"] = band_metadata["computedMin"]
+            band_collect["max"] = band_metadata["computedMax"]
+            band_collect["NETCDF_DIM_time"] = band_metadata["metadata"][""][
+                "NETCDF_DIM_time"
+            ]
+            band_collect["index"] = i + 1
+            complete_band_metadata[str(i + 1)] = band_collect
+    except Exception:
+        return False, "missing metadata key,value pairs"
+
+    new_doc = None
+    try:
+        # print("Attempting file metadata save: ")
+        # print(
+        #     f"filepath: {filepath}\nnum_bands:{num_bands}\nnet_cdf_times:{net_cdf_times}"
+        # )
+        new_doc = TempResultFile(
+            categorized_filename=cat_filename,
+            filename=filename,
+            num_bands=num_bands,
+            band_metadata=complete_band_metadata,
+            net_cdf_times=net_cdf_times,
+            st_mtime_nc=st_mtime_nc,
+            st_size_nc=st_size_nc,
+            category=file_category
+        )
+        new_doc.save()
+    except Exception:
+        # print(e)
+        return False, "could not save file metadata to database"
+
+    return True, new_doc
+
+
+def init_temp_results_folders(force_update=False, delete_all=False):
+    if delete_all:
+        delete_all_temp_results()
+
+    folder_categories = folder_list['raw'].keys()
+    created_objs_counter = 0
+    for cat in folder_categories:
+        print(f"Initiating TempResultFiles folder with category: {cat}")
+        folder_root_path = folder_list['raw'][cat]
+        filenames = os.listdir(folder_root_path)
+        for name in filenames:
+            filepath = os.path.join(folder_root_path, name)
+
+            if not check_temp_result_filesize(filepath):
+                # if file exceeds size limit, we do not extract metadata
+                succ, msg = extract_ncfile_lite(name, folder_root_path, cat, force_update=force_update)
+                if not succ:
+                    # print(f"Failed to extract lite on filename: {name} in category: {cat}")
+                    # print(f"Reason: {msg}")
+                    continue
+                else:
+                    created_objs_counter += 1
+            else:
+                succ, msg = extract_ncfile_metadata(name, folder_root_path, cat, force_update=force_update)
+
+                if not succ:
+                    # print(f"Failed to extract metadata on filename: {name} in category: {cat}")
+                    # print(f"Reason: {msg}")
+                    continue
+                else:
+                    created_objs_counter += 1
+
+            # post creation handling (?)
+    print(f"Finished TempResultFiles Init. Created {created_objs_counter} database objects.")
+
+# init_temp_results_folders()
+
+
+@api_view(["GET"])
+def access_tif_from_ncfile(request):
+    foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
+    filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
+
+    if foldertype is False or filename is False:
+        return HttpResponseBadRequest()
+
+    filepath = os.path.join(folder_list['raw'][foldertype], filename)
+    cat_filename = temp_cat_filename(foldertype, filename)
+    temp_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
+
+    # indicates that the database entry for current file
+    # needs to be updated
+    update_doc = False
+    if temp_doc is None:
+        update_doc = True
+    else:
+        fileversion = os.stat(filepath).st_mtime
+        if not temp_doc.check_raw_version(fileversion):
+            update_doc = True
+
+    if update_doc:
+        succ, msg = extract_ncfile_metadata(filename, folder_list['raw'][foldertype], foldertype, force_update=True)
+        if not succ:
+            # could not extract raw file metadata ...
+            # thus can not properly translate to tif
+            return HttpResponse(f"Could not extract raw file metadata. Reason: {msg}", status=204)
+
+        temp_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
+        if temp_doc is None:
+            # could not extract raw file metadata ...
+            # thus can not properly translate to tif
+            return HttpResponse("Could not extract raw file metadata", status=204)
+
+    # indicates that the corresponding tif file
+    # needs to be updated/recreated
+    update_tif = update_doc
+    if not is_temp_file_cached(filename, foldertype, temp_doc):
+        update_tif = True
+
+    if update_tif:
+        succ, msg = cache_tif_from_nc(filename, foldertype, temp_doc)
+        if not succ:
+            # The raw file could not be converted
+            # print(f"The raw file could not be converted. Reason: {msg}")
+            return HttpResponse(f"The raw file could not be converted. Reason: {msg}", status=204)
+
+    tif_filename = copy_filename_as_tif(filename)
+    # cache_dir = folder_list['cache'][foldertype]
+    # tif_filepath = os.path.join(cache_dir, tif_filename)
+
+    data = {
+        'filename': tif_filename,
+
+        # hardcoded for now, because i'm not absolutely sure on the format
+        # TODO: - replace domain and path with variable
+        # 'route': f"http://127.0.0.1:8000/static/tippecctmp/cache/{foldertype}/{tif_filename}"
+        'route': f"https://leutra.geogr.uni-jena.de/tippecc_data/tippecctmp/{foldertype}/{tif_filename}"
+    }
+
+    return JsonResponse({'filedata': data})
+
+
+@api_view(["GET"])
+def get_ncfile_metadata(request):
+    foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
+    filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
+
+    if foldertype is False or filename is False:
+        return HttpResponseBadRequest()
+
+    source_dir = folder_list['raw'][foldertype]
+    filepath_in = os.path.join(folder_list['raw'][foldertype], filename)
+    fileversion = os.stat(filepath_in).st_mtime
+
+    if not os.path.isfile(filepath_in):
+        return HttpResponse(status=204)
+
+    cat_filename = temp_cat_filename(foldertype, filename)
+    temp_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
+
+    if not check_temp_result_filesize(filepath_in):
+        return HttpResponse("File too big to extract metadata", status=204)
+
+    # file does not exist in database
+    if temp_doc is None:
+        succ, msg = extract_ncfile_metadata(filename, source_dir, foldertype)
+        if succ:
+            new_doc: TempResultFile = msg
+            return JsonResponse({'metadata': new_doc.get_file_metadata()})
+        else:
+            return HttpResponse("Could not extraxt metadata from file.", status=204)
+
+    # version check
+    if not temp_doc.check_raw_version(fileversion):
+        succ, msg = extract_ncfile_metadata(filename, source_dir, foldertype)
+        if succ:
+            new_doc: TempResultFile = msg
+            return JsonResponse({'metadata': new_doc.get_file_metadata()})
+        else:
+            return HttpResponse("Could not extraxt metadata from file.", status=204)
+
+    # TODO:
+    # it can still happen, that there is a file within the size limit, which
+    # we have a up to date database object associated, but not yet read the
+    # metadata. (fields are Null in that case)
+    # - decide on a handling here
+
+    metadata = temp_doc.get_file_metadata()
+    response = JsonResponse({'metadata': metadata})
+
+    return response
+
+
+@api_view(["GET"])
+def get_temp_urls(request):
+    """Returns a selected txt file with file urls for usage in wget script.
+    Request params:
+    hash -- urltxt filename (without .txt ending) as 32 char hash value
+    """
+    hashed_filename = parse_urltxt_filename_from_param(request.GET.get("hash", default=None))
+    if not hashed_filename:
+        return HttpResponseBadRequest("Invalid hash")
+
+    file_path = os.path.join(URLTXTFILES_DIR, hashed_filename)
+
+    try:
+        with open(file_path, "r") as file:
+            content = file.read()
+        response = StreamingHttpResponse(content)
+        response["Content-Type"] = "text/plain; charset=utf8"
 
         return response
+    except Exception:
+        return HttpResponseBadRequest()
 
 
-# returns all filenames of the specified directory ('TESTCONTENT_DIR' rn)
-class ContentView(APIView):
+@api_view(["POST"])
+def select_temp_urls(request):
+    """Reads and saves client requested temp result filenames into txt,
+    and returns according wget request string to download the selection
+    (download handled by other route)
+    Request params:
+    type         -- requested file category/subfolder
+    request body -- requested filenames
+    """
+    body_unicode = request.body.decode("utf-8")
+    body = json.loads(body_unicode)
+    if len(body) == 0:
+        return HttpResponseBadRequest("No Files chosen")
+    foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
+    if not foldertype:
+        return HttpResponseBadRequest("Invalid foldertype")
+
+    foldercontent = os.listdir(folder_list['raw'][foldertype])
+
+    # print(foldercontent)
+
+    url_content = ""
+    # for all requested files in requestbody, check if they really exist
+    for requested_filename in body:
+        filename = None
+        try:
+            idx = foldercontent.index(requested_filename)
+            filename = foldercontent[idx]
+
+            url_content += (
+                GENERAL_API_URL
+                + "/climate/get_temp_file?name="
+                + filename
+                + "&type="
+                + foldertype
+                + "\n"
+            )
+        except Exception:
+            # one of the requested filenames did not match an actual filename
+            return HttpResponseBadRequest()
+
+    unique_filehash = str(uuid.uuid4().hex)
+    unique_filename = unique_filehash + ".txt"
+
+    try:
+        with open(os.path.join(URLTXTFILES_DIR, unique_filename), "w") as file:
+            file.write(url_content)
+    except Exception:
+        # print(e)
+        return HttpResponse("Something went wrong when saving your selection", status=204)
+
+    response = JsonResponse(
+        {
+            "wget-command": "wget --content-disposition --input-file "
+            + f'"{GENERAL_API_URL}climate/get_temp_urls?hash={unique_filehash}"'
+        }
+    )
+
+    return response
+
+
+class FolderContentView(APIView):
     def get(self, request):
-        
-        folder = request.GET.get("type", default=None)
-        TESTCONTENT_DIR = folder_list[folder]
-        foldercontent = os.listdir(TESTCONTENT_DIR)
-        
+        """Returns formated folder content of one of the temp result file subfolders.
+        Request params:
+        type -- requested file category/subfolder (to display)
+        """
+        foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
+        if not foldertype:
+            return HttpResponseBadRequest("Invalid foldertype")
+
+        source_dir = folder_list['raw'][foldertype]
+        foldercontent = os.listdir(source_dir)
+
+        folder_info = dict.fromkeys(foldercontent, None)
+        cat_foldercontent = []
+        for f in foldercontent:
+            cat_foldercontent.append(temp_cat_filename(foldertype, f))
+
+        # print(TempResultFile.objects.filter(categorized_filename=cat_foldercontent[0]))
+        # print(TempResultFile.objects.filter(categorized_filename__in=cat_foldercontent))
+        for f_res in TempResultFile.objects.filter(categorized_filename__in=cat_foldercontent):
+            if f_res.filename in folder_info:
+                folder_info[f_res.filename] = {}
+                folder_info[f_res.filename]['num_bands'] = f_res.num_bands
+                tif_cached = is_temp_file_cached(f_res.filename, foldertype, f_res)
+                folder_info[f_res.filename]['tif_cached'] = tif_cached
+                folder_info[f_res.filename]['tif_convertable'] = f_res.tif_convertable()
+                folder_info[f_res.filename]['fileversion'] = f_res.st_mtime_nc
+
         dir_content = []
 
         for i, f in enumerate(foldercontent):
-            full_filename = TESTCONTENT_DIR + "/" + f
-            file_stats = os.stat(full_filename)
-
-            dir_content_element = []
-            dir_content_element.append(f)
-            dir_content_element.append(self.sizeof_fmt(file_stats.st_size))
-            creation_date = None
-
             try:
-                # other OS
-                creation_date = file_stats.st_birthtime
-            except AttributeError:
-                # We're probably on Linux. No easy way to get creation dates here,
-                # so we'll settle for when its content was last modified.
+                full_filename = os.path.join(source_dir, f)
+                file_stats = os.stat(full_filename)
+                creation_date = None
                 creation_date = datetime.fromtimestamp(file_stats.st_mtime).strftime(
                     "%Y-%m-%d %H:%M"
                 )
 
-            dir_content_element.append(creation_date)
-            dir_content.append(dir_content_element)
+                dir_content_element = []
+                dir_content_element.append(f)
+                dir_content_element.append(self.sizeof_fmt(file_stats.st_size))
+                dir_content_element.append(creation_date)
+
+                file_info = folder_info[f]
+                # manual version check file <> database
+                if file_info is not None:
+                    if file_info['fileversion'] != str(file_stats.st_mtime):
+                        file_info = None
+
+                # manual filesize check
+                file_info['in_size_limit'] = check_temp_result_filesize_from_st_size(file_stats.st_size)
+
+                # now either None (no database info) or file_info
+                dir_content_element.append(file_info)
+
+                # Current format:
+                # [filename, filesize, creation date, number of bands]
+
+                dir_content.append(dir_content_element)
+            except Exception:
+                # file could not be read (this should only ever happen when
+                # serverfiles and folder_content go out of sync)
+                # print("FILEREAD ERROR: ", e)
+                continue
+        # print(f"Requested: {foldertype} content:\n{dir_content}")
 
         response = JsonResponse({"content": dir_content})
         return response
@@ -153,26 +680,101 @@ class ContentView(APIView):
         return f"{num:.1f}Yi{suffix}"
 
 
-# returns a single file (if it is present in the specified directory ('TESTCONTENT_DIR' rn)
-class GetFileView(APIView):
+class TempDownloadView(APIView):
     def get(self, request):
-        filename = request.GET.get("name", default=None)
-        folder = request.GET.get("type", default=None)
+        """Serves a single file from the temporary result files (for download).
+        Request params:
+        type -- requested file category/subfolder
+        name -- requested filename
+        filetype -- requested filetype
+        """
+        foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
+        filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
+        filetype = parse_temp_filetype_from_param(request.GET.get("filetype", default=None))
+        filetype = 'tif'
 
-        TESTCONTENT_DIR = folder_list[folder]
+        if not foldertype or not filename or not filetype:
+            return HttpResponseBadRequest("Request parameters invalid")
 
+        source_dir = folder_list['raw'][foldertype]
+        filepath = os.path.join(source_dir, filename)
+        if filetype == 'nc':
+            return self.serve_file(filepath, filename)
+        elif filetype == 'tif':
 
-        foldercontent = os.listdir(TESTCONTENT_DIR)
-        print("FILENAME: ", filename)
-        print("FOLDERCONTENT: ", foldercontent)
-        if filename not in foldercontent:
-            return HttpResponseBadRequest()
+            return self.serve_tif_file(filepath, filename, foldertype)
+        else:
+            # absolute error case, most likely the code and ALLOWED_FILETYPES
+            # entries are not identical
+            return HttpResponse("Unknown or damaged filetype param value", status=204)
 
-        test_file = open(os.path.join(TESTCONTENT_DIR, filename), "rb")
-        response = HttpResponse(content=test_file)
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        # try:
+        #     with open(os.path.join(source_dir, filename), "rb") as test_file:
+        #         response = HttpResponse(content=test_file)
+        #         response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
-        return response
+        #         return response
+        # except Exception:
+        #     return HttpResponse(204)
+
+    def serve_file(self, filepath, filename):
+        # ==== this is for local testing
+        response = None
+        with open(filepath, "rb") as test_file:
+            response = HttpResponse(content=test_file)
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        if response is not None:
+            return response
+        else:
+            return HttpResponse("Could not read the file content", status=204)
+        # ====
+
+    def serve_tif_file(self, filepath, filename, foldertype):
+        cat_filename = temp_cat_filename(foldertype, filename)
+        temp_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
+
+        # indicates that the database entry for current file
+        # needs to be updated
+        update_doc = False
+        if temp_doc is None:
+            update_doc = True
+        else:
+            fileversion = os.stat(filepath).st_mtime
+            if not temp_doc.check_raw_version(fileversion):
+                update_doc = True
+
+        if update_doc:
+            succ, msg = extract_ncfile_metadata(filename, folder_list['raw'][foldertype], foldertype, force_update=True)
+            if not succ:
+                # could not extract raw file metadata ...
+                # thus can not properly translate to tif
+                return HttpResponse(f"Could not extract raw file metadata. Reason: {msg}", status=204)
+
+            temp_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
+            if temp_doc is None:
+                # could not extract raw file metadata ...
+                # thus can not properly translate to tif
+                return HttpResponse("Could not extract raw file metadata", status=204)
+
+        # indicates that the corresponding tif file
+        # needs to be updated/recreated
+        update_tif = update_doc
+        if not is_temp_file_cached(filename, foldertype, temp_doc):
+            update_tif = True
+
+        if update_tif:
+            succ, msg = cache_tif_from_nc(filename, foldertype, temp_doc)
+            if not succ:
+                # The raw file could not be converted
+                # print(f"The raw file could not be converted. Reason: {msg}")
+                return HttpResponse(f"The raw file could not be converted. Reason: {msg}", status=204)
+
+        tif_filename = copy_filename_as_tif(filename)
+        cache_dir = folder_list['cache'][foldertype]
+        tif_filepath = os.path.join(cache_dir, tif_filename)
+
+        return self.serve_file(tif_filepath, tif_filename)
 
 
 @api_view(["GET"])
