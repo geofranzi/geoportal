@@ -688,7 +688,6 @@ class TempDownloadView(APIView):
         foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
         filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
         filetype = parse_temp_filetype_from_param(request.GET.get("filetype", default=None))
-        filetype = 'tif'
 
         if not foldertype or not filename or not filetype:
             return HttpResponseBadRequest("Request parameters invalid")
