@@ -14,7 +14,7 @@ from pathlib import Path
 from subprocess import (PIPE, Popen,)
 
 import requests
-# from django.conf import settings
+from django.conf import settings
 from django.http import (HttpResponse, HttpResponseBadRequest, JsonResponse, StreamingHttpResponse,)
 from elasticsearch_dsl import Index
 from elasticsearch_dsl.connections import connections
@@ -31,12 +31,12 @@ from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex,
 from .serializer import ClimateLayerSerializer
 
 
-# GENERAL_API_URL = "http://127.0.0.1:8000/"
-GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
+GENERAL_API_URL = "http://127.0.0.1:8000/"
+# GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
 FORBIDDEN_CHARACTERS = ["/", "\\", ".", "-", ":", "@", "&", "^", ">", "<", "~", "$"]
 HASH_LENGTH = 32
-TEMP_FILESIZE_LIMIT = 10    # MB
-TEMP_NUM_BANDS_LIMIT = 250  # Integer
+TEMP_FILESIZE_LIMIT = 75    # MB
+TEMP_NUM_BANDS_LIMIT = 1250  # Integer
 ALLOWED_FILETYPES = ['nc', 'tif']
 
 # test_file_name = "CLMcom-KIT-CCLM5-0-15_v1_MOHC-HadGEM2-ES__water_budget_all__yearsum_mean_2080_2099.nc"
@@ -44,7 +44,7 @@ ALLOWED_FILETYPES = ['nc', 'tif']
 TEMP_FOLDER_TYPES = [
     "water_budget",
     "water_budget_bias",
-    "kaariba"
+    "kariba"
 ]
 
 folder_list = {}
@@ -52,17 +52,17 @@ folder_list['raw'] = {}
 folder_list['cache'] = {}
 
 # LOCAL paths
-# TEMP_ROOT = settings.STATICFILES_DIRS[0]
-# TEMP_RAW = os.path.join(TEMP_ROOT, "tippecctmp/raw")
-# TEMP_CACHE = os.path.join(TEMP_ROOT, "tippecctmp/cache")
-# TEMP_URL = os.path.join(TEMP_ROOT, "tippecctmp/url")
-# URLTXTFILES_DIR = TEMP_URL
+TEMP_ROOT = settings.STATICFILES_DIRS[0]
+TEMP_RAW = os.path.join(TEMP_ROOT, "tippecctmp/raw")
+TEMP_CACHE = os.path.join(TEMP_ROOT, "tippecctmp/cache")
+TEMP_URL = os.path.join(TEMP_ROOT, "tippecctmp/url")
+URLTXTFILES_DIR = TEMP_URL
 
 # SERVER paths
-TEMP_ROOT = "/opt/rbis/www/tippecc_data/tmp"
-TEMP_RAW = "/opt/rbis/www/tippecc_data/tmp/raw"
-TEMP_CACHE = "/opt/rbis/www/tippecc_data/tmp/cache"
-URLTXTFILES_DIR = "/opt/rbis/www/tippecc_data/tmp/url"
+# TEMP_ROOT = "/opt/rbis/www/tippecc_data/tmp"
+# TEMP_RAW = "/opt/rbis/www/tippecc_data/tmp/raw"
+# TEMP_CACHE = "/opt/rbis/www/tippecc_data/tmp/cache"
+# URLTXTFILES_DIR = "/opt/rbis/www/tippecc_data/tmp/url"
 
 for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
     folder_list['raw'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_RAW, TEMP_FOLDER_TYPE)
@@ -398,8 +398,6 @@ def init_temp_results_folders(force_update=False, delete_all=False):
             # post creation handling (?)
     print(f"Finished TempResultFiles Init. Created {created_objs_counter} database objects.")
 
-# init_temp_results_folders()
-
 
 @api_view(["GET"])
 def access_tif_from_ncfile(request):
@@ -650,9 +648,9 @@ class FolderContentView(APIView):
                 if file_info is not None:
                     if file_info['fileversion'] != str(file_stats.st_mtime):
                         file_info = None
-
-                # manual filesize check
-                file_info['in_size_limit'] = check_temp_result_filesize_from_st_size(file_stats.st_size)
+                    else:
+                        # manual filesize check
+                        file_info['in_size_limit'] = check_temp_result_filesize_from_st_size(file_stats.st_size)
 
                 # now either None (no database info) or file_info
                 dir_content_element.append(file_info)
@@ -661,12 +659,11 @@ class FolderContentView(APIView):
                 # [filename, filesize, creation date, number of bands]
 
                 dir_content.append(dir_content_element)
-            except Exception:
+            except Exception as e:
                 # file could not be read (this should only ever happen when
                 # serverfiles and folder_content go out of sync)
-                # print("FILEREAD ERROR: ", e)
+                print("Fileread ERR while processing FolderContent request:\n", e)
                 continue
-        # print(f"Requested: {foldertype} content:\n{dir_content}")
 
         response = JsonResponse({"content": dir_content})
         return response
@@ -1562,3 +1559,7 @@ def read_and_insert_ind_index_slice_data(myPath, dataset_):
 # read_and_insert_ind_index_slice_data("/opt/rbis/www/tippecc_data/LANDSURF_indictor/slices20", "mean 20 years")
 # read_and_insert_ind_index_slice_data("/opt/rbis/www/tippecc_data/LANDSURF_indictor/slices30", "mean 30 years")
 # bulk_indexing()
+
+
+# delete_all_temp_results()
+# init_temp_results_folders()
