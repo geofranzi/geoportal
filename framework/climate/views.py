@@ -358,6 +358,13 @@ def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, 
     return True, new_doc
 
 
+def read_folder_constrained(source_dir: str):
+    foldercontent = list((file for file in os.listdir(source_dir)
+                          if (os.path.isfile(os.path.join(source_dir, file)) and Path(file).suffix == '.nc')
+                          ))
+    return foldercontent
+
+
 def init_temp_results_folders(force_update=False, delete_all=False):
     if delete_all:
         delete_all_temp_results()
@@ -624,7 +631,11 @@ class FolderContentView(APIView):
         if not os.path.isdir(source_dir):
             return HttpResponse(content="Selected folder does currently not exist and cant be accessed.", status=500)
 
-        foldercontent = os.listdir(source_dir)
+        try:
+            foldercontent = read_folder_constrained(source_dir)
+        except Exception as e:
+            print(e)
+            return HttpResponse(content="Reading the content of the selected folder has failed.", status=500)
 
         folder_info = dict.fromkeys(foldercontent, None)
         cat_foldercontent = []
