@@ -610,10 +610,12 @@ def select_temp_urls(request):
 
             url_content += (
                 GENERAL_API_URL
-                + "/climate/get_temp_file?name="
+                + "climate/get_temp_file?name="
                 + filename
                 + "&type="
                 + foldertype
+                + "&filetype="
+                + "nc"  # hardcoded for now
                 + "\n"
             )
         except Exception as e:
