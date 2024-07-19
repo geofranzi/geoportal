@@ -36,7 +36,7 @@ GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
 FORBIDDEN_CHARACTERS = ["/", "\\", ".", "-", ":", "@", "&", "^", ">", "<", "~", "$"]
 HASH_LENGTH = 32
 TEMP_FILESIZE_LIMIT = 75    # MB
-TEMP_NUM_BANDS_LIMIT = 1250  # Integer
+TEMP_NUM_BANDS_LIMIT = 1300  # Integer
 ALLOWED_FILETYPES = ['nc', 'tif']
 
 # test_file_name = "CLMcom-KIT-CCLM5-0-15_v1_MOHC-HadGEM2-ES__water_budget_all__yearsum_mean_2080_2099.nc"
@@ -180,7 +180,10 @@ def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFil
     if not check_temp_result_filesize(filepath_in):
         return False, "Raw file too big"
 
-    if not temp_doc.tif_convertable():
+    if temp_doc.num_bands is None:
+        return False, "Could not convert to tif because of missing metadata"
+
+    if not is_temp_file_tif_convertable(filename_in, foldertype, temp_doc):
         return False, "Raw file not tif convertable"
 
     filename_out = copy_filename_as_tif(filename_in)
@@ -214,6 +217,19 @@ def is_temp_file_cached(raw_filename: str, foldertype: str, temp_doc: TempResult
 
     # file exists, and version matches
     return True
+
+
+def is_temp_file_tif_convertable(raw_filename: str, foldertype: str, temp_doc: TempResultFile):
+    filepath = os.path.join(folder_list['raw'][foldertype], raw_filename)
+    if not check_temp_result_filesize(filepath):
+        return False
+
+    if temp_doc.num_bands is None:
+        return True
+    elif temp_doc.num_bands <= TEMP_NUM_BANDS_LIMIT:
+        return True
+    else:
+        return False
 
 
 def extract_ncfile_lite(filename: str, source_dir: str, file_category: str, force_update=False):
@@ -627,6 +643,12 @@ class FolderContentView(APIView):
         if not foldertype:
             return HttpResponse(content="Invalid foldertype", status=400)
 
+        only_convertable = request.GET.get("convertable", default=None)
+        if only_convertable is None:
+            only_convertable = False
+        else:
+            only_convertable = True
+
         source_dir = folder_list['raw'][foldertype]
         if not os.path.isdir(source_dir):
             return HttpResponse(content="Selected folder does currently not exist and cant be accessed.", status=500)
@@ -650,7 +672,16 @@ class FolderContentView(APIView):
                 folder_info[f_res.filename]['num_bands'] = f_res.num_bands
                 tif_cached = is_temp_file_cached(f_res.filename, foldertype, f_res)
                 folder_info[f_res.filename]['tif_cached'] = tif_cached
-                folder_info[f_res.filename]['tif_convertable'] = f_res.tif_convertable()
+                if not tif_cached:
+                    conv_constraint = is_temp_file_tif_convertable(f_res.filename, foldertype, f_res)
+                    if only_convertable and not conv_constraint:
+                        del folder_info[f_res.filename]
+                        continue
+                    else:
+                        folder_info[f_res.filename]['tif_convertable'] = conv_constraint
+                else:
+                    folder_info[f_res.filename]['tif_convertable'] = True
+
                 folder_info[f_res.filename]['fileversion'] = f_res.st_mtime_nc
 
         dir_content = []
