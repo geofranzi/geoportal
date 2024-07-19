@@ -14,7 +14,7 @@ from pathlib import Path
 from subprocess import (PIPE, Popen,)
 
 import requests
-# from django.conf import settings
+from django.conf import settings
 from django.http import (HttpResponse, JsonResponse, StreamingHttpResponse,)
 from elasticsearch_dsl import Index
 from elasticsearch_dsl.connections import connections
@@ -31,8 +31,8 @@ from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex,
 from .serializer import ClimateLayerSerializer
 
 
-# GENERAL_API_URL = "http://127.0.0.1:8000/"
-GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
+GENERAL_API_URL = "http://127.0.0.1:8000/"
+# GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
 FORBIDDEN_CHARACTERS = ["/", "\\", ".", "-", ":", "@", "&", "^", ">", "<", "~", "$"]
 HASH_LENGTH = 32
 TEMP_FILESIZE_LIMIT = 75    # MB
@@ -53,17 +53,17 @@ folder_list['raw'] = {}
 folder_list['cache'] = {}
 
 # LOCAL paths
-# TEMP_ROOT = settings.STATICFILES_DIRS[0]
-# TEMP_RAW = os.path.join(TEMP_ROOT, "tippecctmp/raw")
-# TEMP_CACHE = os.path.join(TEMP_ROOT, "tippecctmp/cache")
-# TEMP_URL = os.path.join(TEMP_ROOT, "tippecctmp/url")
-# URLTXTFILES_DIR = TEMP_URL
+TEMP_ROOT = settings.STATICFILES_DIRS[0]
+TEMP_RAW = os.path.join(TEMP_ROOT, "tippecctmp/raw")
+TEMP_CACHE = os.path.join(TEMP_ROOT, "tippecctmp/cache")
+TEMP_URL = os.path.join(TEMP_ROOT, "tippecctmp/url")
+URLTXTFILES_DIR = TEMP_URL
 
 # SERVER paths
-TEMP_ROOT = "/data/tmp"
-TEMP_RAW = "/data"
-TEMP_CACHE = "/data/tmp/cache"
-URLTXTFILES_DIR = "/data/tmp/url"
+# TEMP_ROOT = "/data/tmp"
+# TEMP_RAW = "/data"
+# TEMP_CACHE = "/data/tmp/cache"
+# URLTXTFILES_DIR = "/data/tmp/url"
 
 for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
     folder_list['raw'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_RAW, TEMP_FOLDER_TYPE)
@@ -334,6 +334,13 @@ def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, 
     except Exception:
         return False, "netcdf times missing in file"
 
+    timestamp_begin = ""
+    try:
+        timestamp_begin: str = JSON_metadata["metadata"][""]["time#units"]
+        timestamp_begin = timestamp_begin.split(' ')[-1]
+    except Exception:
+        timestamp_begin = ""
+
     # assembling metadata values
     complete_band_metadata = {}
 
@@ -364,7 +371,8 @@ def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, 
             net_cdf_times=net_cdf_times,
             st_mtime_nc=st_mtime_nc,
             st_size_nc=st_size_nc,
-            category=file_category
+            category=file_category,
+            timestamp_begin=timestamp_begin
         )
         new_doc.save()
     except Exception as e:

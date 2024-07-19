@@ -266,6 +266,7 @@ class TempResultFile(models.Model):
     filename = models.CharField(max_length=400, null=True)
     category = models.CharField(max_length=255, choices=CATEGORIES, null=True)
     num_bands = models.IntegerField(null=True)
+    timestamp_begin = models.CharField(max_length=500, null=True)
     band_metadata = models.JSONField(default=dict)
     net_cdf_times = models.JSONField(default=dict)
     st_mtime_nc = models.CharField(max_length=255, null=True)
@@ -285,7 +286,8 @@ class TempResultFile(models.Model):
         combined_metadata = {
             'num_bands': self.num_bands,
             'band_metadata': self.band_metadata,
-            'net_cdf_times': self.net_cdf_times
+            'net_cdf_times': self.net_cdf_times,
+            'timestamp_begin': self.timestamp_begin
         }
 
         return combined_metadata
