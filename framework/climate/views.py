@@ -14,7 +14,7 @@ from pathlib import Path
 from subprocess import (PIPE, Popen,)
 
 import requests
-from django.conf import settings
+# from django.conf import settings
 from django.http import (HttpResponse, JsonResponse, StreamingHttpResponse,)
 from elasticsearch_dsl import Index
 from elasticsearch_dsl.connections import connections
@@ -31,8 +31,8 @@ from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex,
 from .serializer import ClimateLayerSerializer
 
 
-GENERAL_API_URL = "http://127.0.0.1:8000/"
-# GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
+# GENERAL_API_URL = "http://127.0.0.1:8000/"
+GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
 FORBIDDEN_CHARACTERS = ["/", "\\", ".", "-", ":", "@", "&", "^", ">", "<", "~", "$"]
 HASH_LENGTH = 32
 TEMP_FILESIZE_LIMIT = 75    # MB
@@ -53,17 +53,17 @@ folder_list['raw'] = {}
 folder_list['cache'] = {}
 
 # LOCAL paths
-TEMP_ROOT = settings.STATICFILES_DIRS[0]
-TEMP_RAW = os.path.join(TEMP_ROOT, "tippecctmp/raw")
-TEMP_CACHE = os.path.join(TEMP_ROOT, "tippecctmp/cache")
-TEMP_URL = os.path.join(TEMP_ROOT, "tippecctmp/url")
-URLTXTFILES_DIR = TEMP_URL
+# TEMP_ROOT = settings.STATICFILES_DIRS[0]
+# TEMP_RAW = os.path.join(TEMP_ROOT, "tippecctmp/raw")
+# TEMP_CACHE = os.path.join(TEMP_ROOT, "tippecctmp/cache")
+# TEMP_URL = os.path.join(TEMP_ROOT, "tippecctmp/url")
+# URLTXTFILES_DIR = TEMP_URL
 
 # SERVER paths
-# TEMP_ROOT = "/data/tmp"
-# TEMP_RAW = "/data"
-# TEMP_CACHE = "/data/tmp/cache"
-# URLTXTFILES_DIR = "/data/tmp/url"
+TEMP_ROOT = "/data/tmp"
+TEMP_RAW = "/data"
+TEMP_CACHE = "/data/tmp/cache"
+URLTXTFILES_DIR = "/data/tmp/url"
 
 for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
     folder_list['raw'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_RAW, TEMP_FOLDER_TYPE)
