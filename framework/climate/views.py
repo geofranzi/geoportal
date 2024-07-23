@@ -192,9 +192,14 @@ def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFil
     # print(f"filename_out: {filename_out}")
     # print(f"filepath_in: {filepath_in}")
     # print(f"filepath_out: {filepath_out}")
+
+    # Set destination spatial reference
+    kwargs = {"dstSRS": 'EPSG:4326'}
+
     try:
-        ds = gdal.Open(filepath_in)
-        gdal.Translate(filepath_out, ds, format="Gtiff")
+        # for some reason, tif files created via translate are
+        # not allways working correctly in our visualization
+        gdal.Warp(filepath_out, filepath_in, **kwargs)
         fileversion_out = os.stat(filepath_out).st_mtime
         temp_doc.st_mtime_tif = fileversion_out
         temp_doc.save()
