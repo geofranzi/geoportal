@@ -13,11 +13,11 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RemoveField(
             model_name='sourcelayer',
-            name='inspire_hdv',
+            name='inspire_hvd',
         ),
         migrations.AddField(
             model_name='inspiredataset',
-            name='inspire_hdv',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='inspire_hdv', to='inspire.inspirehdv'),
+            name='inspire_hvd',
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='inspire_hvd', to='inspire.inspirehvd'),
         ),
     ]

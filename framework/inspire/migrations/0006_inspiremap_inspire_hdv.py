@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='inspiremap',
-            name='inspire_hdv',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='inspire_hdv_map', to='inspire.inspirehdv'),
+            name='inspire_hvd',
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='inspire_hvd_map', to='inspire.inspirehvd'),
         ),
     ]
