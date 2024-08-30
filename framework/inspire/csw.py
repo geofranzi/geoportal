@@ -1,5 +1,6 @@
 import os.path
 
+from django.conf import settings
 from django.contrib.gis.gdal import DataSource
 from django.template.loader import get_template
 from owslib.util import http_post
@@ -7,7 +8,6 @@ from owslib.util import http_post
 from inspire.models import (InspireMap, InspireMapSerializer, InspireMetadataSerializer, SourceMetadataSerializer,)
 from layers.models import MetadataSerializer
 from map.models import MapLayerInline
-from webgis import settings
 
 
 # Create insert and delete XML
@@ -31,6 +31,7 @@ def create_csw_xml(instance, type):
                 keywords_thesaurus.append(keywords)
             else:
                 keywords_no_thesaurus.append(keywords)
+
         # search for all maps
         ows_list = MapLayerInline.objects.filter(map_layer_id=instance.id)
         for ows_layer in ows_list:
@@ -65,12 +66,12 @@ def create_csw_xml(instance, type):
     })
 
     md_doc_meta = tpl.render(ctx)
-    f = open(settings.MEDIA_ROOT + 'csw/metadata/' + str(instance.id) + '_' + type + '_metadata.xml', 'wb')
+    f = open(settings.MEDIA_ROOT + '/csw/metadata/' + str(instance.id) + '_' + type + '_metadata.xml', 'wb')
     f.write(md_doc_meta.encode('UTF-8'))
 
     ctx["csw"] = "1"
     md_doc_csw = tpl.render(ctx)
-    f = open(settings.MEDIA_ROOT + 'csw/' + str(instance.id) + '_' + type + '_insert.xml', 'wb')
+    f = open(settings.MEDIA_ROOT + '/csw/' + str(instance.id) + '_' + type + '_insert.xml', 'wb')
     f.write(md_doc_csw.encode('UTF-8'))
 
     print(ows_identifier)
@@ -82,7 +83,7 @@ def create_csw_xml(instance, type):
     })
 
     md_doc = tpl.render(ctx)
-    f = open(settings.MEDIA_ROOT + 'csw/' + str(instance.id) + '_' + type + '_delete.xml', 'wb')
+    f = open(settings.MEDIA_ROOT + '/csw/' + str(instance.id) + '_' + type + '_delete.xml', 'wb')
     f.write(md_doc.encode('UTF-8'))
 
     result["error"] = False
@@ -101,7 +102,7 @@ def create_csw_view_xml(instance, inspire):
 
     if inspire:
         map = InspireMapSerializer(instance)
-        #  print(map.data)
+        # print(map.data)
         ows_srs_list = map.data["ows_srs"].split(",")
 
         for keywords in map.data["map_keywords"]:
@@ -128,16 +129,16 @@ def create_csw_view_xml(instance, inspire):
     })
 
     md_doc_meta = tpl_view.render(ctx)
-    f = open(settings.MEDIA_ROOT + 'csw/metadata/' + str(instance.id) + '_metadata_service.xml', 'wb')
+    f = open(settings.MEDIA_ROOT + '/csw/metadata/' + str(instance.id) + '_metadata_service.xml', 'wb')
     f.write(md_doc_meta.encode('UTF-8'))
 
     md_doc_meta = tpl_download.render(ctx)
-    f = open(settings.MEDIA_ROOT + 'csw/metadata/' + str(instance.id) + '_metadata_download.xml', 'wb')
+    f = open(settings.MEDIA_ROOT + '/csw/metadata/' + str(instance.id) + '_metadata_download.xml', 'wb')
     f.write(md_doc_meta.encode('UTF-8'))
 
     ctx["csw"] = "1"
     md_doc_csw = tpl_view.render(ctx)
-    f = open(settings.MEDIA_ROOT + 'csw/' + str(instance.id) + '_insert_service.xml', 'wb')
+    f = open(settings.MEDIA_ROOT + '/csw/' + str(instance.id) + '_insert_service.xml', 'wb')
     f.write(md_doc_csw.encode('UTF-8'))
 
     tpl_view = get_template('CSW/delete.xml')
@@ -149,7 +150,7 @@ def create_csw_view_xml(instance, inspire):
 
     ctx["csw"] = "1"
     md_doc_csw = tpl_download.render(ctx)
-    f = open(settings.MEDIA_ROOT + 'csw/' + str(instance.id) + '_insert_download.xml', 'wb')
+    f = open(settings.MEDIA_ROOT + '/csw/' + str(instance.id) + '_insert_download.xml', 'wb')
     f.write(md_doc_csw.encode('UTF-8'))
 
     tpl_download = get_template('CSW/delete.xml')
@@ -158,7 +159,7 @@ def create_csw_view_xml(instance, inspire):
     })
 
     md_doc = tpl_download.render(ctx)
-    f = open(settings.MEDIA_ROOT + 'csw/' + str(instance.id) + '_delete_download.xml', 'wb')
+    f = open(settings.MEDIA_ROOT + '/csw/' + str(instance.id) + '_delete_download.xml', 'wb')
     f.write(md_doc.encode('UTF-8'))
 
     create_map_mapfile(instance, inspire)
@@ -220,18 +221,18 @@ def create_map_mapfile(instance, inspire):
     })
 
     md_doc_meta = tpl.render(ctx)
-    f = open(settings.MEDIA_ROOT + 'map/' + map.data["ows_url_name"] + '.map', 'wb')
+    f = open(settings.MEDIA_ROOT + '/map/' + map.data["ows_url_name"] + '.map', 'wb')
     f.write(md_doc_meta.encode('UTF-8'))
 
 
 def create_record(id):
-    response = http_post(settings.CSW_T_PATH, request=open(settings.MEDIA_ROOT + 'csw/' + str(id) + '_insert.xml').read())
+    response = http_post(settings.CSW_T_PATH, request=open(settings.MEDIA_ROOT + '/csw/' + str(id) + '_insert.xml').read())
     print(response)
 
 
 def delete_record(id):
     if os.path.isfile(settings.MEDIA_ROOT + 'csw/' + str(id) + '_delete.xml'):
-        response = http_post(settings.CSW_T_PATH, request=open(settings.MEDIA_ROOT + 'csw/' + str(id) + '_delete.xml').read())
+        response = http_post(settings.CSW_T_PATH, request=open(settings.MEDIA_ROOT + '/csw/' + str(id) + '_delete.xml').read())
         print(response)
 
 
