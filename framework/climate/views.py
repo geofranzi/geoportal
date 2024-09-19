@@ -37,7 +37,7 @@ FORBIDDEN_CHARACTERS = ["/", "\\", ".", "-", ":", "@", "&", "^", ">", "<", "~", 
 HASH_LENGTH = 32
 TEMP_FILESIZE_LIMIT = 75    # MB
 TEMP_NUM_BANDS_LIMIT = 1300  # Integer
-ALLOWED_FILETYPES = ['nc', 'tif']
+ALLOWED_FILETYPES = ['nc', 'tif', 'dat']
 
 # test_file_name = "CLMcom-KIT-CCLM5-0-15_v1_MOHC-HadGEM2-ES__water_budget_all__yearsum_mean_2080_2099.nc"
 
@@ -387,10 +387,13 @@ def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, 
     return True, new_doc
 
 
-def read_folder_constrained(source_dir: str):
-    foldercontent = list((file for file in os.listdir(source_dir)
-                          if (os.path.isfile(os.path.join(source_dir, file)) and Path(file).suffix == '.nc')
-                          ))
+def read_folder_constrained(source_dir: str, only_nc: bool = False):
+    if only_nc:
+        foldercontent = list((file for file in os.listdir(source_dir)
+                             if (os.path.isfile(os.path.join(source_dir, file)) and Path(file).suffix == '.nc')))
+    else:
+        foldercontent = list((file for file in os.listdir(source_dir)
+                             if (os.path.isfile(os.path.join(source_dir, file)))))
     return foldercontent
 
 
@@ -669,7 +672,7 @@ class FolderContentView(APIView):
             return HttpResponse(content="Selected folder does currently not exist and cant be accessed.", status=500)
 
         try:
-            foldercontent = read_folder_constrained(source_dir)
+            foldercontent = read_folder_constrained(source_dir, only_convertable)
         except Exception as e:
             print(e)
             return HttpResponse(content="Reading the content of the selected folder has failed.", status=500)
@@ -726,6 +729,7 @@ class FolderContentView(APIView):
 
                 # now either None (no database info) or file_info
                 dir_content_element.append(file_info)
+                dir_content_element.append(Path(f).suffix)
 
                 # Current format:
                 # [filename, filesize, creation date, number of bands]
@@ -777,8 +781,9 @@ class TempDownloadView(APIView):
         if filetype == 'nc':
             return self.serve_file(filepath, filename)
         elif filetype == 'tif':
-
             return self.serve_tif_file(filepath, filename, foldertype)
+        elif filetype == 'dat':
+            return self.serve_file(filepath, filename)
         else:
             # this should never be reached... only for readability/when adding more filetypes
             return HttpResponse(content="Unknown filetype param value", status=400)
