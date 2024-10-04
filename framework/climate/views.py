@@ -37,7 +37,7 @@ FORBIDDEN_CHARACTERS = ["/", "\\", ".", "-", ":", "@", "&", "^", ">", "<", "~", 
 HASH_LENGTH = 32
 TEMP_FILESIZE_LIMIT = 75    # MB
 TEMP_NUM_BANDS_LIMIT = 1300  # Integer
-ALLOWED_FILETYPES = ['nc', 'tif', 'dat']
+ALLOWED_FILETYPES = ['nc', 'tif', 'dat']  # most likely not needed anymore
 
 # test_file_name = "CLMcom-KIT-CCLM5-0-15_v1_MOHC-HadGEM2-ES__water_budget_all__yearsum_mean_2080_2099.nc"
 
@@ -389,11 +389,14 @@ def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, 
 
 def read_folder_constrained(source_dir: str, only_nc: bool = False):
     if only_nc:
+        # reads only files ending with .nc from source_dir
         foldercontent = list((file for file in os.listdir(source_dir)
                              if (os.path.isfile(os.path.join(source_dir, file)) and Path(file).suffix == '.nc')))
     else:
+        # ready all files from source_dir
         foldercontent = list((file for file in os.listdir(source_dir)
                              if (os.path.isfile(os.path.join(source_dir, file)))))
+
     return foldercontent
 
 
@@ -610,11 +613,17 @@ def select_temp_urls(request):
 
     url_content = ""
     # for all requested files in requestbody, check if they really exist
-    for requested_filename in body:
+    for requested_file in body:
         filename = None
         try:
-            idx = foldercontent.index(requested_filename)
+            idx = foldercontent.index(requested_file[0])
+            filetype = requested_file[1]
             filename = foldercontent[idx]
+            if filetype != 'tif':
+                # reset filetype to actual filename suffix
+                # initial parameter only used if client wants to download format A as format B
+                # (e.g. .nc as .tif)
+                filetype = Path(filename).suffix[1:]
 
             url_content += (
                 GENERAL_API_URL
@@ -623,13 +632,13 @@ def select_temp_urls(request):
                 + "&type="
                 + foldertype
                 + "&filetype="
-                + "nc"  # hardcoded for now
+                + filetype
                 + "\n"
             )
         except Exception as e:
             print(e)
             # one of the requested filenames did not match an actual filename
-            return HttpResponse(content=f"Requested filename: {requested_filename} does not exist.", status=400)
+            return HttpResponse(content=f"Requested filename: {requested_file[0]} does not exist.", status=400)
 
     unique_filehash = str(uuid.uuid4().hex)
     unique_filename = unique_filehash + ".txt"
@@ -763,7 +772,10 @@ class TempDownloadView(APIView):
         """
         foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
         filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
-        filetype = parse_temp_filetype_from_param(request.GET.get("filetype", default=None))
+        # filetype = parse_temp_filetype_from_param(request.GET.get("filetype", default=None))
+
+        # only used for comparison now and thus can be safely used
+        filetype = request.GET.get("filetype", default=None)
 
         if not foldertype or not filename or not filetype:
             err_msg = "Invalid"
@@ -778,15 +790,21 @@ class TempDownloadView(APIView):
 
         source_dir = folder_list['raw'][foldertype]
         filepath = os.path.join(source_dir, filename)
-        if filetype == 'nc':
-            return self.serve_file(filepath, filename)
-        elif filetype == 'tif':
+
+        if filetype == 'tif':
             return self.serve_tif_file(filepath, filename, foldertype)
-        elif filetype == 'dat':
-            return self.serve_file(filepath, filename)
         else:
-            # this should never be reached... only for readability/when adding more filetypes
-            return HttpResponse(content="Unknown filetype param value", status=400)
+            return self.serve_file(filepath, filename)
+
+        # if filetype == 'nc':
+        #     return self.serve_file(filepath, filename)
+        # elif filetype == 'tif':
+        #     return self.serve_tif_file(filepath, filename, foldertype)
+        # elif filetype == 'dat':
+        #     return self.serve_file(filepath, filename)
+        # else:
+        #     # this should never be reached... only for readability/when adding more filetypes
+        #     return HttpResponse(content="Unknown filetype param value", status=400)
 
         # try:
         #     with open(os.path.join(source_dir, filename), "rb") as test_file:
