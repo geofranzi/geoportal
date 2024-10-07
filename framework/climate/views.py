@@ -45,7 +45,13 @@ TEMP_FOLDER_TYPES = [
     "water_budget",
     "water_budget_bias",
     "kariba",
-    "vaal"
+    "vaal",
+    "cmip6",
+    "paper",
+    "luanginga",
+    "ind_full",
+    "ind_slices20",
+    "ind_slices30"
 ]
 
 folder_list = {}
@@ -1666,5 +1672,5 @@ def read_and_insert_ind_index_slice_data(myPath, dataset_):
 # bulk_indexing()
 
 
-# delete_all_temp_results()
-# init_temp_results_folders()
+#delete_all_temp_results()
+#init_temp_results_folders()
