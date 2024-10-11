@@ -79,7 +79,8 @@ celerybeat-schedule
 # virtualenv
 venv/
 ENV/
-
+Pipfile
+Pipfile.lock
 # Spyder project settings
 .spyderproject
 
@@ -90,6 +91,7 @@ ENV/
 .idea
 
 framework/static/build
+framework/static/tippecctmp
 node_modules
 .git_old
 framework/media/csw
