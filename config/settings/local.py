@@ -17,7 +17,7 @@ ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1", "10.149.0.38", "iknow.inf-
 X_FRAME_OPTIONS = 'allow-from http://127.0.0.1:5173/'
 
 # Using postgresSQL change local db settings here (postgres://USERNAME:PASSWORD@HOST:PORT/DATABASENAME
-DATABASES["default"] = env.db("DATABASES", default="postgis://postgres:PASSWORD@127.0.0.1:5432/climate_services_gateway")
+DATABASES["default"] = env.db("DATABASES", default="postgis://postgres:postgres@127.0.0.1:5432/climate_services_gateway")
 
 # Using SQlite
 # DATABASES["default"] = env.db("DATABASE_URL2", default="sqlite:////test_db.sqlite3")
@@ -78,4 +78,4 @@ INSTALLED_APPS += ["django_extensions"]  # noqa F405
 
 # Windows fix for GDAL
 if os.name == 'nt':
-    GDAL_LIBRARY_PATH = "C:/Users/c1zafr/PycharmProjects/GEOPORTAL_INSPIRE/venv_3_10/Lib/site-packages/osgeo/gdal304.dll"
+    GDAL_LIBRARY_PATH = "C:/Users/da86mej/.virtualenvs/backend-n4YQIkhh/Lib/site-packages/osgeo/gdal.dll"

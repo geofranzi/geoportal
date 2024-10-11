@@ -14,7 +14,7 @@ from pathlib import Path
 from subprocess import (PIPE, Popen,)
 
 import requests
-# from django.conf import settings
+from django.conf import settings
 from django.http import (HttpResponse, JsonResponse, StreamingHttpResponse,)
 from elasticsearch_dsl import Index
 from elasticsearch_dsl.connections import connections
@@ -29,15 +29,19 @@ from .models import (ClimateLayer, TempResultFile,)
 from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex, ClimateDatasetsIndex,
                         ClimateIndicatorIndex, ClimateIndicatorSearch, ClimateSearch,)
 from .serializer import ClimateLayerSerializer
+import threading
+import xarray as xr
+import pandas as pd
+import time
+import numpy as np
 
-
-# GENERAL_API_URL = "http://127.0.0.1:8000/"
-GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
+GENERAL_API_URL = "http://127.0.0.1:8000/"
+# GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
 FORBIDDEN_CHARACTERS = ["/", "\\", ".", "-", ":", "@", "&", "^", ">", "<", "~", "$"]
 HASH_LENGTH = 32
 TEMP_FILESIZE_LIMIT = 75    # MB
 TEMP_NUM_BANDS_LIMIT = 1300  # Integer
-ALLOWED_FILETYPES = ['nc', 'tif']
+ALLOWED_FILETYPES = ['nc', 'tif', 'dat']  # most likely not needed anymore
 
 # test_file_name = "CLMcom-KIT-CCLM5-0-15_v1_MOHC-HadGEM2-ES__water_budget_all__yearsum_mean_2080_2099.nc"
 
@@ -45,7 +49,13 @@ TEMP_FOLDER_TYPES = [
     "water_budget",
     "water_budget_bias",
     "kariba",
-    "vaal"
+    "vaal",
+    "cmip6",
+    "paper",
+    "luanginga",
+    "ind_full",
+    "ind_slices20",
+    "ind_slices30"
 ]
 
 folder_list = {}
@@ -53,17 +63,18 @@ folder_list['raw'] = {}
 folder_list['cache'] = {}
 
 # LOCAL paths
-# TEMP_ROOT = settings.STATICFILES_DIRS[0]
-# TEMP_RAW = os.path.join(TEMP_ROOT, "tippecctmp/raw")
-# TEMP_CACHE = os.path.join(TEMP_ROOT, "tippecctmp/cache")
-# TEMP_URL = os.path.join(TEMP_ROOT, "tippecctmp/url")
-# URLTXTFILES_DIR = TEMP_URL
+TEMP_ROOT = settings.STATICFILES_DIRS[0]
+TEMP_RAW = os.path.join(TEMP_ROOT, "tippecctmp/raw")
+TEMP_CACHE = os.path.join(TEMP_ROOT, "tippecctmp/cache")
+TEMP_URL = os.path.join(TEMP_ROOT, "tippecctmp/url")
+URLTXTFILES_DIR = TEMP_URL
+JAMS_TMPL_FILE = os.path.join(TEMP_ROOT, "jams/jams_tmpl.dat")
 
 # SERVER paths
-TEMP_ROOT = "/data/tmp"
-TEMP_RAW = "/data"
-TEMP_CACHE = "/data/tmp/cache"
-URLTXTFILES_DIR = "/data/tmp/url"
+# TEMP_ROOT = "/data/tmp"
+# TEMP_RAW = "/data"
+# TEMP_CACHE = "/data/tmp/cache"
+# URLTXTFILES_DIR = "/data/tmp/url"
 
 for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
     folder_list['raw'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_RAW, TEMP_FOLDER_TYPE)
@@ -387,10 +398,16 @@ def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, 
     return True, new_doc
 
 
-def read_folder_constrained(source_dir: str):
-    foldercontent = list((file for file in os.listdir(source_dir)
-                          if (os.path.isfile(os.path.join(source_dir, file)) and Path(file).suffix == '.nc')
-                          ))
+def read_folder_constrained(source_dir: str, only_nc: bool = False):
+    if only_nc:
+        # reads only files ending with .nc from source_dir
+        foldercontent = list((file for file in os.listdir(source_dir)
+                             if (os.path.isfile(os.path.join(source_dir, file)) and Path(file).suffix == '.nc')))
+    else:
+        # ready all files from source_dir
+        foldercontent = list((file for file in os.listdir(source_dir)
+                             if (os.path.isfile(os.path.join(source_dir, file)))))
+
     return foldercontent
 
 
@@ -429,6 +446,165 @@ def init_temp_results_folders(force_update=False, delete_all=False):
             # post creation handling (?)
     print(f"Finished TempResultFiles Init. Created {created_objs_counter} database objects.")
 
+
+def split_files_by_extension(file_list):
+    # Initialize two empty lists to store files based on their extensions
+    nc_files = []
+    dat_files = []
+
+    # Loop through each file in the input list
+    for file in file_list:
+        # Check if the file ends with '.nc' and add it to the nc_files list
+        if file.endswith('.nc'):
+            nc_files.append(file)
+        # Check if the file ends with '.dat' and add it to the dat_files list
+        elif file.endswith('.dat'):
+            dat_files.append(file)
+    
+    # Return both lists
+    return nc_files, dat_files
+
+def extract_jams_files(foldertype,filename):
+      wrong_variables = ['time_bnds']
+      decimal_digits = 2
+      source_dir = folder_list['raw'][foldertype]
+      filepath = os.path.join(source_dir, filename)
+      nc = xr.open_dataset(filepath)
+      i = 0
+      var_name = list(nc.data_vars)[i]
+      while var_name in wrong_variables:
+          i+=1
+          var_name = list(nc.data_vars)[i]
+      #shape = gpd.read_file(r'{}\{}'.format(base_dir, shapefile))
+      try:
+        var_unit = nc[var_name].attrs['units']
+      except:
+        var_unit = 'none'
+      time_var = nc['time']
+      tres = pd.TimedeltaIndex(time_var.diff(dim='time')).mean()
+      one_day = pd.Timedelta(days=1)
+      
+      # get both CRSs and create transformer
+      #shape_crs = shape.crs
+      #nc_crs = pyproj.CRS(4326)
+      #transformer = pyproj.Transformer.from_crs(shape_crs, nc_crs, always_xy=True)
+      
+      # get bounding box of the shapefile
+      #minx, miny, maxx, maxy = shape.total_bounds
+      
+      #minx, miny = transformer.transform(minx, miny)
+      #maxx, maxy = transformer.transform(maxx, maxy)
+      
+      # define buffer distance in NetCDF CRS
+      #buffer = 0.5
+      
+      # expand bounding box by buffer distance
+      #minx -= buffer
+      #miny -= buffer
+      #maxx += buffer
+      #maxy += buffer
+      
+      # list of lon/lat coordinates of cells with data
+      #cell_coords = [(lon, lat) for lon in nc.lon.values for lat in nc.lat.values if
+      #               minx <= lon <= maxx and miny <= lat <= maxy]
+      
+      cell_coords = [(lon, lat) for lon in nc.lon.values for lat in nc.lat.values]
+
+
+      # iterate over cell coordinates and extract data for all time steps
+      data = []
+      
+    #   times1 = []
+    #   times2 = []
+      c = 0
+      for lon, lat in cell_coords:
+          #start_time = time.perf_counter()
+          cell_data = nc.sel(lon=lon, lat=lat, method='nearest')[var_name].values
+          #time2 = time.perf_counter()
+          for i, value in enumerate(cell_data):
+              data.append({'lon': lon, 'lat': lat, 'time': nc.time.values[i], 'value': value})
+          c += 1
+          #times1.append(time2 - start_time)
+          #times2.append(time.perf_counter()-time2)
+      
+    #   print(times1)
+    #   print(times2)
+    #   print(np.mean(times1))
+    #   print(np.mean(times2))
+
+      # convert to dataframe and reproject to shapefile CRS
+      df = pd.DataFrame(data).sort_values(by=['time', 'lon', 'lat'])
+      #df['geometry'] = gpd.points_from_xy(df['lon'], df['lat'])
+      #df = gpd.GeoDataFrame(df, geometry='geometry', crs='EPSG:4326')
+      #df = df.to_crs(shape.crs)
+      #df['x'] = df['geometry'].x
+      #df['y'] = df['geometry'].y
+      #df.reset_index(drop=True, inplace=True)
+      
+      # get some data from the dataframe
+      unique_times = df['time'].unique()
+      min_time = min(unique_times)
+      max_time = max(unique_times)
+      unique_x_y_pairs = df[['lon', 'lat']].drop_duplicates()
+      
+      # read file header template
+      with open(JAMS_TMPL_FILE, "r") as file:
+          meta = file.read()
+      
+      # create metadata header
+    #  meta = meta.replace('%crs%', str(shape_crs))
+     # meta = ""
+      meta = meta.replace('%ncfile%', filename)
+     # meta = meta.replace('%shapefile%', shapefile)
+      meta = meta.replace('%var_name%', var_name)
+      meta = meta.replace('%var_unit%', var_unit)
+      meta = meta.replace('%min_time%', str(min_time))
+      meta = meta.replace('%max_time%', str(max_time))
+      meta = meta.replace('%tres%', 'm' if one_day < tres else 'd')
+      
+      stations = ''
+      ids = ''
+      elevations = ''
+      cols = ''
+      xs = ''
+      ys = ''
+      n = 1
+      for x, y in unique_x_y_pairs.values:
+          stations += 'station_{}\t'.format(n)
+          ids += '{}\t'.format(n)
+          cols += '{}\t'.format(n)
+          elevations += '0.0\t'
+          xs += '{}\t'.format(x)
+          ys += '{}\t'.format(y)
+          n += 1
+      
+      meta = meta.replace('%stations%', stations)
+      meta = meta.replace('%ids%', ids)
+      meta = meta.replace('%elevations%', elevations)
+      meta = meta.replace('%cols%', cols)
+      meta = meta.replace('%xs%', xs)
+      meta = meta.replace('%ys%', ys)
+      print('start writing dat file')
+
+      df.set_index('time', inplace=True)
+      # output metadata and data to file
+      with open(r'{}.dat'.format(os.path.join(source_dir, filename)), 'w') as file:
+          # Append lines to the file
+          file.write(meta)
+          c = 0
+          
+          for timestep in unique_times:
+              data = df.loc[timestep]
+              values_list = ['{:.{}f}'.format(value, decimal_digits) for value in data['value']]
+              values = '\t'.join(values_list)
+              line = '{}\t{}\n'.format(timestep, values)
+              file.write(line)
+              c += 1
+      
+          file.write('# end of file')
+          file.close()
+      print('dat generated')
+          
 
 @api_view(["GET"])
 def access_tif_from_ncfile(request):
@@ -607,11 +783,17 @@ def select_temp_urls(request):
 
     url_content = ""
     # for all requested files in requestbody, check if they really exist
-    for requested_filename in body:
+    for requested_file in body:
         filename = None
         try:
-            idx = foldercontent.index(requested_filename)
+            idx = foldercontent.index(requested_file[0])
+            filetype = requested_file[1]
             filename = foldercontent[idx]
+            if filetype != 'tif':
+                # reset filetype to actual filename suffix
+                # initial parameter only used if client wants to download format A as format B
+                # (e.g. .nc as .tif)
+                filetype = Path(filename).suffix[1:]
 
             url_content += (
                 GENERAL_API_URL
@@ -620,13 +802,13 @@ def select_temp_urls(request):
                 + "&type="
                 + foldertype
                 + "&filetype="
-                + "nc"  # hardcoded for now
+                + filetype
                 + "\n"
             )
         except Exception as e:
             print(e)
             # one of the requested filenames did not match an actual filename
-            return HttpResponse(content=f"Requested filename: {requested_filename} does not exist.", status=400)
+            return HttpResponse(content=f"Requested filename: {requested_file[0]} does not exist.", status=400)
 
     unique_filehash = str(uuid.uuid4().hex)
     unique_filename = unique_filehash + ".txt"
@@ -669,14 +851,16 @@ class FolderContentView(APIView):
             return HttpResponse(content="Selected folder does currently not exist and cant be accessed.", status=500)
 
         try:
-            foldercontent = read_folder_constrained(source_dir)
+            foldercontent = read_folder_constrained(source_dir, only_convertable)
         except Exception as e:
             print(e)
             return HttpResponse(content="Reading the content of the selected folder has failed.", status=500)
+        
+        nc_files, dat_files = split_files_by_extension(foldercontent)
 
-        folder_info = dict.fromkeys(foldercontent, None)
+        folder_info = dict.fromkeys(nc_files, None)
         cat_foldercontent = []
-        for f in foldercontent:
+        for f in nc_files:
             cat_foldercontent.append(temp_cat_filename(foldertype, f))
 
         # print(TempResultFile.objects.filter(categorized_filename=cat_foldercontent[0]))
@@ -701,7 +885,7 @@ class FolderContentView(APIView):
 
         dir_content = []
 
-        for i, f in enumerate(foldercontent):
+        for i, f in enumerate(nc_files):
             try:
                 full_filename = os.path.join(source_dir, f)
                 file_stats = os.stat(full_filename)
@@ -726,6 +910,14 @@ class FolderContentView(APIView):
 
                 # now either None (no database info) or file_info
                 dir_content_element.append(file_info)
+                dir_content_element.append(Path(f).suffix)
+
+                #check if dat file allready exists
+                if (f+".dat" in dat_files):
+                    dat_file_exists = True
+                else: 
+                    dat_file_exists = False
+                dir_content_element.append(dat_file_exists)
 
                 # Current format:
                 # [filename, filesize, creation date, number of bands]
@@ -759,7 +951,10 @@ class TempDownloadView(APIView):
         """
         foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
         filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
-        filetype = parse_temp_filetype_from_param(request.GET.get("filetype", default=None))
+        # filetype = parse_temp_filetype_from_param(request.GET.get("filetype", default=None))
+
+        # only used for comparison now and thus can be safely used
+        filetype = request.GET.get("filetype", default=None)
 
         if not foldertype or not filename or not filetype:
             err_msg = "Invalid"
@@ -774,14 +969,23 @@ class TempDownloadView(APIView):
 
         source_dir = folder_list['raw'][foldertype]
         filepath = os.path.join(source_dir, filename)
-        if filetype == 'nc':
-            return self.serve_file(filepath, filename)
-        elif filetype == 'tif':
 
+        if filetype == 'tif':
             return self.serve_tif_file(filepath, filename, foldertype)
+        elif filetype == 'dat':
+            return self.serve_file(filepath, filename+'.dat')
         else:
-            # this should never be reached... only for readability/when adding more filetypes
-            return HttpResponse(content="Unknown filetype param value", status=400)
+            return self.serve_file(filepath, filename)
+
+        # if filetype == 'nc':
+        #     return self.serve_file(filepath, filename)
+        # elif filetype == 'tif':
+        #     return self.serve_tif_file(filepath, filename, foldertype)
+        # elif filetype == 'dat':
+        #     return self.serve_file(filepath, filename)
+        # else:
+        #     # this should never be reached... only for readability/when adding more filetypes
+        #     return HttpResponse(content="Unknown filetype param value", status=400)
 
         # try:
         #     with open(os.path.join(source_dir, filename), "rb") as test_file:
@@ -854,6 +1058,29 @@ class TempDownloadView(APIView):
         tif_filepath = os.path.join(cache_dir, tif_filename)
 
         return self.serve_file(tif_filepath, tif_filename)
+    
+class GenerateDatView(APIView):
+    def get(self, request):
+        """
+        Starts a long-running process to calculate the dat file for a nc-file
+        """
+        foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
+        filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
+        try:
+            # Start the long-running process in a separate thread
+            process_thread = threading.Thread(target=extract_jams_files, args=(foldertype, filename))
+            process_thread.start()
+            
+            # Return a 200 response to indicate the process was successfully started
+            return JsonResponse({"message": "Process started successfully"}, status=200)
+        except Exception as e:
+            # If there was an error starting the process, log the exception
+            print(f"Error starting process: {e}")
+            
+            # Return a 500 response to indicate an internal server error
+            return JsonResponse({"error": "Failed to start process"}, status=500)
+        finally:
+            None
 
 
 @api_view(["GET"])
@@ -1643,5 +1870,5 @@ def read_and_insert_ind_index_slice_data(myPath, dataset_):
 # bulk_indexing()
 
 
-# delete_all_temp_results()
-# init_temp_results_folders()
+#delete_all_temp_results()
+#init_temp_results_folders()

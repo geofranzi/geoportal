@@ -43,7 +43,7 @@ LOCALE_PATHS = [str(ROOT_DIR / "locale")]
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
 
 # leave this line unchanged and add your local database credentials to the local.py
-DATABASES = {"default": env.db("DATABASES", default="postgres://postgres:PASSWORD@:5432/climate_services_gateway")}
+DATABASES = {"default": env.db("DATABASES", default="postgis://postgres:postgres@127.0.0.1:5432/climate_services_gateway")}
 # DATABASES = {"default": env.db("DATABASES", default="postgres://postgres:admin@:5432/geoportal_inspire_test")}
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
 
