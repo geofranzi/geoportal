@@ -33,13 +33,11 @@ from .serializer import ClimateLayerSerializer
 
 # GENERAL_API_URL = "http://127.0.0.1:8000/"
 GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
-FORBIDDEN_CHARACTERS = ["/", "\\", ".", "-", ":", "@", "&", "^", ">", "<", "~", "$"]
-HASH_LENGTH = 32
-TEMP_FILESIZE_LIMIT = 75    # MB
-TEMP_NUM_BANDS_LIMIT = 1300  # Integer
-ALLOWED_FILETYPES = ['nc', 'tif', 'dat']  # most likely not needed anymore
 
-# test_file_name = "CLMcom-KIT-CCLM5-0-15_v1_MOHC-HadGEM2-ES__water_budget_all__yearsum_mean_2080_2099.nc"
+HASH_LENGTH = 32  # custom length for temporary .txt files generated during wget request
+TEMP_FILESIZE_LIMIT = 75  # filesize limit in MB for conversion (nc -> tif)
+TEMP_NUM_BANDS_LIMIT = 1300  # bands limit as number for conversion (nc -> tif)
+
 
 TEMP_FOLDER_TYPES = [
     "water_budget",
@@ -108,11 +106,10 @@ for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
 #  - 3. serve and maybe generate first -> file for download
 
 
-def delete_all_temp_results():
-    TempResultFile.objects.all().delete()
-
-
 def parse_temp_foldertype_from_param(foldertype: str):
+    """Checks if a foldertype exists as a key in TEMP_FOLDER_TYPES.
+    :return: foldertype or false if not exists.
+    """
     try:
         idx = TEMP_FOLDER_TYPES.index(foldertype)
         return TEMP_FOLDER_TYPES[idx]
@@ -124,6 +121,9 @@ def parse_temp_foldertype_from_param(foldertype: str):
 # based on given foldertype and filename string - request parameters.
 # TODO: - add function to parse as list
 def parse_temp_filename_from_param(filename: str, foldertype: str):
+    """Checks if a filename exists in a specific foldertype folder.
+    :return: filename or false if not exists.
+    """
     foldertype = parse_temp_foldertype_from_param(foldertype)
     if foldertype is False:
         return False
@@ -136,15 +136,10 @@ def parse_temp_filename_from_param(filename: str, foldertype: str):
         return False
 
 
-def parse_temp_filetype_from_param(filetype: str):
-    try:
-        idx = ALLOWED_FILETYPES.index(filetype)
-        return ALLOWED_FILETYPES[idx]
-    except Exception:
-        return False
-
-
 def parse_urltxt_filename_from_param(hash: str):
+    """Checks if a hash-string exists as a filename in URLTXTFILES_DIR.
+    :return: filename or false if not exists.
+    """
     filename = f"{hash}.txt"
     try:
         folder = os.listdir(URLTXTFILES_DIR)
@@ -178,7 +173,15 @@ def copy_filename_as_tif(f: str):
     return f"{Path(f).stem}.tif"
 
 
-def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFile):
+def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFile) -> tuple[bool, str]:
+    """Tries to create a tif from a nc file in a specific folder.
+    Tif will be written to folder_list['cache'][foldertype].
+    :param filename_in: nc filename (input file)
+    :param foldertype: foldertype from TEMP_FOLDER_TYPES
+    :param temp_doc: TempResultFile object of the input file
+
+    :return: tuple[bool, str] ... ([success, contextmessage])
+    """
     filepath_in = os.path.join(folder_list['raw'][foldertype], filename_in)
     if not os.path.isfile(filepath_in):
         return False, "No raw file"
@@ -215,7 +218,9 @@ def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFil
         return False, "Conversion failed"
 
 
-def is_temp_file_cached(raw_filename: str, foldertype: str, temp_doc: TempResultFile):
+def is_temp_file_cached(raw_filename: str, foldertype: str, temp_doc: TempResultFile) -> bool:
+    """Checks if a up-to-date tif file exists for a corresponding nc file.
+    """
     tif_filename = copy_filename_as_tif(raw_filename)
     tif_path = os.path.join(folder_list['cache'][foldertype], tif_filename)
 
@@ -230,7 +235,10 @@ def is_temp_file_cached(raw_filename: str, foldertype: str, temp_doc: TempResult
     return True
 
 
-def is_temp_file_tif_convertable(raw_filename: str, foldertype: str, temp_doc: TempResultFile):
+def is_temp_file_tif_convertable(raw_filename: str, foldertype: str, temp_doc: TempResultFile) -> bool:
+    """Checks if our custom constraints for (nc -> tif) file conversion are met. It might still
+    happen that conversion fails (e.g. we have no metadata yet and only assume it's possible).
+    """
     filepath = os.path.join(folder_list['raw'][foldertype], raw_filename)
     if not check_temp_result_filesize(filepath):
         return False
@@ -244,6 +252,12 @@ def is_temp_file_tif_convertable(raw_filename: str, foldertype: str, temp_doc: T
 
 
 def extract_ncfile_lite(filename: str, source_dir: str, file_category: str, force_update=False):
+    """Read filesize and creation time from a file and create/update the specific TempResultFile.
+
+    :return: tuple[bool, str|TempResultFile]
+             on success [true, TempResultFile]
+             on failure [false, str]
+    """
     cat_filename = temp_cat_filename(file_category, filename)
     filepath = os.path.join(source_dir, filename)
     if not os.path.isfile(filepath):
@@ -290,6 +304,12 @@ def extract_ncfile_lite(filename: str, source_dir: str, file_category: str, forc
 
 
 def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, force_update=False):
+    """Tries to read all metadata necessary to us from a nc file and create/update the specific TempResultFile.
+
+    :return: tuple[bool, str|TempResultFile]
+            on success [true, TempResultFile]
+            on failure [false, str]
+    """
     # filename with category prefix, unique over all TempResultFiles
     cat_filename = temp_cat_filename(file_category, filename)
 
@@ -404,42 +424,6 @@ def read_folder_constrained(source_dir: str, only_nc: bool = False):
                              if (os.path.isfile(os.path.join(source_dir, file)))))
 
     return foldercontent
-
-
-def init_temp_results_folders(force_update=False, delete_all=False):
-    if delete_all:
-        delete_all_temp_results()
-
-    folder_categories = folder_list['raw'].keys()
-    created_objs_counter = 0
-    for cat in folder_categories:
-        print(f"Initiating TempResultFiles folder with category: {cat}")
-        folder_root_path = folder_list['raw'][cat]
-        filenames = os.listdir(folder_root_path)
-        for name in filenames:
-            filepath = os.path.join(folder_root_path, name)
-
-            if not check_temp_result_filesize(filepath):
-                # if file exceeds size limit, we do not extract metadata
-                succ, msg = extract_ncfile_lite(name, folder_root_path, cat, force_update=force_update)
-                if not succ:
-                    # print(f"Failed to extract lite on filename: {name} in category: {cat}")
-                    # print(f"Reason: {msg}")
-                    continue
-                else:
-                    created_objs_counter += 1
-            else:
-                succ, msg = extract_ncfile_metadata(name, folder_root_path, cat, force_update=force_update)
-
-                if not succ:
-                    # print(f"Failed to extract metadata on filename: {name} in category: {cat}")
-                    # print(f"Reason: {msg}")
-                    continue
-                else:
-                    created_objs_counter += 1
-
-            # post creation handling (?)
-    print(f"Finished TempResultFiles Init. Created {created_objs_counter} database objects.")
 
 
 @api_view(["GET"])
@@ -778,7 +762,6 @@ class TempDownloadView(APIView):
         """
         foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
         filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
-        # filetype = parse_temp_filetype_from_param(request.GET.get("filetype", default=None))
 
         # only used for comparison now and thus can be safely used
         filetype = request.GET.get("filetype", default=None)
@@ -1672,5 +1655,44 @@ def read_and_insert_ind_index_slice_data(myPath, dataset_):
 # bulk_indexing()
 
 
-#delete_all_temp_results()
-#init_temp_results_folders()
+def delete_all_temp_results():
+    TempResultFile.objects.all().delete()
+
+
+def init_temp_results_folders(force_update=False, delete_all=False):
+    if delete_all:
+        delete_all_temp_results()
+
+    folder_categories = folder_list['raw'].keys()
+    created_objs_counter = 0
+    for cat in folder_categories:
+        print(f"Initiating TempResultFiles folder with category: {cat}")
+        folder_root_path = folder_list['raw'][cat]
+        filenames = os.listdir(folder_root_path)
+        for name in filenames:
+            filepath = os.path.join(folder_root_path, name)
+
+            if not check_temp_result_filesize(filepath):
+                # if file exceeds size limit, we do not extract metadata
+                succ, msg = extract_ncfile_lite(name, folder_root_path, cat, force_update=force_update)
+                if not succ:
+                    # print(f"Failed to extract lite on filename: {name} in category: {cat}")
+                    # print(f"Reason: {msg}")
+                    continue
+                else:
+                    created_objs_counter += 1
+            else:
+                succ, msg = extract_ncfile_metadata(name, folder_root_path, cat, force_update=force_update)
+
+                if not succ:
+                    # print(f"Failed to extract metadata on filename: {name} in category: {cat}")
+                    # print(f"Reason: {msg}")
+                    continue
+                else:
+                    created_objs_counter += 1
+
+            # post creation handling (?)
+    print(f"Finished TempResultFiles Init. Created {created_objs_counter} database objects.")
+
+# delete_all_temp_results()
+# init_temp_results_folders()
