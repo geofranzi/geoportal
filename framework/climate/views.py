@@ -484,8 +484,8 @@ def access_tif_from_ncfile(request):
             return HttpResponse(content=f"The raw file could not be converted. Reason: {msg}", status=500)
 
     # update file in tempfolders_content
-    # if update_doc or update_tif:
-    #     update_tempfolder_file(foldertype, filename)
+    if update_doc or update_tif:
+        update_tempfolder_file(foldertype, filename)
 
     tif_filename = copy_filename_as_tif(filename)
     # cache_dir = folder_list['cache'][foldertype]
@@ -535,7 +535,7 @@ def get_ncfile_metadata(request):
         succ, msg = extract_ncfile_metadata(filename, source_dir, foldertype)
         if succ:
             # update file in tempfolders_content
-            # update_tempfolder_file(foldertype, filename)
+            update_tempfolder_file(foldertype, filename)
 
             new_doc: TempResultFile = msg
             return JsonResponse({'metadata': new_doc.get_file_metadata()})
@@ -547,7 +547,7 @@ def get_ncfile_metadata(request):
         succ, msg = extract_ncfile_metadata(filename, source_dir, foldertype)
         if succ:
             # update file in tempfolders_content
-            # update_tempfolder_file(foldertype, filename)
+            update_tempfolder_file(foldertype, filename)
 
             new_doc: TempResultFile = msg
             return JsonResponse({'metadata': new_doc.get_file_metadata()})
@@ -982,8 +982,8 @@ class TempDownloadView(APIView):
                 return HttpResponse(content=f"The raw file could not be converted. Reason: {msg}", status=500)
 
         # update file in tempfolders_content
-        # if update_doc or update_tif:
-        #     update_tempfolder_file(foldertype, filename)
+        if update_doc or update_tif:
+            update_tempfolder_file(foldertype, filename)
 
         tif_filename = copy_filename_as_tif(filename)
         cache_dir = folder_list['cache'][foldertype]
