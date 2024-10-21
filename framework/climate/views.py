@@ -5,7 +5,9 @@ import json
 import os
 # import pwd
 import sys
-# import xarray as xr
+import xarray as xr
+import pandas as pd
+import threading
 # import cf_xarray as cfxr
 import tarfile
 import uuid
@@ -14,7 +16,7 @@ from pathlib import Path
 from subprocess import (PIPE, Popen,)
 
 import requests
-# from django.conf import settings
+from django.conf import settings
 from django.http import (HttpResponse, JsonResponse, StreamingHttpResponse,)
 from elasticsearch_dsl import Index
 from elasticsearch_dsl.connections import connections
@@ -31,13 +33,14 @@ from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex,
 from .serializer import ClimateLayerSerializer
 
 
-# GENERAL_API_URL = "http://127.0.0.1:8000/"
-GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
+GENERAL_API_URL = "http://127.0.0.1:8000/"
+# GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
 
 HASH_LENGTH = 32  # custom length for temporary .txt files generated during wget request
 TEMP_FILESIZE_LIMIT = 75  # filesize limit in MB for conversion (nc -> tif)
 TEMP_NUM_BANDS_LIMIT = 1300  # bands limit as number for conversion (nc -> tif)
 
+# add comment
 
 TEMP_FOLDER_TYPES = [
     "water_budget",
@@ -59,17 +62,18 @@ folder_list['cache'] = {}
 tempfolders_content = {}
 
 # LOCAL paths
-# TEMP_ROOT = settings.STATICFILES_DIRS[0]
-# TEMP_RAW = os.path.join(TEMP_ROOT, "tippecctmp/raw")
-# TEMP_CACHE = os.path.join(TEMP_ROOT, "tippecctmp/cache")
-# TEMP_URL = os.path.join(TEMP_ROOT, "tippecctmp/url")
-# URLTXTFILES_DIR = TEMP_URL
+TEMP_ROOT = settings.STATICFILES_DIRS[0]
+TEMP_RAW = os.path.join(TEMP_ROOT, "tippecctmp/raw")
+TEMP_CACHE = os.path.join(TEMP_ROOT, "tippecctmp/cache")
+TEMP_URL = os.path.join(TEMP_ROOT, "tippecctmp/url")
+URLTXTFILES_DIR = TEMP_URL
+JAMS_TMPL_FILE = os.path.join(TEMP_ROOT, "jams/jams_tmpl.dat")
 
 # SERVER paths
-TEMP_ROOT = "/data/tmp"
-TEMP_RAW = "/data"
-TEMP_CACHE = "/data/tmp/cache"
-URLTXTFILES_DIR = "/data/tmp/url"
+# TEMP_ROOT = "/data/tmp"
+# TEMP_RAW = "/data"
+# TEMP_CACHE = "/data/tmp/cache"
+# URLTXTFILES_DIR = "/data/tmp/url"
 
 for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
     folder_list['raw'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_RAW, TEMP_FOLDER_TYPE)
@@ -416,17 +420,152 @@ def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, 
     return True, new_doc
 
 
-def read_folder_constrained(source_dir: str, only_nc: bool = False):
-    if only_nc:
-        # reads only files ending with .nc from source_dir
-        foldercontent = list((file for file in os.listdir(source_dir)
-                             if (os.path.isfile(os.path.join(source_dir, file)) and Path(file).suffix == '.nc')))
-    else:
-        # ready all files from source_dir
-        foldercontent = list((file for file in os.listdir(source_dir)
-                             if (os.path.isfile(os.path.join(source_dir, file)))))
+def read_folder_constrained(source_dir: str):
+    foldercontent = list((file for file in os.listdir(source_dir)
+                            if (os.path.isfile(os.path.join(source_dir, file)))))
+    nc_files, dat_files = split_files_by_extension(foldercontent)
+    return nc_files, dat_files
 
-    return foldercontent
+
+def split_files_by_extension(file_list):
+    # Initialize two empty lists to store files based on their extensions
+    nc_files = []
+    dat_files = []
+    # Loop through each file in the input list
+    for file in file_list:
+        # Check if the file ends with '.nc' and add it to the nc_files list
+        if file.endswith('.nc'):
+            nc_files.append(file)
+        # Check if the file ends with '.dat' and add it to the dat_files list
+        elif file.endswith('.dat'):
+            dat_files.append(file)
+    
+    # Return both lists
+    return nc_files, dat_files
+
+
+def extract_jams_files(foldertype, filename):
+    wrong_variables = ['time_bnds']
+    decimal_digits = 2
+    source_dir = folder_list['raw'][foldertype]
+    filepath = os.path.join(source_dir, filename)
+    nc = xr.open_dataset(filepath)
+    i = 0
+    var_name = list(nc.data_vars)[i]
+    while var_name in wrong_variables:
+        i += 1
+        var_name = list(nc.data_vars)[i]
+    # shape = gpd.read_file(r'{}\{}'.format(base_dir, shapefile))
+    try:
+        var_unit = nc[var_name].attrs['units']
+    except:
+        var_unit = 'none'
+    time_var = nc['time']
+    tres = pd.TimedeltaIndex(time_var.diff(dim='time')).mean()
+    one_day = pd.Timedelta(days=1)
+
+    # get both CRSs and create transformer
+    # shape_crs = shape.crs
+    # nc_crs = pyproj.CRS(4326)
+    # transformer = pyproj.Transformer.from_crs(shape_crs, nc_crs, always_xy=True)
+
+    # get bounding box of the shapefile
+    # minx, miny, maxx, maxy = shape.total_bounds
+
+    # minx, miny = transformer.transform(minx, miny)
+    # maxx, maxy = transformer.transform(maxx, maxy)
+
+    # define buffer distance in NetCDF CRS
+    # buffer = 0.5
+
+    # expand bounding box by buffer distance
+    # minx -= buffer
+    # miny -= buffer
+    # maxx += buffer
+    # maxy += buffer
+
+    # list of lon/lat coordinates of cells with data
+    # cell_coords = [(lon, lat) for lon in nc.lon.values for lat in nc.lat.values if
+    #               minx <= lon <= maxx and miny <= lat <= maxy]
+
+    cell_coords = [(lon, lat) for lon in nc.lon.values for lat in nc.lat.values]
+    # iterate over cell coordinates and extract data for all time steps
+    data = []
+
+    #   times1 = []
+    #   times2 = []
+    c = 0
+    for lon, lat in cell_coords:
+        cell_data = nc.sel(lon=lon, lat=lat, method='nearest')[var_name].values
+        for i, value in enumerate(cell_data):
+            data.append({'lon': lon, 'lat': lat, 'time': nc.time.values[i], 'value': value})
+        c += 1
+    # convert to dataframe and reproject to shapefile CRS
+    df = pd.DataFrame(data).sort_values(by=['time', 'lon', 'lat'])
+
+    # get some data from the dataframe
+    unique_times = df['time'].unique()
+    min_time = min(unique_times)
+    max_time = max(unique_times)
+    unique_x_y_pairs = df[['lon', 'lat']].drop_duplicates()
+
+    # read file header template
+    with open(JAMS_TMPL_FILE, "r") as file:
+        meta = file.read()
+
+    # create metadata header
+    #  meta = meta.replace('%crs%', str(shape_crs))
+    # meta = ""
+    meta = meta.replace('%ncfile%', filename)
+    # meta = meta.replace('%shapefile%', shapefile)
+    meta = meta.replace('%var_name%', var_name)
+    meta = meta.replace('%var_unit%', var_unit)
+    meta = meta.replace('%min_time%', str(min_time))
+    meta = meta.replace('%max_time%', str(max_time))
+    meta = meta.replace('%tres%', 'm' if one_day < tres else 'd')
+
+    stations = ''
+    ids = ''
+    elevations = ''
+    cols = ''
+    xs = ''
+    ys = ''
+    n = 1
+    for x, y in unique_x_y_pairs.values:
+        stations += 'station_{}\t'.format(n)
+        ids += '{}\t'.format(n)
+        cols += '{}\t'.format(n)
+        elevations += '0.0\t'
+        xs += '{}\t'.format(x)
+        ys += '{}\t'.format(y)
+        n += 1
+      
+    meta = meta.replace('%stations%', stations)
+    meta = meta.replace('%ids%', ids)
+    meta = meta.replace('%elevations%', elevations)
+    meta = meta.replace('%cols%', cols)
+    meta = meta.replace('%xs%', xs)
+    meta = meta.replace('%ys%', ys)
+    print('start writing dat file')
+    df.set_index('time', inplace=True)
+    # output metadata and data to file
+    with open(r'{}.dat'.format(os.path.join(source_dir, filename)), 'w') as file:
+        # Append lines to the file
+        file.write(meta)
+        c = 0
+
+        for timestep in unique_times:
+            data = df.loc[timestep]
+            values_list = ['{:.{}f}'.format(value, decimal_digits) for value in data['value']]
+            values = '\t'.join(values_list)
+            line = '{}\t{}\n'.format(timestep, values)
+            file.write(line)
+            c += 1
+
+        file.write('# end of file')
+        file.close()
+    print('dat generated')
+    update_tempfolder_by_type(foldertype)
 
 
 @api_view(["GET"])
@@ -734,7 +873,7 @@ def update_tempfolder_by_type(foldertype):
     source_dir = folder_list['raw'][foldertype]
 
     try:
-        foldercontent = read_folder_constrained(source_dir)
+        foldercontent, dat_files = read_folder_constrained(source_dir)
     except Exception as e:
         print(e)
         return HttpResponse(content="Reading the content of the selected folder has failed.", status=500)
@@ -784,7 +923,10 @@ def update_tempfolder_by_type(foldertype):
             dir_content_element['filename'] = f
             dir_content_element['filesize'] = sizeof_fmt(file_stats.st_size)
             dir_content_element['creation_date'] = creation_date
-
+            if (f+".dat" in dat_files):
+                dir_content_element['dat_exists'] = True
+            else: 
+                dir_content_element['dat_exists'] = False
             file_info = folder_info[f]
             # manual version check file <> database
             if file_info is not None:
@@ -902,6 +1044,8 @@ class TempDownloadView(APIView):
 
         if filetype == 'tif':
             return self.serve_tif_file(filepath, filename, foldertype)
+        elif filetype == 'dat':
+            return self.serve_file(filepath, filename+'.dat')
         else:
             return self.serve_file(filepath, filename)
 
@@ -1307,6 +1451,30 @@ class Elasticsearch(APIView):
         finalJSON["facets_ordered"] = facets_ordered
 
         return Response(finalJSON)
+
+
+class GenerateDatView(APIView):
+    def get(self, request):
+        """
+        Starts a long-running process to calculate the dat file for a nc-file
+        """
+        foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
+        filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
+        try:
+            # Start the long-running process in a separate thread
+            process_thread = threading.Thread(target=extract_jams_files, args=(foldertype, filename))
+            process_thread.start()
+            
+            # Return a 200 response to indicate the process was successfully started
+            return JsonResponse({"message": "Process started successfully"}, status=200)
+        except Exception as e:
+            # If there was an error starting the process, log the exception
+            print(f"Error starting process: {e}")
+            
+            # Return a 500 response to indicate an internal server error
+            return JsonResponse({"error": "Failed to start process"}, status=500)
+        finally:
+            update_tempfolder_by_type(foldertype)
 
 
 class ElasticsearchCollections(APIView):
