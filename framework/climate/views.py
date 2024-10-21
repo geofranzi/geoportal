@@ -421,8 +421,7 @@ def extract_ncfile_metadata(filename: str, source_dir: str, file_category: str, 
 
 
 def read_folder_constrained(source_dir: str):
-    foldercontent = list((file for file in os.listdir(source_dir)
-                            if (os.path.isfile(os.path.join(source_dir, file)))))
+    foldercontent = list((file for file in os.listdir(source_dir) if (os.path.isfile(os.path.join(source_dir, file)))))
     nc_files, dat_files = split_files_by_extension(foldercontent)
     return nc_files, dat_files
 
@@ -439,7 +438,6 @@ def split_files_by_extension(file_list):
         # Check if the file ends with '.dat' and add it to the dat_files list
         elif file.endswith('.dat'):
             dat_files.append(file)
-    
     # Return both lists
     return nc_files, dat_files
 
@@ -458,7 +456,8 @@ def extract_jams_files(foldertype, filename):
     # shape = gpd.read_file(r'{}\{}'.format(base_dir, shapefile))
     try:
         var_unit = nc[var_name].attrs['units']
-    except:
+    except Exception as e:
+        print(e)
         var_unit = 'none'
     time_var = nc['time']
     tres = pd.TimedeltaIndex(time_var.diff(dim='time')).mean()
@@ -539,7 +538,6 @@ def extract_jams_files(foldertype, filename):
         xs += '{}\t'.format(x)
         ys += '{}\t'.format(y)
         n += 1
-      
     meta = meta.replace('%stations%', stations)
     meta = meta.replace('%ids%', ids)
     meta = meta.replace('%elevations%', elevations)
@@ -925,7 +923,7 @@ def update_tempfolder_by_type(foldertype):
             dir_content_element['creation_date'] = creation_date
             if (f+".dat" in dat_files):
                 dir_content_element['dat_exists'] = True
-            else: 
+            else:
                 dir_content_element['dat_exists'] = False
             file_info = folder_info[f]
             # manual version check file <> database
@@ -1464,13 +1462,12 @@ class GenerateDatView(APIView):
             # Start the long-running process in a separate thread
             process_thread = threading.Thread(target=extract_jams_files, args=(foldertype, filename))
             process_thread.start()
-            
+
             # Return a 200 response to indicate the process was successfully started
             return JsonResponse({"message": "Process started successfully"}, status=200)
         except Exception as e:
             # If there was an error starting the process, log the exception
             print(f"Error starting process: {e}")
-            
             # Return a 500 response to indicate an internal server error
             return JsonResponse({"error": "Failed to start process"}, status=500)
         finally:
