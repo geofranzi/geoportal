@@ -5,17 +5,17 @@ import json
 import os
 # import pwd
 import sys
-import xarray as xr
-import pandas as pd
-import threading
 # import cf_xarray as cfxr
 import tarfile
+import threading
 import uuid
 from datetime import datetime
 from pathlib import Path
 from subprocess import (PIPE, Popen,)
 
+import pandas as pd
 import requests
+import xarray as xr
 from django.conf import settings
 from django.http import (HttpResponse, JsonResponse, StreamingHttpResponse,)
 from elasticsearch_dsl import Index
@@ -963,8 +963,11 @@ class FolderContentView(APIView):
         """Returns formated folder content of one of the temp result file subfolders.
         Request params:
         type -- requested file category/subfolder (to display)
+        force_update -- If true -> forces folder to update before returning content.
         """
         foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
+        force_update = request.GET.get("force_update", default=None)
+
         if not foldertype:
             return HttpResponse(content="Invalid foldertype", status=400)
 
@@ -973,6 +976,13 @@ class FolderContentView(APIView):
             only_convertable = False
         else:
             only_convertable = True
+
+        if force_update is None:
+            force_update = False
+
+        # update the selected folder if necessary
+        if force_update:
+            update_tempfolder_by_type(foldertype=foldertype)
 
         if only_convertable:
             response = self.retrieve_content_only_convertable(foldertype)
