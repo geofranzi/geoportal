@@ -273,10 +273,15 @@ class TempResultFile(models.Model):
     categorized_filename = models.CharField(max_length=500, unique=True, null=True)
     filename = models.CharField(max_length=400, null=True)
     category = models.CharField(max_length=255, choices=CATEGORIES, null=True)
-    num_bands = models.IntegerField(null=True)
-    timestamp_begin = models.CharField(max_length=500, null=True)
-    band_metadata = models.JSONField(default=dict)
-    net_cdf_times = models.JSONField(default=dict)
+
+    nc_meta = models.JSONField(null=True, default=dict)
+
+    # NOTE - deleted fields from last version (remove if new metadata works fine)
+    # num_bands = models.IntegerField(null=True)
+    # timestamp_begin = models.CharField(max_length=500, null=True)
+    # band_metadata = models.JSONField(default=dict)
+    # net_cdf_times = models.JSONField(default=dict)
+
     st_mtime_nc = models.CharField(max_length=255, null=True)
     st_mtime_tif = models.CharField(max_length=255, null=True)
     st_size_nc = models.CharField(max_length=255, null=True)
@@ -291,14 +296,7 @@ class TempResultFile(models.Model):
         return o
 
     def get_file_metadata(self):
-        combined_metadata = {
-            'num_bands': self.num_bands,
-            'band_metadata': self.band_metadata,
-            'net_cdf_times': self.net_cdf_times,
-            'timestamp_begin': self.timestamp_begin
-        }
-
-        return combined_metadata
+        return self.nc_meta
 
     def check_raw_version(self, version):
         if str(version) != self.st_mtime_nc:
