@@ -122,7 +122,8 @@ for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
 #  - 2. easy access point to read the filenames corresponding db object
 #       ( metadata, versioncheck, ..)
 #  - 3. serve and maybe generate first -> file for download
- 
+
+
 @api_view(["GET"])
 def serve_static_file_with_cors(request, filename):
     # Construct the full file path based on STATICFILES_DIRS
