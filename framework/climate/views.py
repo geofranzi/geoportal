@@ -1992,6 +1992,6 @@ def update_all_tempfolders():
         update_tempfolder_by_type(foldertype)
 
 
-# delete_all_temp_results()
-# init_temp_results_folders()
+delete_all_temp_results()
+init_temp_results_folders()
 update_all_tempfolders()
