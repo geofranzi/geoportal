@@ -11,6 +11,7 @@ import threading
 import uuid
 from datetime import datetime
 from pathlib import Path
+from typing import TypedDict
 
 import pandas as pd
 import requests
@@ -34,6 +35,7 @@ from .serializer import ClimateLayerSerializer
 
 
 GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
+# GENERAL_API_URL = "http://127.0.0.1:8000/"
 
 HASH_LENGTH = 32  # custom length for temporary .txt files generated during wget request
 TEMP_FILESIZE_LIMIT = 75  # filesize limit in MB for conversion (nc -> tif)
@@ -53,6 +55,19 @@ TEMP_FOLDER_TYPES = [
     "ind_slices30"
 ]
 
+
+TempFolderLog = TypedDict(
+    "TempFolderLog",
+    {
+        '#folder_exists': bool,
+        '#nc_files': int,
+        '#extract_full_succ': int,
+        '#extract_lite_succ': int,
+        '#extract_full_fail': int,
+        '#extract_lite_fail': int
+    },
+)
+
 # lookup dict for the paths of each foldertype
 folder_list = {}
 folder_list['raw'] = {}
@@ -69,6 +84,7 @@ print(f"The settings DEBUG settings is: {settings.DEBUG}")
 TEMP_ROOT = "/data/tmp"
 TEMP_RAW = "/data"
 TEMP_CACHE = "/data/tmp/cache"
+TEMP_LOG = "/data/log"
 URLTXTFILES_DIR = "/data/tmp/url"
 
 # overwrite with paths in static/ when running on dev
@@ -77,6 +93,7 @@ if settings.DEBUG:
     TEMP_ROOT = settings.STATICFILES_DIRS[0]
     TEMP_RAW = os.path.join(TEMP_ROOT, "tippecctmp/raw")
     TEMP_CACHE = os.path.join(TEMP_ROOT, "tippecctmp/cache")
+    TEMP_LOG = os.path.join(TEMP_ROOT, "tippecctmp/log")
     TEMP_URL = os.path.join(TEMP_ROOT, "tippecctmp/url")
     URLTXTFILES_DIR = TEMP_URL
 
@@ -367,7 +384,7 @@ def create_tmpresultfile_from_ncfile(filename: str, source_dir: str, file_catego
     succ, nc_meta = extract_ncfile_metadata(filepath)
     if not succ:
         # TODO - handling
-        print(f"NC Metadata extraction failed for file: {filepath}")
+        # print(f"NC Metadata extraction failed for file: {filepath}")
         return False, ""
 
     new_doc = None
@@ -1949,17 +1966,31 @@ def delete_all_temp_results():
     TempResultFile.objects.all().delete()
 
 
-def init_temp_results_folders(force_update=False, delete_all=False):
+def init_temp_results_folders(force_update=False, delete_all=False, enable_log=False):
     if delete_all:
         delete_all_temp_results()
 
     folder_categories = folder_list['raw'].keys()
     created_objs_counter = 0
+    all_logs = {}
+
     for cat in folder_categories:
         print(f"Initiating TempResultFiles folder with category: {cat}")
         folder_root_path = folder_list['raw'][cat]
+        folder_log: TempFolderLog = {
+            '#folder_exists': False,
+            '#nc_files': 0,
+            '#extract_full_fail': 0,
+            '#extract_full_succ': 0,
+            '#extract_lite_fail': 0,
+            '#extract_lite_succ': 0
+        }
+
         if not os.path.isdir(folder_root_path):
+            all_logs[cat] = folder_log
             continue
+
+        folder_log['#folder_exists'] = True
         filenames = os.listdir(folder_root_path)
         for name in filenames:
             filepath = os.path.join(folder_root_path, name)
@@ -1970,8 +2001,10 @@ def init_temp_results_folders(force_update=False, delete_all=False):
                 if not succ:
                     # print(f"Failed to extract lite on filename: {name} in category: {cat}")
                     # print(f"Reason: {msg}")
+                    folder_log["#extract_lite_fail"] += 1
                     continue
                 else:
+                    folder_log["#extract_lite_succ"] += 1
                     created_objs_counter += 1
             else:
                 succ, msg = create_tmpresultfile_from_ncfile(name, folder_root_path, cat, force_update=force_update)
@@ -1979,11 +2012,19 @@ def init_temp_results_folders(force_update=False, delete_all=False):
                 if not succ:
                     # print(f"Failed to extract metadata on filename: {name} in category: {cat}")
                     # print(f"Reason: {msg}")
+                    folder_log["#extract_full_fail"] += 1
                     continue
                 else:
+                    folder_log["#extract_full_succ"] += 1
                     created_objs_counter += 1
 
-            # post creation handling (?)
+        all_logs[cat] = folder_log
+
+    if enable_log:
+        with open(os.path.join(TEMP_LOG, "temp_results_log.txt"), 'a+', encoding='utf-8') as f:
+            f.write(json.dumps(all_logs, separators=(',', ':')) + "\n")
+
+    # post creation handling (?)
     print(f"Finished TempResultFiles Init. Created {created_objs_counter} database objects.")
 
 
@@ -1993,5 +2034,5 @@ def update_all_tempfolders():
 
 
 delete_all_temp_results()
-init_temp_results_folders()
+init_temp_results_folders(enable_log=True)
 update_all_tempfolders()
