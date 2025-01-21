@@ -240,8 +240,8 @@ def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFil
     if not check_temp_result_filesize(filepath_in):
         return False, "Raw file too big"
 
-    if temp_doc.nc_meta['num_bands'] is None:
-        return False, "Could not convert to tif because of missing metadata"
+    # if temp_doc.nc_meta['num_bands'] is None:
+    #     return False, "Could not convert to tif because of missing metadata"
 
     if not is_temp_file_tif_convertable(filename_in, foldertype, temp_doc):
         return False, "Raw file not tif convertable"
@@ -293,11 +293,13 @@ def is_temp_file_tif_convertable(raw_filename: str, foldertype: str, temp_doc: T
     filepath = os.path.join(folder_list['raw'][foldertype], raw_filename)
     if not check_temp_result_filesize(filepath):
         return False
-
-    if temp_doc.nc_meta['num_bands'] is None or temp_doc.nc_meta['num_bands'] <= TEMP_NUM_BANDS_LIMIT:
-        return True
     else:
-        return False
+        return True
+
+    # if temp_doc.nc_meta['num_bands'] is None or temp_doc.nc_meta['num_bands'] <= TEMP_NUM_BANDS_LIMIT:
+    #     return True
+    # else:
+    #     return False
 
 
 def extract_ncfile_lite(filename: str, source_dir: str, file_category: str, force_update=False):
@@ -800,7 +802,7 @@ def update_tempfolder_file(foldertype, filename):
 
     # check db fileinfo
     if temp_doc is not None:
-        fileinfo['num_bands'] = temp_doc.nc_meta['num_bands']
+        # fileinfo['num_bands'] = temp_doc.nc_meta['num_bands']
 
         # tif file state
         tif_cached = is_temp_file_cached(filename, foldertype, temp_doc)
@@ -873,7 +875,7 @@ def update_tempfolder_by_type(foldertype):
     for f_res in TempResultFile.objects.filter(categorized_filename__in=cat_helper):
         if f_res.filename in folder_info:
             folder_info[f_res.filename] = {}
-            folder_info[f_res.filename]['num_bands'] = f_res.nc_meta['num_bands']
+            # folder_info[f_res.filename]['num_bands'] = f_res.nc_meta['num_bands']
 
             # tif file state
             tif_cached = is_temp_file_cached(f_res.filename, foldertype, f_res)
@@ -2033,6 +2035,6 @@ def update_all_tempfolders():
         update_tempfolder_by_type(foldertype)
 
 
-delete_all_temp_results()
-init_temp_results_folders(enable_log=True)
+# delete_all_temp_results()
+# init_temp_results_folders(enable_log=True)
 update_all_tempfolders()
