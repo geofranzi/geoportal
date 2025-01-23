@@ -294,10 +294,10 @@ def is_temp_file_tif_convertable(raw_filename: str, foldertype: str, temp_doc: T
     if not check_temp_result_filesize(filepath):
         return False
 
-    if temp_doc.nc_meta['num_bands'] is None or temp_doc.nc_meta['num_bands'] <= TEMP_NUM_BANDS_LIMIT:
-        return True
-    else:
+    if temp_doc.nc_meta['num_bands'] is None or temp_doc.nc_meta['num_bands'] > TEMP_NUM_BANDS_LIMIT:
         return False
+    else:
+        return True
 
 
 def extract_ncfile_lite(filename: str, source_dir: str, file_category: str, force_update=False):
@@ -354,6 +354,8 @@ def extract_ncfile_lite(filename: str, source_dir: str, file_category: str, forc
 
 def create_tmpresultfile_from_ncfile(filename: str, source_dir: str, file_category: str, force_update=False):
     """Tries to read all metadata necessary to us from a nc file and create/update the specific TempResultFile.
+    This function HAS NO explicit check for filesize as it would double check in all cases. ONLY USE for files
+    that are IN SIZE LIMIT.
 
     :return: tuple[bool, str|TempResultFile]
             on success [true, TempResultFile]
@@ -548,7 +550,7 @@ def extract_jams_files(foldertype, filename):
         file.write('# end of file')
         file.close()
     print('dat generated')
-    update_tempfolder_by_type(foldertype)
+    # update_tempfolder_by_type(foldertype)
 
 
 @api_view(["GET"])
@@ -566,6 +568,11 @@ def access_tif_from_ncfile(request):
         return HttpResponse(content=err_msg, status=400)
 
     filepath = os.path.join(folder_list['raw'][foldertype], filename)
+
+    # explicit filesize check
+    if not check_temp_result_filesize(filepath):
+        return HttpResponse(content="Could not extract raw file metadata. Reason: File too big", status=500)
+
     cat_filename = temp_cat_filename(foldertype, filename)
     temp_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
 
@@ -606,8 +613,8 @@ def access_tif_from_ncfile(request):
             return HttpResponse(content=f"The raw file could not be converted. Reason: {msg}", status=500)
 
     # update file in tempfolders_content
-    if update_doc or update_tif:
-        update_tempfolder_file(foldertype, filename)
+    # if update_doc or update_tif:
+    #     update_tempfolder_file(foldertype, filename)
 
     tif_filename = copy_filename_as_tif(filename)
     # cache_dir = folder_list['cache'][foldertype]
@@ -657,19 +664,18 @@ def get_ncfile_metadata(request):
         succ, msg = create_tmpresultfile_from_ncfile(filename, source_dir, foldertype)
         if succ:
             # update file in tempfolders_content
-            update_tempfolder_file(foldertype, filename)
+            # update_tempfolder_file(foldertype, filename)
 
             new_doc: TempResultFile = msg
             return JsonResponse({'metadata': new_doc.get_file_metadata()})
         else:
             return HttpResponse(content="Could not extraxt metadata from file.", status=500)
-
-    # version check
-    if not temp_doc.check_raw_version(fileversion):
+    elif not temp_doc.check_raw_version(fileversion):
+        # version check
         succ, msg = create_tmpresultfile_from_ncfile(filename, source_dir, foldertype)
         if succ:
             # update file in tempfolders_content
-            update_tempfolder_file(foldertype, filename)
+            # update_tempfolder_file(foldertype, filename)
 
             new_doc: TempResultFile = msg
             return JsonResponse({'metadata': new_doc.get_file_metadata()})
@@ -787,10 +793,19 @@ def select_temp_urls(request):
 
 def update_tempfolder_file(foldertype, filename):
     """Update one file from a folder given by foldertype, in tempfolders_content.
-    - this is not absolutely needed and experimental for now
-    - do only use for single file update handling and not in a loop
-    - for multiple files just update the whole folder with update_tempfolder_by_type
+    EXPERIMENTAL. Use for single file updates in folder cache. DO NOT USE in bulk /
+    loop / or for multiple files in general.
     """
+    # NOTE:
+    #   - buggy right now but high priority fix
+
+    # TODO:
+    #   - normalize behaviour for bulk/single file updates in a separate function
+    #   - provide access to 'update_tempfolder_file()' vor all requests
+    #   - restrict access to bulk update
+    #   - GOAL: Bulk and single update run the same code on a file by file basis
+    #   while still bulk requesting the data from database in
+    #   the bulk case. 'update_tempfolder_by_type()'
     source_dir = folder_list['raw'][foldertype]
     cat_filename = temp_cat_filename(foldertype, filename)
     temp_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
@@ -827,15 +842,16 @@ def update_tempfolder_file(foldertype, filename):
 
         filemeta_content['filename'] = filename
         filemeta_content['filesize'] = sizeof_fmt(file_stats.st_size)
+        filemeta_content['in_size_limit'] = check_temp_result_filesize_from_st_size(file_stats.st_size)
         filemeta_content['creation_date'] = creation_date
+
+        # set dirty True -> if db object exists and is up to date, set False
+        filemeta_content['dirty'] = True
 
         # manual version check file <> database
         if fileinfo is not None:
-            if fileinfo['fileversion'] != str(file_stats.st_mtime):
-                fileinfo = None
-            else:
-                # manual filesize check
-                fileinfo['in_size_limit'] = check_temp_result_filesize_from_st_size(file_stats.st_size)
+            if fileinfo['fileversion'] == str(file_stats.st_mtime):
+                filemeta_content['dirty'] = False
 
         # now either None (no database info) or fileinfo
         filemeta_content['fileinfo'] = fileinfo
@@ -852,7 +868,14 @@ def update_tempfolder_file(foldertype, filename):
 
 def update_tempfolder_by_type(foldertype):
     """Update all files from a folder given by foldertype, in tempfolders_content.
+    IMPORTANT: This is a heavy operation and should NOT be used for single file updates.
+    Only runs when a user force updates a folder.
     """
+    # TODO:
+    #   - gate this function with a simple timed lock on a per folder basis
+    #   - this prevents excessive refreshing requests and keeps the overall
+    #   runtime of this heavy operation as low as possible
+    #   - prevent access to this outside of FolderContentView!
     source_dir = folder_list['raw'][foldertype]
 
     try:
@@ -905,19 +928,23 @@ def update_tempfolder_by_type(foldertype):
             dir_content_element = {}
             dir_content_element['filename'] = f
             dir_content_element['filesize'] = sizeof_fmt(file_stats.st_size)
+            dir_content_element['in_size_limit'] = check_temp_result_filesize_from_st_size(file_stats.st_size)
             dir_content_element['creation_date'] = creation_date
+
+            # set dirty True -> if db object exists and is up to date, set False
+            dir_content_element['dirty'] = True
             if (f+".dat" in dat_files):
                 dir_content_element['dat_exists'] = True
             else:
                 dir_content_element['dat_exists'] = False
+
+            # what we know from database
             file_info = folder_info[f]
-            # manual version check file <> database
+
+            # file has an associated db object
             if file_info is not None:
-                if file_info['fileversion'] != str(file_stats.st_mtime):
-                    file_info = None
-                else:
-                    # manual filesize check
-                    file_info['in_size_limit'] = check_temp_result_filesize_from_st_size(file_stats.st_size)
+                if file_info['fileversion'] == str(file_stats.st_mtime):
+                    dir_content_element['dirty'] = False
 
             # now either None (no database info) or file_info
             dir_content_element['fileinfo'] = file_info
@@ -974,22 +1001,25 @@ class FolderContentView(APIView):
         force_update -- If true -> forces folder to update before returning content.
         """
         foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
-        force_update = request.GET.get("force_update", default=None)
+
+        # overly cautious check for folder existence
+        source_dir = folder_list['raw'][foldertype]
+        if not os.path.isdir(source_dir):
+            return HttpResponse(content="Selected folder does currently not exist and cant be accessed.", status=500)
+
+        force_update = request.GET.get("force_update", default=False)
+        if force_update:
+            force_update = True
 
         if not foldertype:
             return HttpResponse(content="Invalid foldertype", status=400)
 
-        only_convertable = request.GET.get("convertable", default=None)
-        if only_convertable is None:
-            only_convertable = False
-        else:
+        only_convertable = request.GET.get("convertable", default=False)
+        if only_convertable:
             only_convertable = True
 
-        if force_update is None:
-            force_update = False
-
-        # update the selected folder if necessary
-        if force_update:
+        # update the selected folder if necessary (explicit OR lazy)
+        if force_update or len(tempfolders_content[foldertype]) == 0:
             update_tempfolder_by_type(foldertype=foldertype)
 
         if only_convertable:
@@ -1000,23 +1030,15 @@ class FolderContentView(APIView):
             return response
 
     def retrieve_content_all(self, foldertype):
-        """All files from folder.
+        """All files from folder cache.
         """
-        source_dir = folder_list['raw'][foldertype]
-        if not os.path.isdir(source_dir):
-            return HttpResponse(content="Selected folder does currently not exist and cant be accessed.", status=500)
-
         dir_content = list(tempfolders_content[foldertype].values())
 
         return JsonResponse({"content": dir_content})
 
     def retrieve_content_only_convertable(self, foldertype):
-        """Only nc files from folder that are potentially tif-convertable,
+        """Only nc files from folder cache that are potentially tif-convertable,
         """
-        source_dir = folder_list['raw'][foldertype]
-        if not os.path.isdir(source_dir):
-            return HttpResponse(content="Selected folder does currently not exist and cant be accessed.", status=500)
-
         helper = []
         for el in tempfolders_content[foldertype].values():
             if el['filesuffix'] != '.nc':
@@ -1057,6 +1079,10 @@ class TempDownloadView(APIView):
 
         source_dir = folder_list['raw'][foldertype]
         filepath = os.path.join(source_dir, filename)
+
+        # important explicit check for filesize before trying to serve
+        if not check_temp_result_filesize(filepath):
+            return HttpResponse(content="Requested file is too big.", status=400)
 
         if filetype == 'tif':
             return self.serve_tif_file(filepath, filename, foldertype)
@@ -1142,8 +1168,8 @@ class TempDownloadView(APIView):
                 return HttpResponse(content=f"The raw file could not be converted. Reason: {msg}", status=500)
 
         # update file in tempfolders_content
-        if update_doc or update_tif:
-            update_tempfolder_file(foldertype, filename)
+        # if update_doc or update_tif:
+        #     update_tempfolder_file(foldertype, filename)
 
         tif_filename = copy_filename_as_tif(filename)
         cache_dir = folder_list['cache'][foldertype]
@@ -1488,8 +1514,8 @@ class GenerateDatView(APIView):
             print(f"Error starting process: {e}")
             # Return a 500 response to indicate an internal server error
             return JsonResponse({"error": "Failed to start process"}, status=500)
-        finally:
-            update_tempfolder_by_type(foldertype)
+        # finally:
+        #     update_tempfolder_by_type(foldertype)
 
 
 class ElasticsearchCollections(APIView):
@@ -2028,11 +2054,5 @@ def init_temp_results_folders(force_update=False, delete_all=False, enable_log=F
     print(f"Finished TempResultFiles Init. Created {created_objs_counter} database objects.")
 
 
-def update_all_tempfolders():
-    for foldertype in TEMP_FOLDER_TYPES:
-        update_tempfolder_by_type(foldertype)
-
-
-delete_all_temp_results()
-init_temp_results_folders(enable_log=True)
-update_all_tempfolders()
+# delete_all_temp_results()
+# init_temp_results_folders(enable_log=True)
