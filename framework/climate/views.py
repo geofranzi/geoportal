@@ -13,6 +13,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import TypedDict
 
+from subprocess import (PIPE, Popen,)
+# import netCDF4 as nc
+import logging
+
+
 import pandas as pd
 import requests
 import xarray as xr
@@ -33,13 +38,17 @@ from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex,
                         ClimateIndicatorIndex, ClimateIndicatorSearch, ClimateSearch,)
 from .serializer import ClimateLayerSerializer
 
+logger = logging.getLogger('django')
 
-GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
 # GENERAL_API_URL = "http://127.0.0.1:8000/"
+GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
+# GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/api/"
 
 HASH_LENGTH = 32  # custom length for temporary .txt files generated during wget request
 TEMP_FILESIZE_LIMIT = 75  # filesize limit in MB for conversion (nc -> tif)
-TEMP_NUM_BANDS_LIMIT = 3000  # bands limit as number for conversion (nc -> tif)
+TEMP_NUM_BANDS_LIMIT = 4300  # bands limit as number for conversion (nc -> tif)
+
+# add comment
 
 # keys that are folder names in TEMP_RAW and TEMP_CACHE
 TEMP_FOLDER_TYPES = [
@@ -52,7 +61,9 @@ TEMP_FOLDER_TYPES = [
     "luanginga",
     "ind_full",
     "ind_slices20",
-    "ind_slices30"
+    "ind_slices30",
+    "cmip6_raw",
+    "cmip6_raw_ind"
 ]
 
 
@@ -79,29 +90,28 @@ tempfolders_content: dict[str, dict] = {}
 
 print(f"The settings DEBUG settings is: {settings.DEBUG}")
 
-
 # SERVER paths
-TEMP_ROOT = "/data/tmp"
+TEMP_ROOT = "/opt/rbis/www/tippecc_data"
 TEMP_RAW = "/data"
 TEMP_CACHE = "/data/tmp/cache"
-TEMP_LOG = "/data/log"
-URLTXTFILES_DIR = "/data/tmp/url"
+TEMP_URL = "/data/tmp/url"
+URLTXTFILES_DIR = TEMP_URL
 
 # overwrite with paths in static/ when running on dev
-if settings.DEBUG:
-    # LOCAL paths
-    TEMP_ROOT = settings.STATICFILES_DIRS[0]
-    TEMP_RAW = os.path.join(TEMP_ROOT, "tippecctmp/raw")
-    TEMP_CACHE = os.path.join(TEMP_ROOT, "tippecctmp/cache")
-    TEMP_LOG = os.path.join(TEMP_ROOT, "tippecctmp/log")
-    TEMP_URL = os.path.join(TEMP_ROOT, "tippecctmp/url")
-    URLTXTFILES_DIR = TEMP_URL
+#if settings.DEBUG:
+#    # LOCAL paths
+#    TEMP_ROOT = settings.STATICFILES_DIRS[0]
+#    TEMP_ROOT
+#    TEMP_RAW = "/data/tmp/raw"
+#    TEMP_CACHE = "/data/tmp/cache"
+#    TEMP_LOG = "/data/tmp/log"
+#    TEMP_URL = "/data/tmp/utl"
+#    URLTXTFILES_DIR = TEMP_URL
 
     # overwrite for local development if needed
-    GENERAL_API_URL = "http://127.0.0.1:8000/"
+#    GENERAL_API_URL = "http://127.0.0.1:8000/"
 
-JAMS_TMPL_FILE = os.path.join(TEMP_ROOT, "jams/jams_tmpl.dat")
-
+JAMS_TMPL_FILE = os.path.join(settings.BASE_DIR,"framework/climate/static/jams_tmpl.dat")
 
 for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
     folder_list['raw'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_RAW, TEMP_FOLDER_TYPE)
@@ -430,11 +440,17 @@ def split_files_by_extension(file_list):
 
 
 def extract_jams_files(foldertype, filename):
+    logger.debug('extract jams started')
     wrong_variables = ['time_bnds']
     decimal_digits = 2
     source_dir = folder_list['raw'][foldertype]
     filepath = os.path.join(source_dir, filename)
-    nc = xr.open_dataset(filepath)
+    try:
+        nc = xr.open_dataset(filepath)
+    except Exception as e:
+        logger.debug(f"During extract jams file: error while reading nc: {e}")
+    except MemoryError:
+        logger.debug("During extract jams file: memory error")
     i = 0
     var_name = list(nc.data_vars)[i]
     while var_name in wrong_variables:
@@ -444,7 +460,7 @@ def extract_jams_files(foldertype, filename):
     try:
         var_unit = nc[var_name].attrs['units']
     except Exception as e:
-        print(e)
+        logger.debug(f"During extract jams file: error while parsing units: {e}")
         var_unit = 'none'
     time_var = nc['time']
     tres = pd.TimedeltaIndex(time_var.diff(dim='time')).mean()
@@ -488,7 +504,6 @@ def extract_jams_files(foldertype, filename):
         c += 1
     # convert to dataframe and reproject to shapefile CRS
     df = pd.DataFrame(data).sort_values(by=['time', 'lon', 'lat'])
-
     # get some data from the dataframe
     unique_times = df['time'].unique()
     min_time = min(unique_times)
@@ -496,8 +511,11 @@ def extract_jams_files(foldertype, filename):
     unique_x_y_pairs = df[['lon', 'lat']].drop_duplicates()
 
     # read file header template
-    with open(JAMS_TMPL_FILE, "r") as file:
-        meta = file.read()
+    try:
+        with open(JAMS_TMPL_FILE, "r") as file:
+            meta = file.read()
+    except Exception as e:
+        logger.debug(f"During extract jams file: error while reading jams template: {e}")
 
     # create metadata header
     #  meta = meta.replace('%crs%', str(shape_crs))
@@ -531,26 +549,29 @@ def extract_jams_files(foldertype, filename):
     meta = meta.replace('%cols%', cols)
     meta = meta.replace('%xs%', xs)
     meta = meta.replace('%ys%', ys)
-    print('start writing dat file')
     df.set_index('time', inplace=True)
     # output metadata and data to file
-    with open(r'{}.dat'.format(os.path.join(source_dir, filename)), 'w') as file:
-        # Append lines to the file
-        file.write(meta)
-        c = 0
+    try:
+        with open(r'{}.dat'.format(os.path.join(source_dir, filename)), 'w', encoding="utf-8") as file:
+            # Append lines to the file
+            file.write(meta)
+            c = 0
 
-        for timestep in unique_times:
-            data = df.loc[timestep]
-            values_list = ['{:.{}f}'.format(value, decimal_digits) for value in data['value']]
-            values = '\t'.join(values_list)
-            line = '{}\t{}\n'.format(timestep, values)
-            file.write(line)
-            c += 1
+            for timestep in unique_times:
+                data = df.loc[timestep]
+                values_list = ['{:.{}f}'.format(value, decimal_digits) for value in data['value']]
+                values = '\t'.join(values_list)
+                line = '{}\t{}\n'.format(timestep, values)
+                file.write(line)
+                c += 1
 
-        file.write('# end of file')
-        file.close()
-    print('dat generated')
-    # update_tempfolder_by_type(foldertype)
+            file.write('# end of file')
+            file.close()
+    except Exception as e:
+        logger.debug(f"During extract jams file: error while writing dat-file: {e}")
+
+    update_tempfolder_by_type(foldertype)
+    logger.debug('extract jams ended')
 
 
 @api_view(["GET"])
@@ -896,7 +917,7 @@ def update_tempfolder_by_type(foldertype):
     for f_res in TempResultFile.objects.filter(categorized_filename__in=cat_helper):
         if f_res.filename in folder_info:
             folder_info[f_res.filename] = {}
-            folder_info[f_res.filename]['num_bands'] = f_res.nc_meta['num_bands']
+            # folder_info[f_res.filename]['num_bands'] = f_res.nc_meta['num_bands']
 
             # tif file state
             tif_cached = is_temp_file_cached(f_res.filename, foldertype, f_res)
@@ -1032,6 +1053,10 @@ class FolderContentView(APIView):
     def retrieve_content_all(self, foldertype):
         """All files from folder cache.
         """
+        source_dir = folder_list['raw'][foldertype]
+        if not os.path.isdir(source_dir):
+            return HttpResponse(content=source_dir + "Selected folder does currently not exist and cant be accessed.", status=500)
+
         dir_content = list(tempfolders_content[foldertype].values())
 
         return JsonResponse({"content": dir_content})
@@ -1039,6 +1064,10 @@ class FolderContentView(APIView):
     def retrieve_content_only_convertable(self, foldertype):
         """Only nc files from folder cache that are potentially tif-convertable,
         """
+        source_dir = folder_list['raw'][foldertype]
+        if not os.path.isdir(source_dir):
+            return HttpResponse(content=source_dir + "Selected folder does currently not exist and cant be accessed.", status=500)
+
         helper = []
         for el in tempfolders_content[foldertype].values():
             if el['filesuffix'] != '.nc':
@@ -1087,7 +1116,11 @@ class TempDownloadView(APIView):
         if filetype == 'tif':
             return self.serve_tif_file(filepath, filename, foldertype)
         elif filetype == 'dat':
-            return self.serve_file(filepath, filename+'.dat')
+            return self.serve_file(filepath+'.dat', filename+'.dat')
+        elif filetype == 'meta':
+            return self.serve_file(os.path.join(source_dir, "meta", filename).replace(".nc", ".nc.json"), filename+'.json')
+        elif filetype == 'prov':
+            return self.serve_file(os.path.join(source_dir, "prov", filename).replace(".nc", ".json"), filename+'.json')
         else:
             return self.serve_file(filepath, filename)
 
@@ -2054,5 +2087,12 @@ def init_temp_results_folders(force_update=False, delete_all=False, enable_log=F
     print(f"Finished TempResultFiles Init. Created {created_objs_counter} database objects.")
 
 
+def update_all_tempfolders():
+    for foldertype in TEMP_FOLDER_TYPES:
+        update_tempfolder_by_type(foldertype)
+
+
+
 # delete_all_temp_results()
 # init_temp_results_folders(enable_log=True)
+update_all_tempfolders()

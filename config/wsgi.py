@@ -19,6 +19,9 @@ from pathlib import Path
 
 from django.core.wsgi import get_wsgi_application
 
+sys.path.append('/opt/geoportal_tippecc/geoportal')
+
+os.environ['PATH'] += ':/usr/bin'
 # This allows easy placement of apps within the interior
 # planthub directory.
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent
@@ -36,3 +39,11 @@ application = get_wsgi_application()
 # Apply WSGI middleware here.
 # from helloworld.wsgi import HelloWorldApplication
 # application = HelloWorldApplication(application)
+
+#
+#    with open('/opt/geoportal_tippecc/geoportal/config/header_log.txt', 'w') as f:
+#        f.write("Request Headers:\n")
+#        for key, value in environ.items():
+#            f.write(f"{key}: {value}\n")
+#    django_application = get_wsgi_application()
+#    return django_application(environ, start_response)
