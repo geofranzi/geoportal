@@ -1,6 +1,8 @@
 import glob
 # import grp
 import json
+# import netCDF4 as nc
+import logging
 # import mimetypes
 import os
 # import pwd
@@ -11,12 +13,6 @@ import threading
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import TypedDict
-
-from subprocess import (PIPE, Popen,)
-# import netCDF4 as nc
-import logging
-
 
 import pandas as pd
 import requests
@@ -37,6 +33,10 @@ from .ncmeta_handler import (extract_ncfile_metadata, read_file_specific_metadat
 from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex, ClimateDatasetsIndex,
                         ClimateIndicatorIndex, ClimateIndicatorSearch, ClimateSearch,)
 from .serializer import ClimateLayerSerializer
+from .temp_file_locations import (JAMS_TMPL_FILE, TEMP_FOLDER_TYPES, URLTXTFILES_DIR, parse_temp_filename_from_param,
+                                  parse_temp_foldertype_from_param, parse_urltxt_filename_from_param, tmp_cache_path,
+                                  tmp_raw_filepath, tmp_raw_path,)
+
 
 logger = logging.getLogger('django')
 
@@ -48,36 +48,6 @@ HASH_LENGTH = 32  # custom length for temporary .txt files generated during wget
 TEMP_FILESIZE_LIMIT = 75  # filesize limit in MB for conversion (nc -> tif)
 TEMP_NUM_BANDS_LIMIT = 4300  # bands limit as number for conversion (nc -> tif)
 
-# add comment
-
-# keys that are folder names in TEMP_RAW and TEMP_CACHE
-TEMP_FOLDER_TYPES = [
-    "water_budget",
-    "water_budget_bias",
-    "kariba",
-    "vaal",
-    "cmip6",
-    "paper",
-    "luanginga",
-    "ind_full",
-    "ind_slices20",
-    "ind_slices30",
-    "cmip6_raw",
-    "cmip6_raw_ind"
-]
-
-
-TempFolderLog = TypedDict(
-    "TempFolderLog",
-    {
-        '#folder_exists': bool,
-        '#nc_files': int,
-        '#extract_full_succ': int,
-        '#extract_lite_succ': int,
-        '#extract_full_fail': int,
-        '#extract_lite_fail': int
-    },
-)
 
 # lookup dict for the paths of each foldertype
 folder_list = {}
@@ -89,37 +59,6 @@ folder_list['cache'] = {}
 tempfolders_content: dict[str, dict] = {}
 
 print(f"The settings DEBUG settings is: {settings.DEBUG}")
-
-# SERVER paths
-TEMP_ROOT = "/opt/rbis/www/tippecc_data"
-TEMP_RAW = "/data"
-TEMP_CACHE = "/data/tmp/cache"
-TEMP_URL = "/data/tmp/url"
-URLTXTFILES_DIR = TEMP_URL
-
-# overwrite with paths in static/ when running on dev
-#if settings.DEBUG:
-#    # LOCAL paths
-#    TEMP_ROOT = settings.STATICFILES_DIRS[0]
-#    TEMP_ROOT
-#    TEMP_RAW = "/data/tmp/raw"
-#    TEMP_CACHE = "/data/tmp/cache"
-#    TEMP_LOG = "/data/tmp/log"
-#    TEMP_URL = "/data/tmp/utl"
-#    URLTXTFILES_DIR = TEMP_URL
-
-    # overwrite for local development if needed
-#    GENERAL_API_URL = "http://127.0.0.1:8000/"
-
-JAMS_TMPL_FILE = os.path.join(settings.BASE_DIR,"framework/climate/static/jams_tmpl.dat")
-
-for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
-    folder_list['raw'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_RAW, TEMP_FOLDER_TYPE)
-    folder_list['cache'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_CACHE, TEMP_FOLDER_TYPE)
-    tempfolders_content[TEMP_FOLDER_TYPE] = {}
-
-    # print("FOLDER_LIST")
-    # print(folder_list)
 
 # SPECIFICATIONS [temp results]
 #  - download single file
@@ -167,49 +106,6 @@ def serve_static_file_with_cors(request, filename):
     return HttpResponse("File not found")
 
 
-def parse_temp_foldertype_from_param(foldertype: str):
-    """Checks if a foldertype exists as a key in TEMP_FOLDER_TYPES.
-    :return: foldertype or false if not exists.
-    """
-    try:
-        idx = TEMP_FOLDER_TYPES.index(foldertype)
-        return TEMP_FOLDER_TYPES[idx]
-    except Exception:
-        return False
-
-
-# Safely returns an actual filename from the raw directory of temp result files
-# based on given foldertype and filename string - request parameters.
-# TODO: - add function to parse as list
-def parse_temp_filename_from_param(filename: str, foldertype: str):
-    """Checks if a filename exists in a specific foldertype folder.
-    :return: filename or false if not exists.
-    """
-    foldertype = parse_temp_foldertype_from_param(foldertype)
-    if foldertype is False:
-        return False
-
-    try:
-        folder = os.listdir(folder_list['raw'][foldertype])
-        idx = folder.index(filename)
-        return folder[idx]
-    except Exception:
-        return False
-
-
-def parse_urltxt_filename_from_param(hash: str):
-    """Checks if a hash-string exists as a filename in URLTXTFILES_DIR.
-    :return: filename or false if not exists.
-    """
-    filename = f"{hash}.txt"
-    try:
-        folder = os.listdir(URLTXTFILES_DIR)
-        idx = folder.index(filename)
-        return folder[idx]
-    except Exception:
-        return False
-
-
 def check_temp_result_filesize(filepath: str):
     size = (os.stat(filepath).st_size / 1024) / 1024  # MB
     if size > TEMP_FILESIZE_LIMIT:
@@ -236,15 +132,15 @@ def copy_filename_as_tif(f: str):
 
 def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFile) -> tuple[bool, str]:
     """Tries to create a tif from a nc file in a specific folder.
-    Tif will be written to folder_list['cache'][foldertype].
+    Tif will be written to tmp_cache_path(foldertype).
     :param filename_in: nc filename (input file)
     :param foldertype: foldertype from TEMP_FOLDER_TYPES
     :param temp_doc: TempResultFile object of the input file
 
     :return: tuple[bool, str] ... ([success, contextmessage])
     """
-    filepath_in = os.path.join(folder_list['raw'][foldertype], filename_in)
-    if not os.path.isfile(filepath_in):
+    filepath_in = tmp_raw_filepath(foldertype, filename_in)
+    if not filepath_in:
         return False, "No raw file"
 
     if not check_temp_result_filesize(filepath_in):
@@ -257,7 +153,10 @@ def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFil
         return False, "Raw file not tif convertable"
 
     filename_out = copy_filename_as_tif(filename_in)
-    filepath_out = os.path.join(folder_list['cache'][foldertype], filename_out)
+    filepath_out = tmp_cache_path(foldertype, filename_out)
+
+    if not filepath_out:
+        return False, "Invalid path to output file"
 
     # print(f"filename_out: {filename_out}")
     # print(f"filepath_in: {filepath_in}")
@@ -268,7 +167,7 @@ def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFil
 
     try:
         # for some reason, tif files created via translate are
-        # not allways working correctly in our visualization
+        # not allways working correctly in our visualization (thatswhy Warp)
         gdal.Warp(filepath_out, filepath_in, **kwargs)
         fileversion_out = os.stat(filepath_out).st_mtime
         temp_doc.st_mtime_tif = fileversion_out
@@ -283,7 +182,7 @@ def is_temp_file_cached(raw_filename: str, foldertype: str, temp_doc: TempResult
     """Checks if a up-to-date tif file exists for a corresponding nc file.
     """
     tif_filename = copy_filename_as_tif(raw_filename)
-    tif_path = os.path.join(folder_list['cache'][foldertype], tif_filename)
+    tif_path = os.path.join(tmp_cache_path(foldertype), tif_filename)
 
     if not os.path.isfile(tif_path):
         return False
@@ -300,26 +199,27 @@ def is_temp_file_tif_convertable(raw_filename: str, foldertype: str, temp_doc: T
     """Checks if our custom constraints for (nc -> tif) file conversion are met. It might still
     happen that conversion fails (e.g. we have no metadata yet and only assume it's possible).
     """
-    filepath = os.path.join(folder_list['raw'][foldertype], raw_filename)
-    if not check_temp_result_filesize(filepath):
+    filepath = tmp_raw_filepath(foldertype, raw_filename)
+    if not filepath or not check_temp_result_filesize(filepath):
         return False
 
+    # TODO: - change this to cover all cases
     if temp_doc.nc_meta['num_bands'] is None or temp_doc.nc_meta['num_bands'] > TEMP_NUM_BANDS_LIMIT:
         return False
     else:
         return True
 
 
-def extract_ncfile_lite(filename: str, source_dir: str, file_category: str, force_update=False):
+def extract_ncfile_lite(filename: str, foldertype: str, force_update=False):
     """Read filesize and creation time from a file and create/update the specific TempResultFile.
 
     :return: tuple[bool, str|TempResultFile]
              on success [true, TempResultFile]
              on failure [false, str]
     """
-    cat_filename = temp_cat_filename(file_category, filename)
-    filepath = os.path.join(source_dir, filename)
-    if not os.path.isfile(filepath):
+    cat_filename = temp_cat_filename(foldertype, filename)
+    filepath = tmp_raw_filepath(foldertype, filename)
+    if not filepath:
         return False, "file not found"
 
     st_mtime_nc = None
@@ -352,7 +252,7 @@ def extract_ncfile_lite(filename: str, source_dir: str, file_category: str, forc
             filename=filename,
             st_mtime_nc=st_mtime_nc,
             st_size_nc=st_size_nc,
-            category=file_category
+            category=foldertype
         )
         new_doc.save()
     except Exception as e:
@@ -362,7 +262,7 @@ def extract_ncfile_lite(filename: str, source_dir: str, file_category: str, forc
     return True, new_doc
 
 
-def create_tmpresultfile_from_ncfile(filename: str, source_dir: str, file_category: str, force_update=False):
+def create_tmpresultfile_from_ncfile(filename: str, foldertype: str, force_update=False):
     """Tries to read all metadata necessary to us from a nc file and create/update the specific TempResultFile.
     This function HAS NO explicit check for filesize as it would double check in all cases. ONLY USE for files
     that are IN SIZE LIMIT.
@@ -372,10 +272,10 @@ def create_tmpresultfile_from_ncfile(filename: str, source_dir: str, file_catego
             on failure [false, str]
     """
     # filename with category prefix, unique over all TempResultFiles
-    cat_filename = temp_cat_filename(file_category, filename)
+    cat_filename = temp_cat_filename(foldertype, filename)
 
-    filepath = os.path.join(source_dir, filename)
-    if not os.path.isfile(filepath):
+    filepath = tmp_raw_filepath(foldertype, filename)
+    if not filepath:
         return False, "file not found"
 
     file_meta = read_file_specific_metadata(filepath)
@@ -407,7 +307,7 @@ def create_tmpresultfile_from_ncfile(filename: str, source_dir: str, file_catego
             nc_meta=nc_meta,
             st_mtime_nc=file_meta['st_mtime_nc'],
             st_size_nc=file_meta['st_size_nc'],
-            category=file_category,
+            category=foldertype,
         )
         new_doc.save()
     except Exception as e:
@@ -443,7 +343,7 @@ def extract_jams_files(foldertype, filename):
     logger.debug('extract jams started')
     wrong_variables = ['time_bnds']
     decimal_digits = 2
-    source_dir = folder_list['raw'][foldertype]
+    source_dir = tmp_raw_path(foldertype)
     filepath = os.path.join(source_dir, filename)
     try:
         nc = xr.open_dataset(filepath)
@@ -588,7 +488,7 @@ def access_tif_from_ncfile(request):
 
         return HttpResponse(content=err_msg, status=400)
 
-    filepath = os.path.join(folder_list['raw'][foldertype], filename)
+    filepath = tmp_raw_filepath(foldertype, filename)
 
     # explicit filesize check
     if not check_temp_result_filesize(filepath):
@@ -608,7 +508,7 @@ def access_tif_from_ncfile(request):
             update_doc = True
 
     if update_doc:
-        succ, msg = create_tmpresultfile_from_ncfile(filename, folder_list['raw'][foldertype], foldertype, force_update=True)
+        succ, msg = create_tmpresultfile_from_ncfile(filename, foldertype, force_update=True)
         if not succ:
             # could not extract raw file metadata ...
             # thus can not properly translate to tif
@@ -638,7 +538,7 @@ def access_tif_from_ncfile(request):
     #     update_tempfolder_file(foldertype, filename)
 
     tif_filename = copy_filename_as_tif(filename)
-    # cache_dir = folder_list['cache'][foldertype]
+    # cache_dir = tmp_cache_path(foldertype)
     # tif_filepath = os.path.join(cache_dir, tif_filename)
 
     data = {
@@ -646,7 +546,7 @@ def access_tif_from_ncfile(request):
 
         # hardcoded for now, because i'm not absolutely sure on the format
         # TODO: - replace domain and path with variable
-        # 'route': f"http://127.0.0.1:8000/static/tippecctmp/cache/{foldertype}/{tif_filename}"
+        # 'route': f"http://127.0.0.1:8000/static/data/tmp/cache/{foldertype}/{tif_filename}"
         'route': f"https://leutra.geogr.uni-jena.de/tippecc_data/tippecctmp/{foldertype}/{tif_filename}"
     }
 
@@ -667,11 +567,10 @@ def get_ncfile_metadata(request):
 
         return HttpResponse(content=err_msg, status=400)
 
-    source_dir = folder_list['raw'][foldertype]
-    filepath_in = os.path.join(folder_list['raw'][foldertype], filename)
+    filepath_in = tmp_raw_filepath(foldertype, filename)
     fileversion = os.stat(filepath_in).st_mtime
 
-    if not os.path.isfile(filepath_in):
+    if not filepath_in:
         return HttpResponse(content="File does not exist", status=500)
 
     cat_filename = temp_cat_filename(foldertype, filename)
@@ -682,7 +581,7 @@ def get_ncfile_metadata(request):
 
     # file does not exist in database
     if temp_doc is None:
-        succ, msg = create_tmpresultfile_from_ncfile(filename, source_dir, foldertype)
+        succ, msg = create_tmpresultfile_from_ncfile(filename, foldertype)
         if succ:
             # update file in tempfolders_content
             # update_tempfolder_file(foldertype, filename)
@@ -693,7 +592,7 @@ def get_ncfile_metadata(request):
             return HttpResponse(content="Could not extraxt metadata from file.", status=500)
     elif not temp_doc.check_raw_version(fileversion):
         # version check
-        succ, msg = create_tmpresultfile_from_ncfile(filename, source_dir, foldertype)
+        succ, msg = create_tmpresultfile_from_ncfile(filename, foldertype)
         if succ:
             # update file in tempfolders_content
             # update_tempfolder_file(foldertype, filename)
@@ -756,10 +655,11 @@ def select_temp_urls(request):
     if not foldertype:
         return HttpResponse(content="Invalid foldertype", status=400)
 
-    if not os.path.isdir(folder_list['raw'][foldertype]):
+    source_dir = tmp_raw_path(foldertype)
+    if not source_dir:
         return HttpResponse(content="Selected folder does currently not exist and cant be accessed.", status=500)
 
-    foldercontent = os.listdir(folder_list['raw'][foldertype])
+    foldercontent = os.listdir(source_dir)
 
     # print(foldercontent)
 
@@ -827,7 +727,7 @@ def update_tempfolder_file(foldertype, filename):
     #   - GOAL: Bulk and single update run the same code on a file by file basis
     #   while still bulk requesting the data from database in
     #   the bulk case. 'update_tempfolder_by_type()'
-    source_dir = folder_list['raw'][foldertype]
+    source_dir = tmp_raw_path(foldertype)
     cat_filename = temp_cat_filename(foldertype, filename)
     temp_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
 
@@ -897,7 +797,7 @@ def update_tempfolder_by_type(foldertype):
     #   - this prevents excessive refreshing requests and keeps the overall
     #   runtime of this heavy operation as low as possible
     #   - prevent access to this outside of FolderContentView!
-    source_dir = folder_list['raw'][foldertype]
+    source_dir = tmp_raw_path(foldertype)
 
     try:
         foldercontent, dat_files = read_folder_constrained(source_dir)
@@ -1024,8 +924,8 @@ class FolderContentView(APIView):
         foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
 
         # overly cautious check for folder existence
-        source_dir = folder_list['raw'][foldertype]
-        if not os.path.isdir(source_dir):
+        source_dir = tmp_raw_path(foldertype)
+        if not source_dir:
             return HttpResponse(content="Selected folder does currently not exist and cant be accessed.", status=500)
 
         force_update = request.GET.get("force_update", default=False)
@@ -1053,8 +953,8 @@ class FolderContentView(APIView):
     def retrieve_content_all(self, foldertype):
         """All files from folder cache.
         """
-        source_dir = folder_list['raw'][foldertype]
-        if not os.path.isdir(source_dir):
+        source_dir = tmp_raw_path(foldertype)
+        if not source_dir:
             return HttpResponse(content=source_dir + "Selected folder does currently not exist and cant be accessed.", status=500)
 
         dir_content = list(tempfolders_content[foldertype].values())
@@ -1064,8 +964,8 @@ class FolderContentView(APIView):
     def retrieve_content_only_convertable(self, foldertype):
         """Only nc files from folder cache that are potentially tif-convertable,
         """
-        source_dir = folder_list['raw'][foldertype]
-        if not os.path.isdir(source_dir):
+        source_dir = tmp_raw_path(foldertype)
+        if not source_dir:
             return HttpResponse(content=source_dir + "Selected folder does currently not exist and cant be accessed.", status=500)
 
         helper = []
@@ -1106,13 +1006,15 @@ class TempDownloadView(APIView):
 
             return HttpResponse(content=err_msg, status=400)
 
-        source_dir = folder_list['raw'][foldertype]
-        filepath = os.path.join(source_dir, filename)
+        source_dir = tmp_raw_path(foldertype)
+        filepath = tmp_raw_filepath(foldertype, filename)
 
         # important explicit check for filesize before trying to serve
         if not check_temp_result_filesize(filepath):
             return HttpResponse(content="Requested file is too big.", status=400)
 
+        # TODO:
+        #   - normalize this (remove all hardcoded pathing/filenaming)
         if filetype == 'tif':
             return self.serve_tif_file(filepath, filename, foldertype)
         elif filetype == 'dat':
@@ -1175,7 +1077,7 @@ class TempDownloadView(APIView):
                 update_doc = True
 
         if update_doc:
-            succ, msg = create_tmpresultfile_from_ncfile(filename, folder_list['raw'][foldertype], foldertype, force_update=True)
+            succ, msg = create_tmpresultfile_from_ncfile(filename, foldertype, force_update=True)
             if not succ:
                 # could not extract raw file metadata ...
                 # thus can not properly translate to tif
@@ -1205,7 +1107,7 @@ class TempDownloadView(APIView):
         #     update_tempfolder_file(foldertype, filename)
 
         tif_filename = copy_filename_as_tif(filename)
-        cache_dir = folder_list['cache'][foldertype]
+        cache_dir = tmp_cache_path(foldertype)
         tif_filepath = os.path.join(cache_dir, tif_filename)
 
         return self.serve_file(tif_filepath, tif_filename)
@@ -2025,63 +1927,43 @@ def delete_all_temp_results():
     TempResultFile.objects.all().delete()
 
 
-def init_temp_results_folders(force_update=False, delete_all=False, enable_log=False):
+def init_temp_results_folders(force_update=False, delete_all=False):
     if delete_all:
         delete_all_temp_results()
 
-    folder_categories = folder_list['raw'].keys()
     created_objs_counter = 0
-    all_logs = {}
 
-    for cat in folder_categories:
-        print(f"Initiating TempResultFiles folder with category: {cat}")
-        folder_root_path = folder_list['raw'][cat]
-        folder_log: TempFolderLog = {
-            '#folder_exists': False,
-            '#nc_files': 0,
-            '#extract_full_fail': 0,
-            '#extract_full_succ': 0,
-            '#extract_lite_fail': 0,
-            '#extract_lite_succ': 0
-        }
+    for foldertype in TEMP_FOLDER_TYPES:
+        print(f"Initiating TempResultFiles folder with category: {foldertype}")
+        folder_root_path = tmp_raw_path(foldertype)
 
-        if not os.path.isdir(folder_root_path):
-            all_logs[cat] = folder_log
+        # TODO: - maybe here, add automic directory routine based on settings
+        # currently if the path does not exist, just continue
+        if not folder_root_path:
             continue
 
-        folder_log['#folder_exists'] = True
         filenames = os.listdir(folder_root_path)
         for name in filenames:
             filepath = os.path.join(folder_root_path, name)
 
             if not check_temp_result_filesize(filepath):
                 # if file exceeds size limit, we do not extract metadata
-                succ, msg = extract_ncfile_lite(name, folder_root_path, cat, force_update=force_update)
+                succ, msg = extract_ncfile_lite(name, foldertype, force_update=force_update)
                 if not succ:
                     # print(f"Failed to extract lite on filename: {name} in category: {cat}")
                     # print(f"Reason: {msg}")
-                    folder_log["#extract_lite_fail"] += 1
                     continue
                 else:
-                    folder_log["#extract_lite_succ"] += 1
                     created_objs_counter += 1
             else:
-                succ, msg = create_tmpresultfile_from_ncfile(name, folder_root_path, cat, force_update=force_update)
+                succ, msg = create_tmpresultfile_from_ncfile(name, foldertype, force_update=force_update)
 
                 if not succ:
                     # print(f"Failed to extract metadata on filename: {name} in category: {cat}")
                     # print(f"Reason: {msg}")
-                    folder_log["#extract_full_fail"] += 1
                     continue
                 else:
-                    folder_log["#extract_full_succ"] += 1
                     created_objs_counter += 1
-
-        all_logs[cat] = folder_log
-
-    if enable_log:
-        with open(os.path.join(TEMP_LOG, "temp_results_log.txt"), 'a+', encoding='utf-8') as f:
-            f.write(json.dumps(all_logs, separators=(',', ':')) + "\n")
 
     # post creation handling (?)
     print(f"Finished TempResultFiles Init. Created {created_objs_counter} database objects.")
@@ -2092,7 +1974,6 @@ def update_all_tempfolders():
         update_tempfolder_by_type(foldertype)
 
 
-
 # delete_all_temp_results()
-# init_temp_results_folders(enable_log=True)
+# init_temp_results_folders()
 update_all_tempfolders()
