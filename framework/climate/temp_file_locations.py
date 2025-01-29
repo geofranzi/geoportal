@@ -1,4 +1,5 @@
 import os
+from typing import TypedDict
 
 from django.conf import settings
 
@@ -31,13 +32,39 @@ URLTXTFILES_DIR = TEMP_URL
 
 JAMS_TMPL_FILE = os.path.join(settings.BASE_DIR, "framework/climate/static/jams_tmpl.dat")
 
+FileInfo = TypedDict(
+    "FileInfo",
+    {
+        'filename': str,
+        'filesize': str,
+        'creation_date': str,
+        'fileversion': str,
+        'filesuffix': str,
+        'in_limit_conversion': bool,
+        'in_limit_download': bool,
+        'dirty': bool,
+        'dat_exists': bool,
+        'tif_exists': bool,
+        'tif_convertable': bool,
+        'num_bands': int
+    }
+)
+
+FolderInfo = TypedDict(
+    "FolderInfo",
+    {
+        'last_update': float,
+        'content': dict[str, FileInfo]
+    }
+)
+
 # lookup dict for the paths of each foldertype
 _folder_list = {}
 _folder_list['raw'] = {}
 _folder_list['cache'] = {}
 
 # overwrite with paths in static/ when running on dev
-if settings.DEBUG:
+if settings.DEV_LOCAL:
     # LOCAL paths
     TEMP_ROOT = settings.STATICFILES_DIRS[0]
     TEMP_RAW = os.path.join(TEMP_ROOT, "data/tmp/raw")
@@ -98,6 +125,9 @@ def parse_urltxt_filename_from_param(hash: str):
 
 
 def tmp_raw_path(foldertype: str, filename: str = '') -> str:
+    """Returns path to raw directory if dir exists. Appends filename
+    if given. If dir does not exist, returns false.
+    """
     try:
         dir_path = _folder_list['raw'][foldertype]
         if not os.path.isdir(dir_path):
@@ -114,6 +144,9 @@ def tmp_raw_path(foldertype: str, filename: str = '') -> str:
 
 
 def tmp_raw_filepath(foldertype: str, filename: str) -> str:
+    """Returns path to a given filename from a raw directory.
+    Returns False if file does not exist.
+    """
     try:
         dir_path = _folder_list['raw'][foldertype]
         file_path = os.path.join(dir_path, filename)
@@ -126,6 +159,9 @@ def tmp_raw_filepath(foldertype: str, filename: str) -> str:
 
 
 def tmp_cache_path(foldertype: str, filename: str = '') -> str:
+    """Returns path to cache directory if dir exists. Appends filename
+    if given. If dir does not exist, returns false.
+    """
     try:
         dir_path = _folder_list['cache'][foldertype]
         if filename != '':
