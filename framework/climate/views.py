@@ -35,8 +35,9 @@ from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex,
                         ClimateIndicatorIndex, ClimateIndicatorSearch, ClimateSearch,)
 from .serializer import ClimateLayerSerializer
 from .temp_file_locations import (JAMS_TMPL_FILE, TEMP_FOLDER_TYPES, URLTXTFILES_DIR, FileInfo, FolderInfo,
-                                  parse_temp_filename_from_param, parse_temp_foldertype_from_param,
-                                  parse_urltxt_filename_from_param, tmp_cache_path, tmp_raw_filepath, tmp_raw_path,)
+                                  copy_filename_as_tif, parse_temp_filename_from_param,
+                                  parse_temp_foldertype_from_param, parse_urltxt_filename_from_param, temp_cat_filename,
+                                  tmp_cache_path, tmp_raw_filepath, tmp_raw_path,)
 
 
 logger = logging.getLogger('django')
@@ -52,8 +53,9 @@ TEMP_NUM_BANDS_LIMIT = 4300  # bands limit as number for conversion (nc -> tif)
 
 
 class TmpCache:
-    _folder_cache: dict[str, FolderInfo] = {}
-
+    """Helper class to interact with tmp folder cache.
+    """
+    _folder_cache: dict[str, FolderInfo] = {}  # folder cache
     _instance = None  # singleton instance helper
 
     # simple advancable singleton constructor
@@ -63,6 +65,8 @@ class TmpCache:
         return cls._instance
 
     def get_folder_all(self, foldertype):
+        """Return content on all files in folder given by foldertype.
+        """
         source_dir = tmp_raw_path(foldertype)
         if not source_dir:
             return []
@@ -70,6 +74,8 @@ class TmpCache:
         return list(self._folder_cache[foldertype]["content"].values())
 
     def get_folder_convertable(self, foldertype):
+        """Return content on all (tif_convertable) files in folder given by foldertype.
+        """
         source_dir = tmp_raw_path(foldertype)
         if not source_dir:
             return []
@@ -78,6 +84,8 @@ class TmpCache:
         return list(conv_filtered.values())
 
     def populate_folders(self):
+        """Populate key value pairs in folder_cache (only used once after init).
+        """
         for foldertype in TEMP_FOLDER_TYPES:
             # check path and cache existence
             if not tmp_raw_path(foldertype) or foldertype in self._folder_cache:
@@ -91,18 +99,24 @@ class TmpCache:
             self._folder_cache[foldertype] = folder_info
 
     def flag_tif_exists(self, foldertype: str, filename: str, value: bool):
+        """Flag that a tif file exists (given by foldertype and filename).
+        """
         try:
             self._folder_cache[foldertype]["content"][filename]["tif_exists"] = value
         except Exception:
             pass
 
     def flag_dat_exists(self, foldertype: str, filename: str, value: bool):
+        """Flag that a dat file exists (given by foldertype and filename).
+        """
         try:
             self._folder_cache[foldertype]["content"][filename]["dat_exists"] = value
         except Exception:
             pass
 
     def is_foldercontent_empty(self, foldertype: str) -> bool:
+        """Check if folder has been loaded yet. Used for lazy loading.
+        """
         try:
             if len(self._folder_cache[foldertype]["content"]) == 0:
                 return True
@@ -112,6 +126,9 @@ class TmpCache:
             return False
 
     def update_by_foldertype(self, foldertype: str):
+        """Reload folder in cache. If new files are found, try to read them to
+        database. Time gated.
+        """
         source_dir = tmp_raw_path(foldertype)
 
         try:
@@ -179,7 +196,7 @@ class TmpCache:
                     tif_exists = has_tif_file(f_info.filename, foldertype, f_info)
                     # convertability
                     if not tif_exists:
-                        conv_constraint = is_temp_file_tif_convertable(f_info.filename, foldertype, f_info)
+                        conv_constraint = is_tif_convertable(f_info.filename, foldertype, f_info)
                         tif_convertable = conv_constraint
                     else:
                         tif_convertable = True
@@ -292,20 +309,13 @@ def in_sizelimit_conversion_i(st_size: int):
         return True
 
 
-def temp_cat_filename(category: str, filename: str):
-    return os.path.join(category, filename)
-
-
-def copy_filename_as_tif(f: str):
-    return f"{Path(f).stem}.tif"
-
-
-def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFile) -> tuple[bool, str]:
+def convert_nc_to_tif(filename_in: str, foldertype: str, temp_doc: TempResultFile) -> tuple[bool, str]:
     """Tries to create a tif from a nc file in a specific folder.
     Tif will be written to tmp_cache_path(foldertype).
-    :param filename_in: nc filename (input file)
-    :param foldertype: foldertype from TEMP_FOLDER_TYPES
-    :param temp_doc: TempResultFile object of the input file
+
+    filename_in -- nc filename (input file)
+    foldertype -- foldertype from TEMP_FOLDER_TYPES
+    temp_doc -- TempResultFile object of the input file
 
     :return: tuple[bool, str] ... ([success, contextmessage])
     """
@@ -319,7 +329,7 @@ def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFil
     if temp_doc.nc_meta['num_bands'] is None:
         return False, "Could not convert to tif because of missing metadata"
 
-    if not is_temp_file_tif_convertable(filename_in, foldertype, temp_doc):
+    if not is_tif_convertable(filename_in, foldertype, temp_doc):
         return False, "Raw file not tif convertable"
 
     filename_out = copy_filename_as_tif(filename_in)
@@ -327,10 +337,6 @@ def cache_tif_from_nc(filename_in: str, foldertype: str, temp_doc: TempResultFil
 
     if not filepath_out:
         return False, "Invalid path to output file"
-
-    # print(f"filename_out: {filename_out}")
-    # print(f"filepath_in: {filepath_in}")
-    # print(f"filepath_out: {filepath_out}")
 
     # Set destination spatial reference
     kwargs = {"dstSRS": 'EPSG:4326'}
@@ -370,7 +376,7 @@ def has_tif_file(raw_filename: str, foldertype: str, temp_doc: TempResultFile) -
     return True
 
 
-def is_temp_file_tif_convertable(raw_filename: str, foldertype: str, temp_doc: TempResultFile) -> bool:
+def is_tif_convertable(raw_filename: str, foldertype: str, temp_doc: TempResultFile) -> bool:
     """Checks if our custom constraints for (nc -> tif) file conversion are met. It might still
     happen that conversion fails (e.g. we have no metadata yet and only assume it's possible).
     """
@@ -437,7 +443,7 @@ def extract_ncfile_lite(filename: str, foldertype: str, force_update=False):
     return True, new_doc
 
 
-def create_tmpresultfile_from_ncfile(filename: str, foldertype: str, force_update=False):
+def extract_ncfile_to_tmpresult(filename: str, foldertype: str, force_update=False):
     """Tries to read all metadata necessary to us from a nc file and create/update the specific TempResultFile.
     This function HAS NO explicit check for filesize as it would double check in all cases. ONLY USE for files
     that are IN SIZE LIMIT.
@@ -490,6 +496,23 @@ def create_tmpresultfile_from_ncfile(filename: str, foldertype: str, force_updat
         return False, "could not save file metadata to database"
 
     return True, new_doc
+
+
+def extract_ncfile(filename, foldertype):
+    """
+    Checks if a .nc file exists and then reads it into database as a
+    TempResultFile or lite if size_limit conversion is exceeded.
+    """
+    filepath = tmp_raw_filepath(foldertype, filename)
+    if not filepath:
+        return False
+
+    if not in_sizelimit_conversion(filepath):
+        succ, msg = extract_ncfile_lite(filename, foldertype)
+        return succ, msg
+    else:
+        succ, msg = extract_ncfile_to_tmpresult(filename, foldertype)
+        return succ, msg
 
 
 def read_folder_constrained(source_dir: str):
@@ -683,7 +706,7 @@ def access_tif_from_ncfile(request):
             update_doc = True
 
     if update_doc:
-        succ, msg = create_tmpresultfile_from_ncfile(filename, foldertype, force_update=True)
+        succ, msg = extract_ncfile_to_tmpresult(filename, foldertype, force_update=True)
         if not succ:
             # could not extract raw file metadata ...
             # thus can not properly translate to tif
@@ -702,7 +725,7 @@ def access_tif_from_ncfile(request):
         update_tif = True
 
     if update_tif:
-        succ, msg = cache_tif_from_nc(filename, foldertype, temp_doc)
+        succ, msg = convert_nc_to_tif(filename, foldertype, temp_doc)
         if not succ:
             # The raw file could not be converted
             # print(f"The raw file could not be converted. Reason: {msg}")
@@ -753,7 +776,7 @@ def get_ncfile_metadata(request):
 
     # file does not exist in database
     if temp_doc is None:
-        succ, msg = create_tmpresultfile_from_ncfile(filename, foldertype)
+        succ, msg = extract_ncfile_to_tmpresult(filename, foldertype)
         if succ:
             new_doc: TempResultFile = msg
             return JsonResponse({'metadata': new_doc.get_file_metadata()})
@@ -761,18 +784,12 @@ def get_ncfile_metadata(request):
             return HttpResponse(content="Could not extraxt metadata from file.", status=500)
     elif not temp_doc.check_raw_version(fileversion):
         # version check
-        succ, msg = create_tmpresultfile_from_ncfile(filename, foldertype)
+        succ, msg = extract_ncfile_to_tmpresult(filename, foldertype)
         if succ:
             new_doc: TempResultFile = msg
             return JsonResponse({'metadata': new_doc.get_file_metadata()})
         else:
             return HttpResponse(content="Could not extraxt metadata from file.", status=500)
-
-    # TODO:
-    # it can still happen, that there is a file within the size limit, which
-    # we have a up to date database object associated, but not yet read the
-    # metadata. (fields are Null in that case)
-    # - decide on a handling here
 
     metadata = temp_doc.get_file_metadata()
     response = JsonResponse({'metadata': metadata})
@@ -969,25 +986,6 @@ class TempDownloadView(APIView):
         else:
             return self.serve_file(filepath, filename)
 
-        # if filetype == 'nc':
-        #     return self.serve_file(filepath, filename)
-        # elif filetype == 'tif':
-        #     return self.serve_tif_file(filepath, filename, foldertype)
-        # elif filetype == 'dat':
-        #     return self.serve_file(filepath, filename)
-        # else:
-        #     # this should never be reached... only for readability/when adding more filetypes
-        #     return HttpResponse(content="Unknown filetype param value", status=400)
-
-        # try:
-        #     with open(os.path.join(source_dir, filename), "rb") as test_file:
-        #         response = HttpResponse(content=test_file)
-        #         response["Content-Disposition"] = f'attachment; filename="{filename}"'
-
-        #         return response
-        # except Exception:
-        #     return HttpResponse(204)
-
     def serve_file(self, filepath, filename):
         # ==== this is for local testing
 
@@ -1020,7 +1018,7 @@ class TempDownloadView(APIView):
                 update_doc = True
 
         if update_doc:
-            succ, msg = create_tmpresultfile_from_ncfile(filename, foldertype, force_update=True)
+            succ, msg = extract_ncfile_to_tmpresult(filename, foldertype, force_update=True)
             if not succ:
                 # could not extract raw file metadata ...
                 # thus can not properly translate to tif
@@ -1039,7 +1037,7 @@ class TempDownloadView(APIView):
             update_tif = True
 
         if update_tif:
-            succ, msg = cache_tif_from_nc(filename, foldertype, temp_doc)
+            succ, msg = convert_nc_to_tif(filename, foldertype, temp_doc)
             if not succ:
                 # The raw file could not be converted
                 # print(f"The raw file could not be converted. Reason: {msg}")
@@ -1871,23 +1869,6 @@ def read_and_insert_ind_index_slice_data(myPath, dataset_):
 # def delete_all_temp_results():
 #     """Deletes all database TempResultFiles objects. Use with care."""
 #     TempResultFile.objects.all().delete()
-
-
-def extract_ncfile(filename, foldertype):
-    """
-    Checks if a .nc file exists and then reads it into database as a
-    TempResultFile.
-    """
-    filepath = tmp_raw_filepath(foldertype, filename)
-    if not filepath:
-        return False
-
-    if not in_sizelimit_conversion(filepath):
-        succ, msg = extract_ncfile_lite(filename, foldertype)
-        return succ, msg
-    else:
-        succ, msg = create_tmpresultfile_from_ncfile(filename, foldertype)
-        return succ, msg
 
 
 def init_temp_results_folders():

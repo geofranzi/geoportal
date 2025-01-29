@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import TypedDict
 
 from django.conf import settings
@@ -24,10 +25,10 @@ TEMP_FOLDER_TYPES = [
 
 
 # SERVER paths
-TEMP_ROOT = "/opt/rbis/www/tippecc_data"
-TEMP_RAW = "/data"
-TEMP_CACHE = "/data/tmp/cache"
-TEMP_URL = "/data/tmp/url"
+# TEMP_ROOT = "/opt/rbis/www/tippecc_data"  # not used atm
+TEMP_RAW = "/data"  # path to raw directory (raw nc files)
+TEMP_CACHE = "/data/tmp/cache"  # path to cache directory (converted filetypes)
+TEMP_URL = "/data/tmp/url"  # path to url directory (wget requests storage)
 URLTXTFILES_DIR = TEMP_URL
 
 JAMS_TMPL_FILE = os.path.join(settings.BASE_DIR, "framework/climate/static/jams_tmpl.dat")
@@ -78,7 +79,18 @@ for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
     # print("SETTING PATH: ", os.path.join(TEMP_RAW, TEMP_FOLDER_TYPE))
     _folder_list['raw'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_RAW, TEMP_FOLDER_TYPE)
     _folder_list['cache'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_CACHE, TEMP_FOLDER_TYPE)
-    # tempfolders_content[TEMP_FOLDER_TYPE] = {}
+
+
+def temp_cat_filename(category: str, filename: str):
+    """Used for accessing a TempResultFile.
+    """
+    return os.path.join(category, filename)
+
+
+def copy_filename_as_tif(f: str):
+    """Used for naming a tif file from a .nc filename.
+    """
+    return f"{Path(f).stem}.tif"
 
 
 def parse_temp_foldertype_from_param(foldertype: str):
