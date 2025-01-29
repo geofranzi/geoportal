@@ -20,6 +20,11 @@ if READ_DOT_ENV_FILE:
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
 DEBUG = env.bool("DJANGO_DEBUG", False)
+
+# explicit flag for usage while developing locally only
+# ONLY PUSH set to False
+DEV_LOCAL = False
+
 # Local time zone. Choices are
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # though not all of them may be available with every OS.
@@ -326,14 +331,18 @@ MANAGERS = ADMINS
 # https://docs.djangoproject.com/en/dev/ref/settings/#logging
 # See https://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
+# TODO:
+#   - file handler is assumed to work in local when configured
+#   this way in base settings (but file does not exist)
+#   - separate LOGGING object for dev?
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     'formatters': {
-    'timestamp': {
-        'format': '%(asctime)s %(levelname)s %(message)s',
-        'style': '%',
-        },
+        'timestamp': {
+            'format': '%(asctime)s %(levelname)s %(message)s',
+            'style': '%',
+            },
     },
     "handlers": {
         "file": {
@@ -342,7 +351,7 @@ LOGGING = {
             "filename": "/opt/geoportal_tippecc/logs/django_error.log",
             # somehow logging in var/log doesnt work
             # "filename": "/var/log/django/django_error.log",
-	    'formatter': 'timestamp',
+            'formatter': 'timestamp',
         },
     },
     "loggers": {
