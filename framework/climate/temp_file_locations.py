@@ -20,7 +20,10 @@ TEMP_FOLDER_TYPES = [
     "ind_slices20",
     "ind_slices30",
     "cmip6_raw",
-    "cmip6_raw_ind"
+    "cmip6_raw_ind",
+    "era5_land",
+    "sftlf",
+    "orog"
 ]
 
 
