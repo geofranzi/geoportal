@@ -2,6 +2,8 @@ import json
 import os
 from subprocess import (PIPE, Popen,)
 from typing import TypedDict
+import netCDF4
+import logging
 
 
 NCCornerCoordinates = TypedDict(
@@ -50,6 +52,9 @@ NCMetaData = TypedDict(
     },
 )
 
+# Add logging
+logger = logging.getLogger('django')
+
 
 def read_raw_nc_meta_from_file(filepath: str):
     JSON_metadata = None
@@ -61,10 +66,27 @@ def read_raw_nc_meta_from_file(filepath: str):
         metadata = stdout.decode("utf-8")
 
         JSON_metadata = json.loads(metadata)
+        sub_meta = JSON_metadata['metadata']['']
+        if 'NETCDF_DIM_time_VALUES' not in sub_meta:
+           # Open the NetCDF file
+            file = netCDF4.Dataset(filepath, 'r')
+
+            # Print all variable names
+            variable_names = list(file.variables.keys())
+            # reading metadata via gdalinfo script
+            for var in variable_names:
+                if var not in ["time", "lat", "lon", "prob_of_zero", "latitude", "longitude"] and "time" not in var:
+                    process = Popen(["gdalinfo", "NETCDF:" + filepath + ":" + var, "-json", "-mm"], stdout=PIPE, stderr=PIPE)
+                    stdout, stderr = process.communicate()
+                    metadata = stdout.decode("utf-8")
+                    JSON_metadata = json.loads(metadata)
+                    logger.debug('fallback used: ' + str(var) +  " file:" + filepath)
+                    break
+        JSON_metadata = json.loads(metadata)
         return JSON_metadata
     except Exception as e:
         print(e)
-        return False
+        return False, "error"
 
 
 def read_file_specific_metadata(filepath: str):
@@ -91,17 +113,17 @@ def read_file_specific_metadata(filepath: str):
 def extract_ncfile_metadata(filepath: str):
     raw_meta = read_raw_nc_meta_from_file(filepath)
     if not raw_meta:
-        return False, ""
+        return False, "no raw metadata"
 
     # obvious checks, if these keys are missing, extraction fails
     if 'metadata' not in raw_meta or 'bands' not in raw_meta:
-        return False, ""
+        return False, "no metadata or bands" + str(raw_meta)
 
     if '' not in raw_meta['metadata']:
-        return False, ""
+        return False, "no second level metadata"
 
     if len(raw_meta['bands']) < 0:
-        return False, ""
+        return False, "no bands"
 
     # nc metadata extraction
     nc_size = None
@@ -147,10 +169,10 @@ def extract_ncfile_metadata(filepath: str):
             raw_time_values = raw_time_values.replace("{", "").replace("}", "").replace(" ", "")
             nc_netcdf_times = raw_time_values.split(",")
         except Exception:
-            return False, ""
+            return False, "NETCDF_DIM_time_VALUES error"
     else:
         # NOTE - this is a full failure, because time values are always assumed
-        return False, ""
+        return False, "this is a full failure" + str(raw_meta)
 
     nc_time_calendar = None
     if 'time#calendar' in sub_meta:
@@ -176,7 +198,7 @@ def extract_ncfile_metadata(filepath: str):
                     else:
                         band_collect['min'] = None
                 except Exception:
-                    pass
+                    continue
                 band_collect['min'] = None
 
             if 'computedMax' in b_meta:
@@ -191,8 +213,9 @@ def extract_ncfile_metadata(filepath: str):
             ]
             band_collect["index"] = i + 1
             nc_extracted_bands_meta[str(i + 1)] = band_collect
-    except Exception:
-        return False, "missing metadata key,value pairs"
+    except Exception as e:
+        print(e)
+        return False, "missing metadata key,value pairs" + str(e)
 
     nc_varinfo: NCVariable = {}
     first_band = bands_meta[0]

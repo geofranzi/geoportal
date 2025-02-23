@@ -14,6 +14,7 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
+import netCDF4
 
 import pandas as pd
 import requests
@@ -68,6 +69,7 @@ class TmpCache:
         """Return content on all files in folder given by foldertype.
         """
         source_dir = tmp_raw_path(foldertype)
+        logger.debug(f"source_dir: {source_dir}")
         if not source_dir:
             return []
 
@@ -89,6 +91,7 @@ class TmpCache:
         for foldertype in TEMP_FOLDER_TYPES:
             # check path and cache existence
             if not tmp_raw_path(foldertype) or foldertype in self._folder_cache:
+                logger.error(f"Folder {foldertype} not found or already in cache.")
                 continue
 
             folder_info: FolderInfo = {
@@ -344,18 +347,38 @@ def convert_nc_to_tif(filename_in: str, foldertype: str, temp_doc: TempResultFil
     try:
         # for some reason, tif files created via translate are
         # not allways working correctly in our visualization (thatswhy Warp)
+        # gdal.PushErrorHandler(gdal.CPLQuietErrorHandler)  # Suppress direct print
         gdal_res = gdal.Warp(filepath_out, filepath_in, **kwargs)
+        # gdal.PopErrorHandler()  # Restore normal error handling
 
         # if gdal fails it returns none, and automatically write the error with the
         # associated filepath to console (this should appear in our error.log)
         if gdal_res is None:
-            return False, "Gdal Warp to tif failed"
+            #last_error = gdal.GetLastErrorMsg()  # Get the last error message
+            return False, "Gdal Warp to tif failed with error: " + last_error
 
         fileversion_out = os.stat(filepath_out).st_mtime
         temp_doc.st_mtime_tif = fileversion_out
         temp_doc.save()
         return True, ""
     except Exception:
+        try:
+            file = netCDF4.Dataset(filepath_in, 'r')
+
+            # Print all variable names
+            variable_names = list(file.variables.keys())
+            for var in variable_names:
+                if var not in ["time", "lat", "lon", "prob_of_zero", "latitude", "longitude"] and "time" not in var:
+                    gdal_res = gdal.Warp(filepath_out, "NETCDF:" + filepath_in + ":" + var, **kwargs)
+                    fileversion_out = os.stat(filepath_out).st_mtime
+                    temp_doc.st_mtime_tif = fileversion_out
+                    temp_doc.save()
+                    logger.error('fallback used: ' + str(var) +  " file:" + filepath_in)
+                    return True, ""
+
+        except Exception as e:
+            last_error = gdal.GetLastErrorMsg()
+            return False, "Gdal Translate to tif failed with error: " + str(e) + " " + last_error
         return False, "Conversion failed"
 
 
@@ -462,7 +485,7 @@ def extract_ncfile_to_tmpresult(filename: str, foldertype: str, force_update=Fal
     file_meta = read_file_specific_metadata(filepath)
 
     if not file_meta:
-        return False, ""
+        return False, "no file_meta"
 
     try:
         old_doc: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
@@ -478,7 +501,7 @@ def extract_ncfile_to_tmpresult(filename: str, foldertype: str, force_update=Fal
     if not succ:
         # TODO - handling
         # print(f"NC Metadata extraction failed for file: {filepath}")
-        return False, ""
+        return False, "no nc_meta 2" + str(nc_meta) + str(succ)
 
     new_doc = None
     try:
@@ -516,25 +539,26 @@ def extract_ncfile(filename, foldertype):
 
 
 def read_folder_constrained(source_dir: str):
-    foldercontent = list((file for file in os.listdir(source_dir) if (os.path.isfile(os.path.join(source_dir, file)))))
-    nc_files, dat_files = split_files_by_extension(foldercontent)
+    foldercontent_nc = list((file for file in os.listdir(source_dir) if (os.path.isfile(os.path.join(source_dir, file)))))
+    # check if dat folder exists and create if not
+    if not os.path.exists(os.path.join(source_dir, "dat")):
+        os.makedirs(os.path.join(source_dir, "dat"))
+    foldercontent_dat = list((file for file in os.listdir(os.path.join(source_dir, "dat")) if (os.path.isfile(os.path.join(source_dir, "dat", file)))))
+    nc_files = split_files_by_extension(foldercontent_nc, ".nc")
+    dat_files = split_files_by_extension(foldercontent_dat, ".dat")
     return nc_files, dat_files
 
 
-def split_files_by_extension(file_list):
+def split_files_by_extension(file_list, filetype):
     # Initialize two empty lists to store files based on their extensions
     nc_files = []
-    dat_files = []
     # Loop through each file in the input list
     for file in file_list:
         # Check if the file ends with '.nc' and add it to the nc_files list
-        if file.endswith('.nc'):
+        if file.endswith(filetype):
             nc_files.append(file)
-        # Check if the file ends with '.dat' and add it to the dat_files list
-        elif file.endswith('.dat'):
-            dat_files.append(file)
     # Return both lists
-    return nc_files, dat_files
+    return nc_files
 
 
 def extract_jams_files(foldertype, filename):
@@ -650,7 +674,7 @@ def extract_jams_files(foldertype, filename):
     df.set_index('time', inplace=True)
     # output metadata and data to file
     try:
-        with open(r'{}.dat'.format(os.path.join(source_dir, filename)), 'w', encoding="utf-8") as file:
+        with open(r'{}.dat'.format(os.path.join(source_dir, "dat", filename)), 'w', encoding="utf-8") as file:
             # Append lines to the file
             file.write(meta)
             c = 0
@@ -978,11 +1002,11 @@ class TempDownloadView(APIView):
         if filetype == 'tif':
             return self.serve_tif_file(filepath, filename, foldertype)
         elif filetype == 'dat':
-            return self.serve_file(filepath+'.dat', filename+'.dat')
+            return self.serve_file(os.path.join(source_dir, "dat", filename +'.dat') , filename+'.dat')
         elif filetype == 'meta':
-            return self.serve_file(os.path.join(source_dir, "meta", filename).replace(".nc", ".nc.json"), filename+'.json')
+            return self.serve_file(os.path.join(source_dir, "meta", filename).replace(".nc", "_metadata.json"), filename.replace(".nc", "_metadata.json"))
         elif filetype == 'prov':
-            return self.serve_file(os.path.join(source_dir, "prov", filename).replace(".nc", ".json"), filename+'.json')
+            return self.serve_file(os.path.join(source_dir, "prov", filename).replace(".nc", "_prov.json"), filename.replace(".nc", "_prov.json"))
         else:
             return self.serve_file(filepath, filename)
 
@@ -1383,8 +1407,11 @@ class GenerateDatView(APIView):
             process_thread = threading.Thread(target=extract_jams_files, args=(foldertype, filename))
             process_thread.start()
 
-            # Return a 200 response to indicate the process was successfully started
-            return JsonResponse({"message": "Process started successfully"}, status=200)
+            # Wait for the thread to complete
+            process_thread.join()
+
+            # Return a 200 response to indicate the process was successfully completed
+            return JsonResponse({"message": "Process completed successfully"}, status=200)
         except Exception as e:
             # If there was an error starting the process, log the exception
             print(f"Error starting process: {e}")
