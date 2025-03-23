@@ -8,30 +8,55 @@ from django.conf import settings
 # add comment
 
 # keys that are folder names in TEMP_RAW and TEMP_CACHE
+# TEMP_FOLDER_TYPES = [
+#     "water_budget",
+#     "water_budget_bias",
+#     "kariba",
+#     "vaal_CORDEX",
+#     "vaal_CHIRPS",
+#     "cmip6",
+#     "paper",
+#     "luanginga",
+#     "ind_full",
+#     "ind_slices20",
+#     "ind_slices30",
+#     "cmip6_raw",
+#     "cmip6_raw_ind",
+#     "era5_land",
+#     "sftlf",
+#     "orog"
+# ]
+
 TEMP_FOLDER_TYPES = [
-    "water_budget",
-    "water_budget_bias",
-    "kariba",
-    "vaal",
-    "cmip6",
-    "paper",
-    "luanginga",
-    "ind_full",
-    "ind_slices20",
-    "ind_slices30",
-    "cmip6_raw",
-    "cmip6_raw_ind",
-    "era5_land",
+    "CORDEX_bias",
+    "CORDEX_raw",
+    "CORDEX_raw_ind",
+    "CORDEX_bias_ind",
+    "CMIP6_raw",
+    "CMIP6_raw_ind",
+    "CHIRPS",
+    # "CMIP6_bias",
+    # "CMIP6_bias_ind",
+    "vaal_CORDEX",
+    "vaal_CHIRPS",
+    "vaal_ERA5_LAND",
+    "kunene_ERA5_LAND",
+    "kariba_CORDEX",
+    "luanginga_CORDEX",
+    "LANDSURF_ind_full",
+    "LANDSURF_ind_slices20",
+    "LANDSURF_ind_slices30",
     "sftlf",
     "orog"
+    "paper",
 ]
 
 
 # SERVER paths
 # TEMP_ROOT = "/opt/rbis/www/tippecc_data"  # not used atm
 TEMP_RAW = "/data"  # path to raw directory (raw nc files)
-TEMP_CACHE = "/data/tmp/cache"  # path to cache directory (converted filetypes)
-TEMP_URL = "/data/tmp/url"  # path to url directory (wget requests storage)
+TEMP_CACHE = "/data/_tmp_gateway/cache"  # path to cache directory (converted filetypes)
+TEMP_URL = "/data/_tmp_gateway/url"  # path to url directory (wget requests storage)
 URLTXTFILES_DIR = TEMP_URL
 
 JAMS_TMPL_FILE = os.path.join(settings.BASE_DIR, "framework/climate/static/jams_tmpl.dat")
