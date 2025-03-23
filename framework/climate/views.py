@@ -14,8 +14,8 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
-import netCDF4
 
+import netCDF4
 import pandas as pd
 import requests
 import xarray as xr
@@ -227,7 +227,7 @@ class TmpCache:
                     tif_convertable = False
                     fileversion = str(file_stats.st_mtime)
 
-                if (f+".dat" in dat_files):
+                if (f + ".dat" in dat_files):
                     dat_exists = True
                 else:
                     dat_exists = False
@@ -241,7 +241,6 @@ class TmpCache:
                     nc_clipped_exists = True
                 else:
                     nc_clipped_exists = False
-
 
                 content_el: FileInfo = {
                     "filename": filename,
@@ -279,6 +278,7 @@ tmp_cache = TmpCache()
 tmp_cache.populate_folders()
 
 print(f"The settings DEBUG settings is: {settings.DEBUG}")
+
 
 # SPECIFICATIONS [temp results]
 #  - download single file
@@ -333,6 +333,7 @@ def in_sizelimit_conversion(filepath: str):
     else:
         return True
 
+
 def in_sizelimit_download(filepath: str):
     size = (os.stat(filepath).st_size / 1024) / 1024  # MB
     if size > TEMP_DOWNLOAD_LIMIT:
@@ -347,6 +348,7 @@ def in_sizelimit_conversion_i(st_size: int):
         return False
     else:
         return True
+
 
 def in_sizelimit_download_i(st_size: int):
     size = (st_size / 1024) / 1024  # MB
@@ -398,8 +400,8 @@ def convert_nc_to_tif(filename_in: str, foldertype: str, temp_doc: TempResultFil
         # if gdal fails it returns none, and automatically write the error with the
         # associated filepath to console (this should appear in our error.log)
         if gdal_res is None:
-            #last_error = gdal.GetLastErrorMsg()  # Get the last error message
-            return False, "Gdal Warp to tif failed with error: " + last_error
+            # last_error = gdal.GetLastErrorMsg()  # Get the last error message
+            return False, "Gdal Warp to tif failed with error: "  # + last_error
 
         fileversion_out = os.stat(filepath_out).st_mtime
         temp_doc.st_mtime_tif = fileversion_out
@@ -417,7 +419,7 @@ def convert_nc_to_tif(filename_in: str, foldertype: str, temp_doc: TempResultFil
                     fileversion_out = os.stat(filepath_out).st_mtime
                     temp_doc.st_mtime_tif = fileversion_out
                     temp_doc.save()
-                    logger.error('fallback used: ' + str(var) +  " file:" + filepath_in)
+                    logger.error('fallback used: ' + str(var) + " file:" + filepath_in)
                     return True, ""
 
         except Exception as e:
@@ -585,7 +587,8 @@ def extract_ncfile(filename, foldertype):
 def read_folder_constrained(source_dir: str):
     foldercontent_nc = list((file for file in os.listdir(source_dir) if (os.path.isfile(os.path.join(source_dir, file)))))
     try:
-        foldercontent_nc_clipped = list((file for file in os.listdir(os.path.join(source_dir, "nc_clipped")) if (os.path.isfile(os.path.join(source_dir, "nc_clipped", file)))))
+        foldercontent_nc_clipped = list(
+            (file for file in os.listdir(os.path.join(source_dir, "nc_clipped")) if (os.path.isfile(os.path.join(source_dir, "nc_clipped", file)))))
     except Exception as e:
         logger.debug(f"During read folder constrained: error while reading nc_clipped: {e}")
         foldercontent_nc_clipped = []
@@ -599,7 +602,8 @@ def read_folder_constrained(source_dir: str):
         foldercontent_dat = []
     # check if dat_clipped folder exists
     try:
-        foldercontent_dat_clipped = list((file for file in os.listdir(os.path.join(source_dir, "dat_clipped")) if (os.path.isfile(os.path.join(source_dir, "dat_clipped", file)))))
+        foldercontent_dat_clipped = list(
+            (file for file in os.listdir(os.path.join(source_dir, "dat_clipped")) if (os.path.isfile(os.path.join(source_dir, "dat_clipped", file)))))
     except Exception as e:
         logger.debug(f"During read folder constrained: error while reading dat_clipped: {e}")
         foldercontent_dat_clipped = []
@@ -940,21 +944,21 @@ def select_temp_urls(request):
             idx = foldercontent.index(requested_file[0])
             filetype = requested_file[1]
             filename = foldercontent[idx]
-            if filetype not in  ['tif', 'nc_clipped','dat_clipped','dat']:
+            if filetype not in ['tif', 'nc_clipped', 'dat_clipped', 'dat']:
                 # reset filetype to actual filename suffix
                 # initial parameter only used if client wants to download format A as format B
                 # (e.g. .nc as .tif)
                 filetype = Path(filename).suffix[1:]
 
             url_content += (
-                GENERAL_API_URL
-                + "climate/get_temp_file?name="
-                + filename
-                + "&type="
-                + foldertype
-                + "&filetype="
-                + filetype
-                + "\n"
+                    GENERAL_API_URL
+                    + "climate/get_temp_file?name="
+                    + filename
+                    + "&type="
+                    + foldertype
+                    + "&filetype="
+                    + filetype
+                    + "\n"
             )
         except Exception as e:
             print(e)
@@ -974,7 +978,7 @@ def select_temp_urls(request):
     response = JsonResponse(
         {
             "wget-command": "wget --content-disposition --input-file "
-            + f'"{GENERAL_API_URL}climate/get_temp_urls?hash={unique_filehash}"'
+                            + f'"{GENERAL_API_URL}climate/get_temp_urls?hash={unique_filehash}"'
         }
     )
 
@@ -1064,7 +1068,7 @@ class TempDownloadView(APIView):
         if filetype == 'tif':
             return self.serve_tif_file(filepath, filename, foldertype)
         elif filetype == 'dat':
-            return self.serve_file(os.path.join(source_dir, "dat", filename +'.dat') , filename+'.dat')
+            return self.serve_file(os.path.join(source_dir, "dat", filename + '.dat'), filename + '.dat')
         elif filetype == 'meta':
             return self.serve_file(os.path.join(source_dir, "meta", filename).replace(".nc", "_metadata.json"), filename.replace(".nc", "_metadata.json"))
         elif filetype == 'prov':
@@ -1072,7 +1076,8 @@ class TempDownloadView(APIView):
         elif filetype == 'nc_clipped':
             return self.serve_file(os.path.join(source_dir, "nc_clipped", filename).replace(".nc", "_clipped.nc"), filename.replace(".nc", "_clipped.nc"))
         elif filetype == 'dat_clipped':
-            return self.serve_file(os.path.join(source_dir, "dat_clipped", filename).replace(".nc", "_clipped.nc.dat"), filename.replace(".nc", "_clipped.nc.dat"))
+            return self.serve_file(os.path.join(source_dir, "dat_clipped", filename).replace(".nc", "_clipped.nc.dat"),
+                                   filename.replace(".nc", "_clipped.nc.dat"))
         else:
             return self.serve_file(filepath, filename)
 
@@ -1188,7 +1193,6 @@ def get_climate_layer(request):
 
 @api_view(["GET"])
 def download(request):
-
     if not request.query_params.get("id"):
         return HttpResponse(status=400, content="ID missing or does not exists")
 
@@ -1227,10 +1231,10 @@ def download(request):
 
         print("Text coordinates")
         if (
-            request.query_params.get("latmin")
-            and request.query_params.get("latmax")
-            and request.query_params.get("lonmin")
-            and request.query_params.get("lonmax")
+                request.query_params.get("latmin")
+                and request.query_params.get("latmax")
+                and request.query_params.get("lonmin")
+                and request.query_params.get("lonmax")
         ):
             print("All true")
             extract_to = "/opt/rbis/www/tippecc_data/tmp/"
@@ -1251,18 +1255,18 @@ def download(request):
 
             filename, file_extension = os.path.splitext(filepath.split("/")[-1])
             file_out = (
-                extract_to
-                + "/"
-                + filename
-                + "_tmp_"
-                + str(lonmin)
-                + "%"
-                + str(lonmax)
-                + "%"
-                + str(latmin)
-                + "%"
-                + str(latmax)
-                + file_extension
+                    extract_to
+                    + "/"
+                    + filename
+                    + "_tmp_"
+                    + str(lonmin)
+                    + "%"
+                    + str(lonmax)
+                    + "%"
+                    + str(latmin)
+                    + "%"
+                    + str(latmax)
+                    + file_extension
             )
             print(file_out)
             if os.path.exists(file_out):
@@ -1273,7 +1277,7 @@ def download(request):
             filepath = file_out
 
         if request.query_params.get("year_start") and request.query_params.get(
-            "year_end"
+                "year_end"
         ):
             begin_year = climate_layer.date_begin.year
             end_year = climate_layer.date_end.year
@@ -1287,11 +1291,11 @@ def download(request):
                 )
 
             if (
-                int(year_start) <= begin_year
-                or int(year_start) >= end_year
-                or int(year_end) <= begin_year
-                or int(year_end) >= end_year
-                or int(year_end) < int(year_start)
+                    int(year_start) <= begin_year
+                    or int(year_start) >= end_year
+                    or int(year_end) <= begin_year
+                    or int(year_end) >= end_year
+                    or int(year_end) < int(year_start)
             ):
                 return HttpResponse(
                     status=400,
@@ -1300,14 +1304,14 @@ def download(request):
 
             filename, file_extension = os.path.splitext(filepath.split("/")[-1])
             file_out = (
-                extract_to
-                + "/"
-                + filename
-                + "_"
-                + year_start
-                + "-"
-                + year_end
-                + file_extension
+                    extract_to
+                    + "/"
+                    + filename
+                    + "_"
+                    + year_start
+                    + "-"
+                    + year_end
+                    + file_extension
             )
             if os.path.exists(file_out):
                 print("File exists: " + file_out)
@@ -1331,14 +1335,14 @@ def download(request):
         # return response
 
         url = (
-            "https://leutra.geogr.uni-jena.de/tippecc_data/tmp/"
-            + filepath.split("/")[-1]
+                "https://leutra.geogr.uni-jena.de/tippecc_data/tmp/"
+                + filepath.split("/")[-1]
         )
         filename = os.path.basename(url)
         r = requests.get(url, stream=True)
         response = StreamingHttpResponse(streaming_content=r)
         response["Content-Disposition"] = (
-            "attachement; filename= %s" % os.path.basename(filepath)
+                "attachement; filename= %s" % os.path.basename(filepath)
         )
         # return local path instead of URL
         if request.query_params.get("path"):
@@ -1385,8 +1389,8 @@ class Elasticsearch(APIView):
         ws = ClimateSearch(search)
         count = ws.count()  # Total count of result)
         response = ws[
-            0:count
-        ].execute()  # default size is 10 -> set size to total count
+                   0:count
+                   ].execute()  # default size is 10 -> set size to total count
 
         # print response.__dict__
 
@@ -1521,8 +1525,8 @@ class ElasticsearchCollections(APIView):
         ws = ClimateCollectionSearch(search)
         count = ws.count()  # Total count of result)
         response = ws[
-            0:count
-        ].execute()  # default size is 10 -> set size to total count
+                   0:count
+                   ].execute()  # default size is 10 -> set size to total count
 
         # print response.__dict__
 
@@ -1780,11 +1784,7 @@ def bulk_indexing():
             variables.append(
                 {
                     "variable_abbr": file.variable.variable_abbr,
-                    "file_id": file.variable.variable_abbr
-                    + "_"
-                    + str(climateDatasetCollection.id)
-                    + "_"
-                    + str(file.id),
+                    "file_id": file.variable.variable_abbr + "_" + str(climateDatasetCollection.id) + "_" + str(file.id),
                     "frequency": file.frequency,
                     "start_year": file.date_begin,
                     "date_begin": file.date_end,
@@ -1805,7 +1805,6 @@ def bulk_indexing():
 
 
 def read_and_insert_ind_index_data(myPath, dataset_):
-
     connections.create_connection(
         hosts="https://leutra.geogr.uni-jena.de:443/es1453d", timeout=20
     )
@@ -1876,7 +1875,6 @@ def read_and_insert_ind_index_data(myPath, dataset_):
 
 
 def read_and_insert_ind_index_slice_data(myPath, dataset_):
-
     connections.create_connection(
         hosts="https://leutra.geogr.uni-jena.de:443/es1453d", timeout=20
     )
@@ -1981,7 +1979,6 @@ def init_temp_results_folders():
             extract_ncfile(filename, foldertype)
     # post creation handling (?)
     print(f"Finished TempResultFiles Init. Created {created_objs_counter} database objects.")
-
 
 # def update_all_tempfolders():
 #     for foldertype in TEMP_FOLDER_TYPES:

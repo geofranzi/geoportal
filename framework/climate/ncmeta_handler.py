@@ -1,9 +1,10 @@
 import json
+import logging
 import os
 from subprocess import (PIPE, Popen,)
 from typing import TypedDict
+
 import netCDF4
-import logging
 
 
 NCCornerCoordinates = TypedDict(
@@ -68,7 +69,7 @@ def read_raw_nc_meta_from_file(filepath: str):
         JSON_metadata = json.loads(metadata)
         sub_meta = JSON_metadata['metadata']['']
         if 'NETCDF_DIM_time_VALUES' not in sub_meta:
-           # Open the NetCDF file
+            # Open the NetCDF file
             file = netCDF4.Dataset(filepath, 'r')
 
             # Print all variable names
@@ -80,7 +81,7 @@ def read_raw_nc_meta_from_file(filepath: str):
                     stdout, stderr = process.communicate()
                     metadata = stdout.decode("utf-8")
                     JSON_metadata = json.loads(metadata)
-                    logger.debug('fallback used: ' + str(var) +  " file:" + filepath)
+                    logger.debug('fallback used: ' + str(var) + " file:" + filepath)
                     break
         JSON_metadata = json.loads(metadata)
         return JSON_metadata
