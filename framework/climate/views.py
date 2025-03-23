@@ -49,7 +49,7 @@ GENERAL_API_URL = "https://leutra.geogr.uni-jena.de/backend_geoportal/"
 
 HASH_LENGTH = 32  # custom length for temporary .txt files generated during wget request
 TEMP_CONVERSION_LIMIT = 75  # filesize limit in MB for conversion (nc -> tif)
-# TEMP_DOWNLOAD_LIMIT = 75  # replace and use if needed
+TEMP_DOWNLOAD_LIMIT = 1000  # replace and use if needed
 TEMP_NUM_BANDS_LIMIT = 4300  # bands limit as number for conversion (nc -> tif)
 
 
@@ -117,6 +117,22 @@ class TmpCache:
         except Exception:
             pass
 
+    def flag_dat_clipped_exists(self, foldertype: str, filename: str, value: bool):
+        """Flag that a dat file exists (given by foldertype and filename).
+        """
+        try:
+            self._folder_cache[foldertype]["content"][filename]["dat_clipped_exists"] = value
+        except Exception:
+            pass
+
+    def flag_nc_clipped_exists(self, foldertype: str, filename: str, value: bool):
+        """Flag that a dat file exists (given by foldertype and filename).
+        """
+        try:
+            self._folder_cache[foldertype]["content"][filename]["nc_clipped_exists"] = value
+        except Exception:
+            pass
+
     def is_foldercontent_empty(self, foldertype: str) -> bool:
         """Check if folder has been loaded yet. Used for lazy loading.
         """
@@ -135,7 +151,7 @@ class TmpCache:
         source_dir = tmp_raw_path(foldertype)
 
         try:
-            foldercontent, dat_files = read_folder_constrained(source_dir)
+            foldercontent, dat_files, dat_clipped_files, nc_clipped_files = read_folder_constrained(source_dir)
         except Exception as e:
             print(f"Could not read from folder {source_dir} {e}")
             # return HttpResponse(content="Reading the content of the selected folder has failed.", status=500)
@@ -186,6 +202,7 @@ class TmpCache:
                 filename = f
                 filesize = sizeof_fmt(file_stats.st_size)
                 in_limit_conversion = in_sizelimit_conversion_i(file_stats.st_size)
+                in_limit_download = in_sizelimit_download_i(file_stats.st_size)
                 filesuffix = Path(f).suffix
 
                 dirty = True
@@ -215,6 +232,17 @@ class TmpCache:
                 else:
                     dat_exists = False
 
+                if (f.replace(".nc", "_clipped.nc.dat") in dat_clipped_files):
+                    dat_clipped_exists = True
+                else:
+                    dat_clipped_exists = False
+
+                if (f.replace(".nc", "_clipped.nc") in nc_clipped_files):
+                    nc_clipped_exists = True
+                else:
+                    nc_clipped_exists = False
+
+
                 content_el: FileInfo = {
                     "filename": filename,
                     "filesize": filesize,
@@ -222,11 +250,13 @@ class TmpCache:
                     "creation_date": creation_date,
                     "fileversion": fileversion,
                     "dat_exists": dat_exists,
+                    "dat_clipped_exists": dat_clipped_exists,
+                    "nc_clipped_exists": nc_clipped_exists,
                     "tif_exists": tif_exists,
                     "tif_convertable": tif_convertable,
                     "dirty": dirty,
                     "in_limit_conversion": in_limit_conversion,
-                    "in_limit_download": in_limit_conversion,
+                    "in_limit_download": in_limit_download,
                     "num_bands": num_bands
 
                 }
@@ -303,10 +333,24 @@ def in_sizelimit_conversion(filepath: str):
     else:
         return True
 
+def in_sizelimit_download(filepath: str):
+    size = (os.stat(filepath).st_size / 1024) / 1024  # MB
+    if size > TEMP_DOWNLOAD_LIMIT:
+        return False
+    else:
+        return True
+
 
 def in_sizelimit_conversion_i(st_size: int):
     size = (st_size / 1024) / 1024  # MB
     if size > TEMP_CONVERSION_LIMIT:
+        return False
+    else:
+        return True
+
+def in_sizelimit_download_i(st_size: int):
+    size = (st_size / 1024) / 1024  # MB
+    if size > TEMP_DOWNLOAD_LIMIT:
         return False
     else:
         return True
@@ -540,13 +584,31 @@ def extract_ncfile(filename, foldertype):
 
 def read_folder_constrained(source_dir: str):
     foldercontent_nc = list((file for file in os.listdir(source_dir) if (os.path.isfile(os.path.join(source_dir, file)))))
+    try:
+        foldercontent_nc_clipped = list((file for file in os.listdir(os.path.join(source_dir, "nc_clipped")) if (os.path.isfile(os.path.join(source_dir, "nc_clipped", file)))))
+    except Exception as e:
+        logger.debug(f"During read folder constrained: error while reading nc_clipped: {e}")
+        foldercontent_nc_clipped = []
     # check if dat folder exists and create if not
     if not os.path.exists(os.path.join(source_dir, "dat")):
         os.makedirs(os.path.join(source_dir, "dat"))
-    foldercontent_dat = list((file for file in os.listdir(os.path.join(source_dir, "dat")) if (os.path.isfile(os.path.join(source_dir, "dat", file)))))
+    try:
+        foldercontent_dat = list((file for file in os.listdir(os.path.join(source_dir, "dat")) if (os.path.isfile(os.path.join(source_dir, "dat", file)))))
+    except Exception as e:
+        logger.debug(f"During read folder constrained: error while reading dat: {e}")
+        foldercontent_dat = []
+    # check if dat_clipped folder exists
+    try:
+        foldercontent_dat_clipped = list((file for file in os.listdir(os.path.join(source_dir, "dat_clipped")) if (os.path.isfile(os.path.join(source_dir, "dat_clipped", file)))))
+    except Exception as e:
+        logger.debug(f"During read folder constrained: error while reading dat_clipped: {e}")
+        foldercontent_dat_clipped = []
+
     nc_files = split_files_by_extension(foldercontent_nc, ".nc")
     dat_files = split_files_by_extension(foldercontent_dat, ".dat")
-    return nc_files, dat_files
+    dat_files_clipped = split_files_by_extension(foldercontent_dat_clipped, "_clipped.nc.dat")
+    nc_files_clipped = split_files_by_extension(foldercontent_nc_clipped, "_clipped.nc")
+    return nc_files, dat_files, dat_files_clipped, nc_files_clipped
 
 
 def split_files_by_extension(file_list, filetype):
@@ -878,7 +940,7 @@ def select_temp_urls(request):
             idx = foldercontent.index(requested_file[0])
             filetype = requested_file[1]
             filename = foldercontent[idx]
-            if filetype != 'tif':
+            if filetype not in  ['tif', 'nc_clipped','dat_clipped','dat']:
                 # reset filetype to actual filename suffix
                 # initial parameter only used if client wants to download format A as format B
                 # (e.g. .nc as .tif)
@@ -994,7 +1056,7 @@ class TempDownloadView(APIView):
         filepath = tmp_raw_filepath(foldertype, filename)
 
         # important explicit check for filesize before trying to serve
-        if not in_sizelimit_conversion(filepath):
+        if not in_sizelimit_download(filepath):
             return HttpResponse(content="Requested file is too big.", status=400)
 
         # TODO:
@@ -1007,6 +1069,10 @@ class TempDownloadView(APIView):
             return self.serve_file(os.path.join(source_dir, "meta", filename).replace(".nc", "_metadata.json"), filename.replace(".nc", "_metadata.json"))
         elif filetype == 'prov':
             return self.serve_file(os.path.join(source_dir, "prov", filename).replace(".nc", "_prov.json"), filename.replace(".nc", "_prov.json"))
+        elif filetype == 'nc_clipped':
+            return self.serve_file(os.path.join(source_dir, "nc_clipped", filename).replace(".nc", "_clipped.nc"), filename.replace(".nc", "_clipped.nc"))
+        elif filetype == 'dat_clipped':
+            return self.serve_file(os.path.join(source_dir, "dat_clipped", filename).replace(".nc", "_clipped.nc.dat"), filename.replace(".nc", "_clipped.nc.dat"))
         else:
             return self.serve_file(filepath, filename)
 
