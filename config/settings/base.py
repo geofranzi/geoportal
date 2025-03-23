@@ -348,9 +348,9 @@ LOGGING = {
         "file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
-            "filename": "/opt/geoportal_tippecc/logs/django_error.log",
+            #"filename": "/opt/geoportal_tippecc/logs/django_error.log",
             # somehow logging in var/log doesnt work
-            # "filename": "/var/log/django/django_error.log",
+            "filename": "/var/log/django/django_error.log",
             'formatter': 'timestamp',
         },
     },
