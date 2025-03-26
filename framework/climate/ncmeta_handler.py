@@ -209,6 +209,11 @@ def extract_ncfile_metadata(filepath: str):
             else:
                 band_collect['max'] = None
 
+            if 'noDataValue' in b_meta:
+                band_collect['noDataValue'] = b_meta['noDataValue']
+            else:
+                band_collect['noDataValue'] = "NaN"
+
             band_collect['NETCDF_DIM_time'] = b_meta['metadata'][''][
                 'NETCDF_DIM_time'
             ]
@@ -264,3 +269,63 @@ def extract_ncfile_metadata(filepath: str):
     }
 
     return True, full_nc_meta
+
+
+def helper_read_and_add_nodatavalue(cur_nc_meta: dict, filepath: str):
+    raw_meta = read_raw_nc_meta_from_file(filepath)
+    if not raw_meta:
+        return False, "no raw metadata"
+
+    # obvious checks, if these keys are missing, extraction fails
+    if 'metadata' not in raw_meta or 'bands' not in raw_meta:
+        return False, "no metadata or bands" + str(raw_meta)
+
+    if '' not in raw_meta['metadata']:
+        return False, "no second level metadata"
+
+    if len(raw_meta['bands']) < 0:
+        return False, "no bands"
+
+    bands_meta = raw_meta['bands']
+    nc_extracted_bands_meta: dict[str, NCBand] = {}
+    try:
+        for i, b_meta in enumerate(bands_meta):
+            band_collect: NCBand = {}
+            if 'computedMin' in b_meta:
+                band_collect['min'] = b_meta['computedMin']
+            elif 'min' in b_meta:
+                band_collect['min'] = b_meta['min']
+            else:
+                try:
+                    if 'valid_min' in b_meta['metadata']['']:
+                        band_collect['min'] = b_meta['metadata']['']['valid_min']
+                    else:
+                        band_collect['min'] = None
+                except Exception:
+                    continue
+                band_collect['min'] = None
+
+            if 'computedMax' in b_meta:
+                band_collect['max'] = b_meta['computedMax']
+            elif 'max' in b_meta:
+                band_collect['max'] = b_meta['max']
+            else:
+                band_collect['max'] = None
+
+            if 'noDataValue' in b_meta:
+                band_collect['noDataValue'] = b_meta['noDataValue']
+            else:
+                band_collect['noDataValue'] = "NaN"
+
+            band_collect['NETCDF_DIM_time'] = b_meta['metadata'][''][
+                'NETCDF_DIM_time'
+            ]
+            band_collect["index"] = i + 1
+            nc_extracted_bands_meta[str(i + 1)] = band_collect
+    except Exception as e:
+        print(e)
+        return False, "missing metadata key,value pairs" + str(e)
+
+    cur_nc_meta['bands'] = nc_extracted_bands_meta
+
+    return cur_nc_meta
