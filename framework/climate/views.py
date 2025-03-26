@@ -1984,9 +1984,14 @@ def init_temp_results_folders():
 def helper_update_nodatavalue():
     for temp_file in TempResultFile.objects.all():
         filepath = tmp_raw_filepath(temp_file.category, temp_file.filename)
-        new_nc_meta = helper_read_and_add_nodatavalue(temp_file.nc_meta, filepath)
-        temp_file.nc_meta = new_nc_meta
-        temp_file.save()
+        if not filepath:
+            continue
+        if in_sizelimit_conversion(filepath):
+            new_nc_meta = helper_read_and_add_nodatavalue(temp_file.nc_meta, filepath)
+            temp_file.nc_meta = new_nc_meta
+            temp_file.save()
+        else:
+            continue
 
 
 helper_update_nodatavalue()
