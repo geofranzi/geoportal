@@ -31,7 +31,7 @@ from rest_framework.views import APIView
 from xclim import testing
 
 from .models import (ClimateLayer, TempResultFile,)
-from .ncmeta_handler import (extract_ncfile_metadata, read_file_specific_metadata,)
+from .ncmeta_handler import (extract_ncfile_metadata, helper_read_and_add_nodatavalue, read_file_specific_metadata,)
 from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex, ClimateDatasetsIndex,
                         ClimateIndicatorIndex, ClimateIndicatorSearch, ClimateSearch,)
 from .serializer import ClimateLayerSerializer
@@ -1957,9 +1957,9 @@ def read_and_insert_ind_index_slice_data(myPath, dataset_):
 # bulk_indexing()
 
 
-# def delete_all_temp_results():
-#     """Deletes all database TempResultFiles objects. Use with care."""
-#     TempResultFile.objects.all().delete()
+def delete_all_temp_results():
+    """Deletes all database TempResultFiles objects. Use with care."""
+    TempResultFile.objects.all().delete()
 
 
 def init_temp_results_folders():
@@ -1979,6 +1979,17 @@ def init_temp_results_folders():
             extract_ncfile(filename, foldertype)
     # post creation handling (?)
     print(f"Finished TempResultFiles Init. Created {created_objs_counter} database objects.")
+
+
+def helper_update_nodatavalue():
+    for temp_file in TempResultFile.objects.all():
+        filepath = tmp_raw_filepath(temp_file.category, temp_file.filename)
+        new_nc_meta = helper_read_and_add_nodatavalue(temp_file.nc_meta, filepath)
+        temp_file.nc_meta = new_nc_meta
+        temp_file.save()
+
+
+helper_update_nodatavalue()
 
 # def update_all_tempfolders():
 #     for foldertype in TEMP_FOLDER_TYPES:
