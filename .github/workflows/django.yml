@@ -33,6 +33,7 @@ jobs:
         export C_INCLUDE_PATH=/usr/include/gdal
         python -m pip install --upgrade pip
         pip install -r requirements/local.txt
+        mkdir -p /opt/geoportal_tippecc/logs
     - name: Run mirgate
       run: |
         python manage.py shell -c "import django;django.db.connection.cursor().execute('SELECT InitSpatialMetaData(1);')";
