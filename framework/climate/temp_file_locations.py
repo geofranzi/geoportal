@@ -3,7 +3,8 @@ from pathlib import Path
 from typing import TypedDict
 
 from django.conf import settings
-
+# import logging
+# logger = logging.getLogger('django')
 
 # add comment
 
@@ -46,8 +47,9 @@ TEMP_FOLDER_TYPES = [
     "LANDSURF_ind_full",
     "LANDSURF_ind_slices20",
     "LANDSURF_ind_slices30",
+    "GLEAM",
     "sftlf",
-    "orog"
+    "orog",
     "paper",
 ]
 

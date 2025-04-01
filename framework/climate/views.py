@@ -1994,7 +1994,7 @@ def helper_update_nodatavalue():
             continue
 
 
-helper_update_nodatavalue()
+# helper_update_nodatavalue()
 
 # def update_all_tempfolders():
 #     for foldertype in TEMP_FOLDER_TYPES:
