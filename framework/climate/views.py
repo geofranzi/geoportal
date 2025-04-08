@@ -19,6 +19,7 @@ import netCDF4
 import pandas as pd
 import requests
 import xarray as xr
+import rioxarray
 from django.conf import settings
 from django.http import (FileResponse, HttpResponse, JsonResponse, StreamingHttpResponse,)
 from elasticsearch_dsl import Index
@@ -51,6 +52,7 @@ HASH_LENGTH = 32  # custom length for temporary .txt files generated during wget
 TEMP_CONVERSION_LIMIT = 75  # filesize limit in MB for conversion (nc -> tif)
 TEMP_DOWNLOAD_LIMIT = 1000  # replace and use if needed
 TEMP_NUM_BANDS_LIMIT = 4300  # bands limit as number for conversion (nc -> tif)
+
 
 
 class TmpCache:
@@ -629,8 +631,8 @@ def split_files_by_extension(file_list, filetype):
 
 def extract_jams_files(foldertype, filename):
     logger.debug('extract jams started')
-    wrong_variables = ['time_bnds']
-    decimal_digits = 2
+    wrong_variables = ['time_bnds','spatial_ref']
+    decimal_digits = 5
     source_dir = tmp_raw_path(foldertype)
     filepath = os.path.join(source_dir, filename)
     try:
@@ -640,63 +642,31 @@ def extract_jams_files(foldertype, filename):
     except MemoryError:
         logger.debug("During extract jams file: memory error")
     i = 0
+    epsg_utm = get_utm_epsg_from_nc(filepath)
     var_name = list(nc.data_vars)[i]
     while var_name in wrong_variables:
         i += 1
         var_name = list(nc.data_vars)[i]
-    # shape = gpd.read_file(r'{}\{}'.format(base_dir, shapefile))
     try:
         var_unit = nc[var_name].attrs['units']
     except Exception as e:
         logger.debug(f"During extract jams file: error while parsing units: {e}")
         var_unit = 'none'
+
+    ds = nc[var_name]
+    ds = ds.rio.write_crs("EPSG:4326")
+    ds = ds.rio.reproject(epsg_utm)
     time_var = nc['time']
     tres = pd.TimedeltaIndex(time_var.diff(dim='time')).mean()
     one_day = pd.Timedelta(days=1)
 
-    # get both CRSs and create transformer
-    # shape_crs = shape.crs
-    # nc_crs = pyproj.CRS(4326)
-    # transformer = pyproj.Transformer.from_crs(shape_crs, nc_crs, always_xy=True)
-
-    # get bounding box of the shapefile
-    # minx, miny, maxx, maxy = shape.total_bounds
-
-    # minx, miny = transformer.transform(minx, miny)
-    # maxx, maxy = transformer.transform(maxx, maxy)
-
-    # define buffer distance in NetCDF CRS
-    # buffer = 0.5
-
-    # expand bounding box by buffer distance
-    # minx -= buffer
-    # miny -= buffer
-    # maxx += buffer
-    # maxy += buffer
-
-    # list of lon/lat coordinates of cells with data
-    # cell_coords = [(lon, lat) for lon in nc.lon.values for lat in nc.lat.values if
-    #               minx <= lon <= maxx and miny <= lat <= maxy]
-
-    cell_coords = [(lon, lat) for lon in nc.lon.values for lat in nc.lat.values]
-    # iterate over cell coordinates and extract data for all time steps
-    data = []
-
-    #   times1 = []
-    #   times2 = []
-    c = 0
-    for lon, lat in cell_coords:
-        cell_data = nc.sel(lon=lon, lat=lat, method='nearest')[var_name].values
-        for i, value in enumerate(cell_data):
-            data.append({'lon': lon, 'lat': lat, 'time': nc.time.values[i], 'value': value})
-        c += 1
-    # convert to dataframe and reproject to shapefile CRS
-    df = pd.DataFrame(data).sort_values(by=['time', 'lon', 'lat'])
-    # get some data from the dataframe
+    df = ds.to_dataframe().reset_index()
+    df = df.dropna(subset=[var_name])
+    df = df.sort_values(by=['time', 'y', 'x'])
+    unique_x_y_pairs = df[['x', 'y']].drop_duplicates()
     unique_times = df['time'].unique()
     min_time = min(unique_times)
     max_time = max(unique_times)
-    unique_x_y_pairs = df[['lon', 'lat']].drop_duplicates()
 
     # read file header template
     try:
@@ -706,7 +676,7 @@ def extract_jams_files(foldertype, filename):
         logger.debug(f"During extract jams file: error while reading jams template: {e}")
 
     # create metadata header
-    #  meta = meta.replace('%crs%', str(shape_crs))
+    meta = meta.replace('%crs%', epsg_utm)
     # meta = ""
     meta = meta.replace('%ncfile%', filename)
     # meta = meta.replace('%shapefile%', shapefile)
@@ -743,15 +713,13 @@ def extract_jams_files(foldertype, filename):
         with open(r'{}.dat'.format(os.path.join(source_dir, "dat", filename)), 'w', encoding="utf-8") as file:
             # Append lines to the file
             file.write(meta)
-            c = 0
 
             for timestep in unique_times:
                 data = df.loc[timestep]
-                values_list = ['{:.{}f}'.format(value, decimal_digits) for value in data['value']]
+                values_list = ['{:.{}f}'.format(value, decimal_digits) for value in data[var_name]]
                 values = '\t'.join(values_list)
                 line = '{}\t{}\n'.format(timestep, values)
                 file.write(line)
-                c += 1
 
             file.write('# end of file')
             file.close()
@@ -761,6 +729,40 @@ def extract_jams_files(foldertype, filename):
     tmp_cache.flag_dat_exists(foldertype, filename, True)
     logger.debug('extract jams ended')
 
+def get_utm_epsg_from_nc(nc_path):
+    """
+    Reads a NetCDF file and returns the appropriate UTM EPSG code based on its extent.
+
+    Parameters:
+        nc_path (str): Path to the NetCDF file
+
+    Returns:
+        tuple: (zone_number, hemisphere, epsg_code)
+    """
+    # Open the NetCDF dataset
+    ds = xr.open_dataset(nc_path)
+
+    lon = ds['lon']
+    lat = ds['lat']
+
+    # Get min and max values
+    min_lon = float(lon.min())
+    max_lon = float(lon.max())
+    min_lat = float(lat.min())
+    max_lat = float(lat.max())
+
+    # Compute center of bounding box
+    center_lon = (min_lon + max_lon) / 2
+    center_lat = (min_lat + max_lat) / 2
+
+    # Calculate UTM zone
+    zone_number = int((center_lon + 180) / 6) + 1
+    hemisphere = 'north' if center_lat >= 0 else 'south'
+
+    # EPSG code (32600 + zone for north, 32700 + zone for south)
+    epsg_code = 32600 + zone_number if hemisphere == 'north' else 32700 + zone_number
+    epsg_code = "EPSG:"+str(epsg_code)
+    return epsg_code
 
 @api_view(["GET"])
 def access_tif_from_ncfile(request):
