@@ -19,7 +19,7 @@ import netCDF4
 import pandas as pd
 import requests
 import xarray as xr
-import rioxarray #noqa
+import rioxarray  # noqa
 from django.conf import settings
 from django.http import (FileResponse, HttpResponse, JsonResponse, StreamingHttpResponse,)
 from elasticsearch_dsl import Index
