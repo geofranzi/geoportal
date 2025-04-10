@@ -19,7 +19,7 @@ import netCDF4
 import pandas as pd
 import requests
 import xarray as xr
-import rioxarray
+import rioxarray #noqa
 from django.conf import settings
 from django.http import (FileResponse, HttpResponse, JsonResponse, StreamingHttpResponse,)
 from elasticsearch_dsl import Index
@@ -52,7 +52,6 @@ HASH_LENGTH = 32  # custom length for temporary .txt files generated during wget
 TEMP_CONVERSION_LIMIT = 75  # filesize limit in MB for conversion (nc -> tif)
 TEMP_DOWNLOAD_LIMIT = 1000  # replace and use if needed
 TEMP_NUM_BANDS_LIMIT = 4300  # bands limit as number for conversion (nc -> tif)
-
 
 
 class TmpCache:
@@ -631,7 +630,7 @@ def split_files_by_extension(file_list, filetype):
 
 def extract_jams_files(foldertype, filename):
     logger.debug('extract jams started')
-    wrong_variables = ['time_bnds','spatial_ref']
+    wrong_variables = ['time_bnds', 'spatial_ref']
     decimal_digits = 5
     source_dir = tmp_raw_path(foldertype)
     filepath = os.path.join(source_dir, filename)
@@ -729,6 +728,7 @@ def extract_jams_files(foldertype, filename):
     tmp_cache.flag_dat_exists(foldertype, filename, True)
     logger.debug('extract jams ended')
 
+
 def get_utm_epsg_from_nc(nc_path):
     """
     Reads a NetCDF file and returns the appropriate UTM EPSG code based on its extent.
@@ -763,6 +763,7 @@ def get_utm_epsg_from_nc(nc_path):
     epsg_code = 32600 + zone_number if hemisphere == 'north' else 32700 + zone_number
     epsg_code = "EPSG:"+str(epsg_code)
     return epsg_code
+
 
 @api_view(["GET"])
 def access_tif_from_ncfile(request):
