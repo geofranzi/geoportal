@@ -35,6 +35,9 @@ jobs:
         pip install -r requirements/local.txt
         sudo mkdir -p /var/log/django
         sudo chmod -R 777 /var/log/django
+    - name: Init spatialite
+      run: |
+        sqlite3 test_db.sqlite3 "SELECT load_extension('mod_spatialite');"
     - name: Run mirgate
       run: |
         python manage.py shell -c "import django;django.db.connection.cursor().execute('SELECT InitSpatialMetaData(1);')";
