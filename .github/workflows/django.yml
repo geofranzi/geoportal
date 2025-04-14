@@ -11,9 +11,9 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.11]
+        python-version: ['3.10', 3.11]
     env:
-      DATABASES: 'spatialite:///test_db.sqlite3'
+          DATABASES: 'spatialite:///test_db.sqlite3'
     steps:    
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -37,8 +37,7 @@ jobs:
         sudo chmod -R 777 /var/log/django
     - name: Run mirgate
       run: |
-        python manage.py shell -c "import sqlite3; conn = sqlite3.connect('test_db.sqlite3'); conn.enable_load_extension(True); conn.load_extension('mod_spatialite');"
-        python manage.py shell -c "import django; django.db.connection.cursor().execute('SELECT InitSpatialMetaData(1);')"
+        python manage.py shell -c "import django;django.db.connection.cursor().execute('SELECT InitSpatialMetaData(1);')";
         python manage.py makemigrations
         python manage.py migrate
         python manage.py check
