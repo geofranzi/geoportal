@@ -28,9 +28,9 @@ pycurl==7.45.1 #  pip install .\pycurl-7.45.1-cp310-cp310-win_amd64.whl https://
 pysftp==0.2.9
 python_dateutil==2.8.2
 # requests==2.3.0
-rioxarray==0.17.0
 Shapely==1.8.2 # pip install .\Shapely-1.8.2-cp310-cp310-win_amd64.whl https://www.lfd.uci.edu/~gohlke/pythonlibs/#shapely
 #suit==2.0.2
 django-suit-v2-pm @ git+https://github.com/pulse-mind/django-suit.git#egg=django_suit_v23
 xarray==2024.1.0 # <2024.3 needed
 xclim==0.48.2
+rioxarray==0.17.0
