@@ -35,7 +35,7 @@ jobs:
         echo "System GDAL version: $GDAL_VERSION"
         python -m pip install --upgrade pip
         pip install "GDAL==$GDAL_VERSION.*"
-        python -c "import gdal; print(gdal.__version__)"
+        python -c "from osgeo import gdal; print(gdal.__version__)"
         pip install -r requirements/local.txt
         sudo mkdir -p /var/log/django
         sudo chmod -R 777 /var/log/django
