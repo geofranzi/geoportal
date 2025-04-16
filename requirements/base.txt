@@ -11,6 +11,7 @@ django_pandas==0.6.6
 # django-thumbs-v2==0.4.1
 djangorestframework==3.14.0
 elasticsearch_dsl==8.9.0
+GDAL==3.4.3 #  pip install .\GDAL-3.4.3-cp310-cp310-win_amd64.whl https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
 geojson==3.0.1
 gsconfig-py3==1.0.8
 lxml==4.9.3
@@ -30,7 +31,6 @@ python_dateutil==2.8.2
 Shapely==1.8.2 # pip install .\Shapely-1.8.2-cp310-cp310-win_amd64.whl https://www.lfd.uci.edu/~gohlke/pythonlibs/#shapely
 #suit==2.0.2
 django-suit-v2-pm @ git+https://github.com/pulse-mind/django-suit.git#egg=django_suit_v23
-xarray==2023.12.0 # <2024.3 needed
+xarray==2024.1.0 # <2024.3 needed
 xclim==0.48.2
-GDAL==3.9.2 #  pip install .\GDAL-3.4.3-cp310-cp310-win_amd64.whl https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
 rioxarray==0.17.0
