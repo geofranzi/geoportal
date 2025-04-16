@@ -11,7 +11,7 @@ django_pandas==0.6.6
 # django-thumbs-v2==0.4.1
 djangorestframework==3.14.0
 elasticsearch_dsl==8.9.0
-GDAL==3.4.3 #  pip install .\GDAL-3.4.3-cp310-cp310-win_amd64.whl https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
+GDAL==3.8.4 #  pip install .\GDAL-3.4.3-cp310-cp310-win_amd64.whl https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
 geojson==3.0.1
 gsconfig-py3==1.0.8
 lxml==4.9.3
