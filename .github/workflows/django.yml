@@ -37,6 +37,10 @@ jobs:
         pip install -r requirements/local.txt
         sudo mkdir -p /var/log/django
         sudo chmod -R 777 /var/log/django
+    - name: Debug python libaries
+      run: |
+        python -c "import gdal; print(gdal.__version__)"
+        python -c "import rioxarray"
     - name: Run mirgate
       run: |
         python manage.py shell -c "import django;django.db.connection.cursor().execute('SELECT InitSpatialMetaData(1);')";
