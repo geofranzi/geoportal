@@ -19,7 +19,6 @@ import netCDF4
 import pandas as pd
 import requests
 import xarray as xr
-# import rioxarray  # noqa
 from django.conf import settings
 from django.http import (FileResponse, HttpResponse, JsonResponse, StreamingHttpResponse,)
 from elasticsearch_dsl import Index
@@ -629,6 +628,7 @@ def split_files_by_extension(file_list, filetype):
 
 
 def extract_jams_files(foldertype, filename):
+    import rioxarray  # noqa
     logger.debug('extract jams started')
     wrong_variables = ['time_bnds', 'spatial_ref']
     decimal_digits = 5

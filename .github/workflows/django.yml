@@ -31,10 +31,6 @@ jobs:
         sudo apt-get install -y libsqlite3-mod-spatialite
         export CPLUS_INCLUDE_PATH=/usr/include/gdal
         export C_INCLUDE_PATH=/usr/include/gdal
-        GDAL_VERSION=$(gdal-config --version)
-        echo "System GDAL version: $GDAL_VERSION"
-        python -m pip install --upgrade pip
-        pip install "GDAL==$GDAL_VERSION.*"
         pip install -r requirements/local.txt
         sudo mkdir -p /var/log/django
         sudo chmod -R 777 /var/log/django
