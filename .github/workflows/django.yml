@@ -27,12 +27,10 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install gdal-bin=3.6.2+dfsg-1~bionic0 libgdal-dev=3.6.2+dfsg-1~bionic0
+        sudo apt-get install -y gdal-bin libgdal-dev libproj-dev
         sudo apt-get install -y libsqlite3-mod-spatialite
         export CPLUS_INCLUDE_PATH=/usr/include/gdal
         export C_INCLUDE_PATH=/usr/include/gdal
-        GDAL_VERSION=$(gdal-config --version)
-        pip install "GDAL==$GDAL_VERSION.*"
         pip install -r requirements/local.txt
         sudo mkdir -p /var/log/django
         sudo chmod -R 777 /var/log/django
