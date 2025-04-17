@@ -402,7 +402,10 @@ def convert_nc_to_tif(filename_in: str, foldertype: str, temp_doc: TempResultFil
         # associated filepath to console (this should appear in our error.log)
         if gdal_res is None:
             # last_error = gdal.GetLastErrorMsg()  # Get the last error message
-            return False, "Gdal Warp to tif failed with error: "  # + last_error
+            # return False, "Gdal Warp to tif failed with error: "  # + last_error
+            # throw Exception("Gdal Warp to tif failed with error: " + last_error)
+            # enforce Exception to be thrown
+            raise Exception("Gdal Warp to tif failed with error: ")
 
         fileversion_out = os.stat(filepath_out).st_mtime
         temp_doc.st_mtime_tif = fileversion_out
@@ -1063,14 +1066,17 @@ class TempDownloadView(APIView):
         filepath = tmp_raw_filepath(foldertype, filename)
 
         # important explicit check for filesize before trying to serve
-        if not in_sizelimit_download(filepath):
-            return HttpResponse(content="Requested file is too big.", status=400)
+        # deactivate limit, as it prevents also the allowed download for prov and meta
+        # if not in_sizelimit_download(filepath):
+        #    return HttpResponse(content="Requested file is too big.", status=400)
 
         # TODO:
         #   - normalize this (remove all hardcoded pathing/filenaming)
         if filetype == 'tif':
             return self.serve_tif_file(filepath, filename, foldertype)
         elif filetype == 'dat':
+            if not in_sizelimit_download(filepath):
+                return HttpResponse(content="Requested file is too big.", status=400)
             return self.serve_file(os.path.join(source_dir, "dat", filename + '.dat'), filename + '.dat')
         elif filetype == 'meta':
             return self.serve_file(os.path.join(source_dir, "meta", filename).replace(".nc", "_metadata.json"), filename.replace(".nc", "_metadata.json"))
