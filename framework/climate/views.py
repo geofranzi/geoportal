@@ -1100,14 +1100,23 @@ class TempDownloadView(APIView):
         # this -> content_type='application/octet-stream' fixed the decode error
 
         response = None
-        with open(filepath, "rb") as test_file:
-            response = HttpResponse(content=test_file.read(), content_type='application/octet-stream')
-            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        # check if file exists
+        if not os.path.isfile(filepath):
+            return HttpResponse(content="File does not exist", status=404)
+        # check if file is empty
+        if os.stat(filepath).st_size == 0:
+            return HttpResponse(content="File is empty", status=404)
 
-        if response is not None:
-            return response
         else:
-            return HttpResponse(content="Could not read the file content", status=500)
+
+            with open(filepath, "rb") as test_file:
+                response = HttpResponse(content=test_file.read(), content_type='application/octet-stream')
+                response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+            if response is not None:
+                return response
+            else:
+                return HttpResponse(content="Could not read the file content", status=404)
         # ====
 
     def serve_tif_file(self, filepath, filename, foldertype):
