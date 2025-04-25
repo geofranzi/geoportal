@@ -417,7 +417,7 @@ def convert_nc_to_tif(filename_in: str, foldertype: str, temp_doc: TempResultFil
             # Print all variable names
             variable_names = list(file.variables.keys())
             for var in variable_names:
-                if var not in ["time", "lat", "lon", "prob_of_zero", "latitude", "longitude"] and "time" not in var:
+                if var not in ["time", "lat", "lon", "prob_of_zero", "latitude", "longitude", "climatology_bounds_details", "climatology_bounds", "height"] and "time" not in var:
                     gdal_res = gdal.Warp(filepath_out, "NETCDF:" + filepath_in + ":" + var, **kwargs)
                     fileversion_out = os.stat(filepath_out).st_mtime
                     temp_doc.st_mtime_tif = fileversion_out

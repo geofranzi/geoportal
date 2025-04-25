@@ -69,25 +69,29 @@ def read_raw_nc_meta_from_file(filepath: str):
         JSON_metadata = json.loads(metadata)
         sub_meta = JSON_metadata['metadata']['']
         if 'NETCDF_DIM_time_VALUES' not in sub_meta:
-            # Open the NetCDF file
+            raise Exception("NETCDF_DIM_time_VALUES not found in metadata")
+
+    except Exception as e:
+        try:
+             # Open the NetCDF file
             file = netCDF4.Dataset(filepath, 'r')
 
             # Print all variable names
             variable_names = list(file.variables.keys())
             # reading metadata via gdalinfo script
             for var in variable_names:
-                if var not in ["time", "lat", "lon", "prob_of_zero", "latitude", "longitude"] and "time" not in var:
+                if var not in ["time", "lat", "lon", "prob_of_zero", "latitude", "longitude", "climatology_bounds", "climatology_bounds_details", "height"] and "time" not in var:
                     process = Popen(["gdalinfo", "NETCDF:" + filepath + ":" + var, "-json", "-mm"], stdout=PIPE, stderr=PIPE)
                     stdout, stderr = process.communicate()
                     metadata = stdout.decode("utf-8")
                     JSON_metadata = json.loads(metadata)
                     logger.debug('fallback used: ' + str(var) + " file:" + filepath)
                     break
-        JSON_metadata = json.loads(metadata)
-        return JSON_metadata
-    except Exception as e:
-        print(e)
-        return False, "error"
+            JSON_metadata = json.loads(metadata)
+            return JSON_metadata
+        except Exception as e:
+            logger.error("Error reading metadata: " + filepath + " "+ var + " " + str(e))
+            return False, "error"
 
 
 def read_file_specific_metadata(filepath: str):
