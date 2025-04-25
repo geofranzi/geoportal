@@ -19,7 +19,6 @@ import netCDF4
 import pandas as pd
 import requests
 import xarray as xr
-import rioxarray  # noqa
 from django.conf import settings
 from django.http import (FileResponse, HttpResponse, JsonResponse, StreamingHttpResponse,)
 from elasticsearch_dsl import Index
@@ -632,104 +631,108 @@ def split_files_by_extension(file_list, filetype):
 
 
 def extract_jams_files(foldertype, filename):
-    logger.debug('extract jams started')
-    wrong_variables = ['time_bnds', 'spatial_ref']
-    decimal_digits = 5
-    source_dir = tmp_raw_path(foldertype)
-    filepath = os.path.join(source_dir, filename)
     try:
-        nc = xr.open_dataset(filepath)
-    except Exception as e:
-        logger.debug(f"During extract jams file: error while reading nc: {e}")
-    except MemoryError:
-        logger.debug("During extract jams file: memory error")
-    i = 0
-    epsg_utm = get_utm_epsg_from_nc(filepath)
-    var_name = list(nc.data_vars)[i]
-    while var_name in wrong_variables:
-        i += 1
+        import rioxarray  # noqa
+        logger.debug('extract jams started')
+        wrong_variables = ['time_bnds', 'spatial_ref']
+        decimal_digits = 5
+        source_dir = tmp_raw_path(foldertype)
+        filepath = os.path.join(source_dir, filename)
+        try:
+            nc = xr.open_dataset(filepath)
+        except Exception as e:
+            logger.debug(f"During extract jams file: error while reading nc: {e}")
+        except MemoryError:
+            logger.debug("During extract jams file: memory error")
+        i = 0
+        epsg_utm = get_utm_epsg_from_nc(filepath)
         var_name = list(nc.data_vars)[i]
-    try:
-        var_unit = nc[var_name].attrs['units']
-    except Exception as e:
-        logger.debug(f"During extract jams file: error while parsing units: {e}")
-        var_unit = 'none'
+        while var_name in wrong_variables:
+            i += 1
+            var_name = list(nc.data_vars)[i]
+        try:
+            var_unit = nc[var_name].attrs['units']
+        except Exception as e:
+            logger.debug(f"During extract jams file: error while parsing units: {e}")
+            var_unit = 'none'
 
-    ds = nc[var_name]
-    ds = ds.rio.write_crs("EPSG:4326")
-    ds = ds.rio.reproject(epsg_utm)
-    time_var = nc['time']
-    tres = pd.TimedeltaIndex(time_var.diff(dim='time')).mean()
-    one_day = pd.Timedelta(days=1)
+        ds = nc[var_name]
+        ds = ds.rio.write_crs("EPSG:4326")
+        ds = ds.rio.reproject(epsg_utm)
+        time_var = nc['time']
+        tres = pd.TimedeltaIndex(time_var.diff(dim='time')).mean()
+        one_day = pd.Timedelta(days=1)
 
-    df = ds.to_dataframe().reset_index()
-    df = df.dropna(subset=[var_name])
-    df = df.sort_values(by=['time', 'y', 'x'])
-    unique_x_y_pairs = df[['x', 'y']].drop_duplicates()
-    unique_times = df['time'].unique()
-    min_time = min(unique_times)
-    max_time = max(unique_times)
+        df = ds.to_dataframe().reset_index()
+        df = df.dropna(subset=[var_name])
+        df = df.sort_values(by=['time', 'y', 'x'])
+        unique_x_y_pairs = df[['x', 'y']].drop_duplicates()
+        unique_times = df['time'].unique()
+        min_time = min(unique_times)
+        max_time = max(unique_times)
 
-    # read file header template
-    try:
-        with open(JAMS_TMPL_FILE, "r") as file:
-            meta = file.read()
-    except Exception as e:
-        logger.debug(f"During extract jams file: error while reading jams template: {e}")
+        # read file header template
+        try:
+            with open(JAMS_TMPL_FILE, "r") as file:
+                meta = file.read()
+        except Exception as e:
+            logger.debug(f"During extract jams file: error while reading jams template: {e}")
 
-    # create metadata header
-    meta = meta.replace('%crs%', epsg_utm)
-    # meta = ""
-    meta = meta.replace('%ncfile%', filename)
-    # meta = meta.replace('%shapefile%', shapefile)
-    meta = meta.replace('%var_name%', var_name)
-    meta = meta.replace('%var_unit%', var_unit)
-    meta = meta.replace('%min_time%', str(min_time))
-    meta = meta.replace('%max_time%', str(max_time))
-    meta = meta.replace('%tres%', 'm' if one_day < tres else 'd')
+        # create metadata header
+        meta = meta.replace('%crs%', epsg_utm)
+        # meta = ""
+        meta = meta.replace('%ncfile%', filename)
+        # meta = meta.replace('%shapefile%', shapefile)
+        meta = meta.replace('%var_name%', var_name)
+        meta = meta.replace('%var_unit%', var_unit)
+        meta = meta.replace('%min_time%', str(min_time))
+        meta = meta.replace('%max_time%', str(max_time))
+        meta = meta.replace('%tres%', 'm' if one_day < tres else 'd')
 
-    stations = ''
-    ids = ''
-    elevations = ''
-    cols = ''
-    xs = ''
-    ys = ''
-    n = 1
-    for x, y in unique_x_y_pairs.values:
-        stations += 'station_{}\t'.format(n)
-        ids += '{}\t'.format(n)
-        cols += '{}\t'.format(n)
-        elevations += '0.0\t'
-        xs += '{}\t'.format(x)
-        ys += '{}\t'.format(y)
-        n += 1
-    meta = meta.replace('%stations%', stations)
-    meta = meta.replace('%ids%', ids)
-    meta = meta.replace('%elevations%', elevations)
-    meta = meta.replace('%cols%', cols)
-    meta = meta.replace('%xs%', xs)
-    meta = meta.replace('%ys%', ys)
-    df.set_index('time', inplace=True)
-    # output metadata and data to file
-    try:
-        with open(r'{}.dat'.format(os.path.join(source_dir, "dat", filename)), 'w', encoding="utf-8") as file:
-            # Append lines to the file
-            file.write(meta)
+        stations = ''
+        ids = ''
+        elevations = ''
+        cols = ''
+        xs = ''
+        ys = ''
+        n = 1
+        for x, y in unique_x_y_pairs.values:
+            stations += 'station_{}\t'.format(n)
+            ids += '{}\t'.format(n)
+            cols += '{}\t'.format(n)
+            elevations += '0.0\t'
+            xs += '{}\t'.format(x)
+            ys += '{}\t'.format(y)
+            n += 1
+        meta = meta.replace('%stations%', stations)
+        meta = meta.replace('%ids%', ids)
+        meta = meta.replace('%elevations%', elevations)
+        meta = meta.replace('%cols%', cols)
+        meta = meta.replace('%xs%', xs)
+        meta = meta.replace('%ys%', ys)
+        df.set_index('time', inplace=True)
+        # output metadata and data to file
+        try:
+            with open(r'{}.dat'.format(os.path.join(source_dir, "dat", filename)), 'w', encoding="utf-8") as file:
+                # Append lines to the file
+                file.write(meta)
 
-            for timestep in unique_times:
-                data = df.loc[timestep]
-                values_list = ['{:.{}f}'.format(value, decimal_digits) for value in data[var_name]]
-                values = '\t'.join(values_list)
-                line = '{}\t{}\n'.format(timestep, values)
-                file.write(line)
+                for timestep in unique_times:
+                    data = df.loc[timestep]
+                    values_list = ['{:.{}f}'.format(value, decimal_digits) for value in data[var_name]]
+                    values = '\t'.join(values_list)
+                    line = '{}\t{}\n'.format(timestep, values)
+                    file.write(line)
 
-            file.write('# end of file')
-            file.close()
-    except Exception as e:
-        logger.debug(f"During extract jams file: error while writing dat-file: {e}")
+                file.write('# end of file')
+                file.close()
+        except Exception as e:
+            logger.debug(f"During extract jams file: error while writing dat-file: {e}")
 
-    tmp_cache.flag_dat_exists(foldertype, filename, True)
-    logger.debug('extract jams ended')
+        tmp_cache.flag_dat_exists(foldertype, filename, True)
+        logger.debug('extract jams ended')
+    except Exception as unexpected_error:
+        logger.debug(f"During extract jams file: unexpected error: {unexpected_error}")
 
 
 def get_utm_epsg_from_nc(nc_path):
