@@ -30,6 +30,7 @@ from rest_framework.views import APIView
 # import xclim.indices
 from xclim import testing
 
+from .graph_db import (activities, base_for_entities, count_prov, result_entities, source_entities,)
 from .models import (ClimateLayer, TempResultFile,)
 from .ncmeta_handler import (extract_ncfile_metadata, helper_read_and_add_nodatavalue, read_file_specific_metadata,)
 from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex, ClimateDatasetsIndex,
@@ -39,7 +40,6 @@ from .temp_file_locations import (JAMS_TMPL_FILE, TEMP_FOLDER_TYPES, URLTXTFILES
                                   copy_filename_as_tif, parse_temp_filename_from_param,
                                   parse_temp_foldertype_from_param, parse_urltxt_filename_from_param, temp_cat_filename,
                                   tmp_cache_path, tmp_raw_filepath, tmp_raw_path,)
-from .graph_db import (count_prov, source_entities, result_entities, activities, base_for_entities)
 
 
 logger = logging.getLogger('django')
@@ -418,7 +418,8 @@ def convert_nc_to_tif(filename_in: str, foldertype: str, temp_doc: TempResultFil
             # Print all variable names
             variable_names = list(file.variables.keys())
             for var in variable_names:
-                if var not in ["time", "lat", "lon", "prob_of_zero", "latitude", "longitude", "climatology_bounds_details", "climatology_bounds", "height"] and "time" not in var:
+                if var not in ["time", "lat", "lon", "prob_of_zero", "latitude",
+                               "longitude", "climatology_bounds_details", "climatology_bounds", "height"] and "time" not in var:
                     gdal_res = gdal.Warp(filepath_out, "NETCDF:" + filepath_in + ":" + var, **kwargs)
                     fileversion_out = os.stat(filepath_out).st_mtime
                     temp_doc.st_mtime_tif = fileversion_out
@@ -1183,8 +1184,6 @@ class TempDownloadView(APIView):
         result["base_for_entities"] = base_for_entities(entity)
 
         return HttpResponse(content=json.dumps(result), content_type="application/json")
-
-
 
 
 @api_view(["GET"])

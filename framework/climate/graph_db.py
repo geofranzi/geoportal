@@ -1,5 +1,7 @@
-import requests
 from io import BytesIO
+
+import requests
+
 
 # Accept header / different response for SPARQL queries
 headers = {
@@ -29,7 +31,7 @@ def send_request(query):
 def create_repo(repo_name):
     repo_config_ttl = """
    #
-# RDF4J configuration template for a GraphDB repository
+#RDF4J configuration template for a GraphDB repository
 # This template is intended as an example only
 #
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
@@ -87,7 +89,7 @@ def create_repo(repo_name):
 
     url = "http://localhost:7200/rest/repositories"
 
-# POST request
+    # POST request
     response = requests.post(url, files=files)
 
     print("Status:", response.status_code)
@@ -106,7 +108,7 @@ def import_data(file, repo_name):
     print("Response:", response.text)
 
 
-def test_repo(repo_name):
+def test_repo():
     query = """
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
     SELECT ?s ?p ?o WHERE { ?s ?p ?o } LIMIT 100
@@ -118,7 +120,6 @@ def test_repo(repo_name):
 
 
 def subquery(entity):
-
     query = """
     PREFIX prov: <http://www.w3.org/ns/prov#>
     PREFIX tippecc_data: <http://www.provbook.org/tippecc/data/>
@@ -139,26 +140,26 @@ def subquery(entity):
 
         OPTIONAL { ?activity ?p ?o .
             OPTIONAL {
-      			?activity prov:wasAssociatedWith ?software .
-      			?software ?p5 ?o5 .
-    		}
-    	}
-  		OPTIONAL {
-    		?activity prov:used ?entity .
+                     ?activity prov:wasAssociatedWith ?software .
+                     ?software ?p5 ?o5 .
+              }
+         }
+            OPTIONAL {
+              ?activity prov:used ?entity .
 
-    		OPTIONAL {
-      			?entity prov:qualifiedGeneration ?gen .
-      			?gen ?p3 ?o3 .
-    		}
-    		OPTIONAL {
-      			?entity prov:wasAttributedTo ?agent .
-      			?agent ?p4 ?o4 .
-    		}
-    		OPTIONAL {
-      			?collection prov:hadMember ?entity .
+              OPTIONAL {
+                     ?entity prov:qualifiedGeneration ?gen .
+                     ?gen ?p3 ?o3 .
+              }
+              OPTIONAL {
+                     ?entity prov:wasAttributedTo ?agent .
+                     ?agent ?p4 ?o4 .
+              }
+              OPTIONAL {
+                     ?collection prov:hadMember ?entity .
 
-    		}
-  		}
+              }
+            }
     }
 
     """
@@ -167,7 +168,6 @@ def subquery(entity):
 
 
 def subquery_entity_meta(entity):
-
     query = """
         PREFIX prov: <http://www.w3.org/ns/prov#>
         PREFIX tippecc_data: <http://www.provbook.org/tippecc/data/>
@@ -178,14 +178,15 @@ def subquery_entity_meta(entity):
             prov:qualifiedGeneration/prov:activity ?baseActivity .
             ?baseActivity prov:wasInformedBy* ?activity .
 
-  		    OPTIONAL {
-    		    ?activity prov:used ?entity .
+                OPTIONAL {
+                  ?activity prov:used ?entity .
                 ?entity ?p8 ?o8 .
-  		    }
+                }
         }
     """
 
     response = send_request(query)
+    return response.json()
 
 
 def subquery_collection_meta(entity):
@@ -203,24 +204,24 @@ def subquery_collection_meta(entity):
 
           OPTIONAL {
                OPTIONAL {
-      				?activity prov:wasAssociatedWith ?software .
-    			}
-    	  }
-  		  OPTIONAL {
-    		?activity prov:used ?entity .
+                          ?activity prov:wasAssociatedWith ?software .
+                   }
+           }
+              OPTIONAL {
+              ?activity prov:used ?entity .
 
-    		OPTIONAL {
-      			?entity prov:qualifiedGeneration ?gen .
-    		}
-    		OPTIONAL {
-      			?entity prov:wasAttributedTo ?agent .
-    		}
-    		OPTIONAL {
-      			?collection prov:hadMember ?entity .
+              OPTIONAL {
+                     ?entity prov:qualifiedGeneration ?gen .
+              }
+              OPTIONAL {
+                     ?entity prov:wasAttributedTo ?agent .
+              }
+              OPTIONAL {
+                     ?collection prov:hadMember ?entity .
                 ?collection ?p7 ?o7 .
             FILTER(?p7 != prov:hadMember)  # Exclude 'hadMember' relations
-    		}
-  		}
+              }
+            }
     }
 
     """
