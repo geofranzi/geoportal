@@ -69,7 +69,10 @@ def read_raw_nc_meta_from_file(filepath: str):
         JSON_metadata = json.loads(metadata)
         sub_meta = JSON_metadata['metadata']['']
         if 'NETCDF_DIM_time_VALUES' not in sub_meta:
+            logger.debug("gdalinfo without var failed: " + filepath)
             raise Exception("NETCDF_DIM_time_VALUES not found in metadata")
+        else:
+            return JSON_metadata
 
     except Exception as e:
         try:
