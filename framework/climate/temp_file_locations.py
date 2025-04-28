@@ -29,6 +29,10 @@ from django.conf import settings
 # ]
 
 TEMP_FOLDER_TYPES = [
+    "CCAM_raw",
+    "CCAM_raw_ind",
+    "CCAM_bias",
+    "CCAM_bias_ind",
     "CORDEX_bias",
     "CORDEX_raw",
     "CORDEX_raw_ind",
@@ -42,6 +46,7 @@ TEMP_FOLDER_TYPES = [
     "vaal_CHIRPS",
     "vaal_ERA5_LAND",
     "kunene_ERA5_LAND",
+    "kunene_GLEAM",
     "kariba_CORDEX",
     "luanginga_CORDEX",
     "LANDSURF_ind_full",
