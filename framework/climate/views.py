@@ -39,6 +39,7 @@ from .temp_file_locations import (JAMS_TMPL_FILE, TEMP_FOLDER_TYPES, URLTXTFILES
                                   copy_filename_as_tif, parse_temp_filename_from_param,
                                   parse_temp_foldertype_from_param, parse_urltxt_filename_from_param, temp_cat_filename,
                                   tmp_cache_path, tmp_raw_filepath, tmp_raw_path,)
+from .graph_db import (count_prov, source_entities, result_entities, activities, base_for_entities)
 
 
 logger = logging.getLogger('django')
@@ -427,6 +428,7 @@ def convert_nc_to_tif(filename_in: str, foldertype: str, temp_doc: TempResultFil
 
         except Exception as e:
             last_error = gdal.GetLastErrorMsg()
+            logger.error('Gdal Translate to tif failed with error: ' + str(var) + " file:" + filepath_in + " " + str(e) + " " + last_error)
             return False, "Gdal Translate to tif failed with error: " + str(e) + " " + last_error
         return False, "Conversion failed"
 
@@ -1085,6 +1087,8 @@ class TempDownloadView(APIView):
             return self.serve_file(os.path.join(source_dir, "meta", filename).replace(".nc", "_metadata.json"), filename.replace(".nc", "_metadata.json"))
         elif filetype == 'prov':
             return self.serve_file(os.path.join(source_dir, "prov", filename).replace(".nc", "_prov.json"), filename.replace(".nc", "_prov.json"))
+        elif filetype == 'prov_stats':
+            return self.prov_stats(filename)
         elif filetype == 'nc_clipped':
             return self.serve_file(os.path.join(source_dir, "nc_clipped", filename).replace(".nc", "_clipped.nc"), filename.replace(".nc", "_clipped.nc"))
         elif filetype == 'dat_clipped':
@@ -1168,6 +1172,19 @@ class TempDownloadView(APIView):
         tif_filepath = os.path.join(cache_dir, tif_filename)
 
         return self.serve_file(tif_filepath, tif_filename)
+
+    def prov_stats(self, filename):
+        entity = filename.replace(".nc", "")
+        result = {}
+        result["count"] = count_prov(entity)
+        result["source_entities"] = source_entities(entity)
+        result["result_entities"] = result_entities(entity)
+        result["activities"] = activities(entity)
+        result["base_for_entities"] = base_for_entities(entity)
+
+        return HttpResponse(content=json.dumps(result), content_type="application/json")
+
+
 
 
 @api_view(["GET"])
