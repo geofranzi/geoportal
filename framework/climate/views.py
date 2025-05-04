@@ -14,6 +14,7 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 import netCDF4
 import pandas as pd
@@ -1174,14 +1175,64 @@ class TempDownloadView(APIView):
 
         return self.serve_file(tif_filepath, tif_filename)
 
+
     def prov_stats(self, filename):
         entity = filename.replace(".nc", "")
         result = {}
-        result["count"] = count_prov(entity)
-        result["source_entities"] = source_entities(entity)
-        result["result_entities"] = result_entities(entity)
-        result["activities"] = activities(entity)
-        result["base_for_entities"] = base_for_entities(entity)
+
+        result = {}
+
+        # Define the tasks to be executed in parallel
+        def fetch_count_prov():
+            start_time = time.time()
+            result = count_prov(entity)
+            end_time = time.time()
+            logger.debug(f"fetch_count_prov execution time: {end_time - start_time:.2f} seconds")
+            return result
+
+        def fetch_source_entities():
+            start_time = time.time()
+            result = source_entities(entity)
+            end_time = time.time()
+            logger.debug(f"fetch_source_entities execution time: {end_time - start_time:.2f} seconds")
+            return result
+
+        def fetch_result_entities():
+            start_time = time.time()
+            result = result_entities(entity)
+            end_time = time.time()
+            logger.debug(f"fetch_result_entities execution time: {end_time - start_time:.2f} seconds")
+            return result
+
+        def fetch_activities():
+            start_time = time.time()
+            result = activities(entity)
+            end_time = time.time()
+            logger.debug(f"fetch_activities execution time: {end_time - start_time:.2f} seconds")
+            return result
+
+        def fetch_base_for_entities():
+            start_time = time.time()
+            result = base_for_entities(entity)
+            end_time = time.time()
+            logger.debug(f"fetch_base_for_entities execution time: {end_time - start_time:.2f} seconds")
+            return result
+        start_time = time.time()
+        # Use ThreadPoolExecutor to execute tasks in parallel
+        with ThreadPoolExecutor() as executor:
+            futures = {
+                "count": executor.submit(fetch_count_prov),
+                "source_entities": executor.submit(fetch_source_entities),
+                "result_entities": executor.submit(fetch_result_entities),
+                "activities": executor.submit(fetch_activities),
+                "base_for_entities": executor.submit(fetch_base_for_entities),
+            }
+
+            # Collect the results
+            for key, future in futures.items():
+                result[key] = future.result()
+        end_time = time.time()
+        logger.debug(f"create result object execution time: {end_time - start_time:.2f} seconds")
 
         return HttpResponse(content=json.dumps(result), content_type="application/json")
 

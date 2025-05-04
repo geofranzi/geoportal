@@ -246,9 +246,7 @@ WHERE {
 
   ?baseActivity prov:wasInformedBy* ?activity .
   OPTIONAL {
-    OPTIONAL {
-      ?activity prov:wasAssociatedWith ?software .
-    }
+    ?activity prov:wasAssociatedWith ?software .
   }
   OPTIONAL {
     ?activity prov:used ?entity .
@@ -274,17 +272,23 @@ def source_entities(entity):
     query = """
     PREFIX prov: <http://www.w3.org/ns/prov#>
     PREFIX tippecc_data: <http://www.provbook.org/tippecc/data/>
-    SELECT  DISTINCT ?entity
+    SELECT  DISTINCT ?entity ?file_size ?collection_id ?num_time_steps
     WHERE { tippecc_data:""" + entity + """
         prov:qualifiedGeneration/prov:activity ?baseActivity .
 
         ?baseActivity prov:wasInformedBy* ?activity .
         OPTIONAL {
             ?activity prov:used ?entity .
-        }
+
+
+        OPTIONAL {?entity tippecc_data:file_size ?file_size}
+        OPTIONAL {?entity tippecc_data:collection_id ?collection_id}
+        OPTIONAL {?entity tippecc_data:num_time_steps ?num_time_steps}
+}
         FILTER NOT EXISTS {
             ?entity prov:wasDerivedFrom [] .
         }
+
     }
     """
 
@@ -297,14 +301,19 @@ def result_entities(entity):
     query = """
     PREFIX prov: <http://www.w3.org/ns/prov#>
     PREFIX tippecc_data: <http://www.provbook.org/tippecc/data/>
-    SELECT  DISTINCT ?entity
+    SELECT  DISTINCT ?entity ?file_size ?collection_id ?num_time_steps
     WHERE { tippecc_data:""" + entity + """
         prov:qualifiedGeneration/prov:activity ?baseActivity .
 
         ?baseActivity prov:wasInformedBy* ?activity .
         OPTIONAL {
             ?activity prov:used ?entity .
-        }
+
+
+        OPTIONAL {?entity tippecc_data:file_size ?file_size}
+        OPTIONAL {?entity tippecc_data:collection_id ?collection_id}
+        OPTIONAL {?entity tippecc_data:num_time_steps ?num_time_steps}
+}
         FILTER EXISTS {
             ?entity prov:wasDerivedFrom [] .
         }
@@ -320,9 +329,14 @@ def base_for_entities(entity):
     query = """
     PREFIX prov: <http://www.w3.org/ns/prov#>
     PREFIX tippecc_data: <http://www.provbook.org/tippecc/data/>
-    SELECT Distinct ?entity
+    SELECT Distinct ?entity ?file_size ?collection_id ?num_time_steps
     WHERE {
         ?entity prov:wasDerivedFrom* tippecc_data:""" + entity + """ .
+
+        OPTIONAL {?entity tippecc_data:file_size ?file_size}
+        OPTIONAL {?entity tippecc_data:collection_id ?collection_id}
+        OPTIONAL {?entity tippecc_data:num_time_steps ?num_time_steps}
+
         FILTER (?entity != tippecc_data:""" + entity + """)
     }
     """
