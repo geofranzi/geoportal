@@ -16,6 +16,7 @@ urlpatterns = [
     path('select_temp_urls', views.select_temp_urls, name='select_temp_urls'),
     path('get_content', views.FolderContentView.as_view(), name='get_content'),
     path('get_temp_file', views.TempDownloadView.as_view(), name='get_temp_file'),
+    path('get_file_info', views.FileContentView.as_view(), name='get_file_info'),
     path('generate_dat_file', views.GenerateDatView.as_view(), name='generate_dat_file'),
     path('get_temp_file_metadata', views.get_ncfile_metadata, name='get_ncfile_metadata'),
     path('access_tif', views.access_tif_from_ncfile, name="access_tif"),

@@ -76,6 +76,15 @@ class TmpCache:
             return []
 
         return list(self._folder_cache[foldertype]["content"].values())
+    
+    def get_file_info(self, foldertype: str, filename: str) -> dict | None:
+        """return folder data for a specific file
+        """
+        try:
+            return self._folder_cache[foldertype]["content"].get(filename)
+        except KeyError:
+            logger.warning(f"folder or file no found {foldertype}/{filename}")
+            return None
 
     def get_folder_convertable(self, foldertype):
         """Return content on all (tif_convertable) files in folder given by foldertype.
@@ -1042,6 +1051,42 @@ class FolderContentView(APIView):
         else:
             content = tmp_cache.get_folder_all(foldertype)
             return JsonResponse({"content": content})
+
+
+class FileContentView(APIView):
+    def get(self, request):
+        """
+        Returns metadata for a single file from the folder cache.
+
+        Request parameters:
+        - type: folder type (e.g. 'raw_temperature')
+        - filename: the name of the file (e.g. 'file1.nc')
+        - force_update (optional): if true, forces cache update
+        """
+        foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
+        filename = request.GET.get("filename", default=None)
+
+        if not foldertype or not filename:
+            return HttpResponse(content="Missing required parameters: 'type' and 'filename'.", status=400)
+
+        source_dir = tmp_raw_path(foldertype)
+        if not source_dir:
+            return HttpResponse(content="Selected folder does not exist or cannot be accessed.", status=500)
+
+        force_update = request.GET.get("force_update", default=False)
+        if force_update:
+            force_update = True
+
+        # Reload folder content if forced or not yet cached
+        if force_update or tmp_cache.is_foldercontent_empty(foldertype):
+            tmp_cache.update_by_foldertype(foldertype)
+
+        file_info = tmp_cache.get_file_info(foldertype, filename)
+
+        if file_info is None:
+            return HttpResponse(content=f"File '{filename}' not found in folder '{foldertype}'.", status=404)
+
+        return JsonResponse({"file": file_info})
 
 
 class TempDownloadView(APIView):
