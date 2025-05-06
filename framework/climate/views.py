@@ -76,7 +76,7 @@ class TmpCache:
             return []
 
         return list(self._folder_cache[foldertype]["content"].values())
-    
+
     def get_file_info(self, foldertype: str, filename: str) -> dict | None:
         """return folder data for a specific file
         """
