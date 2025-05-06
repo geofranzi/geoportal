@@ -1175,7 +1175,6 @@ class TempDownloadView(APIView):
 
         return self.serve_file(tif_filepath, tif_filename)
 
-
     def prov_stats(self, filename):
         entity = filename.replace(".nc", "")
         result = {}
