@@ -1180,8 +1180,6 @@ class TempDownloadView(APIView):
         entity = filename.replace(".nc", "")
         result = {}
 
-        result = {}
-
         # Define the tasks to be executed in parallel
         def fetch_count_prov():
             start_time = time.time()
