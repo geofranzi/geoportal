@@ -87,7 +87,6 @@ class TmpCache:
         conv_filtered = {k: v for (k, v) in self._folder_cache[foldertype]["content"].items() if (v["tif_convertable"] and v["filesuffix"] == ".nc")}
         return list(conv_filtered.values())
 
-
     def populate_folders(self):
         """Populate key value pairs in folder_cache (only used once after init).
         """
@@ -1176,8 +1175,11 @@ class TempDownloadView(APIView):
 
         return self.serve_file(tif_filepath, tif_filename)
 
+
     def prov_stats(self, filename):
         entity = filename.replace(".nc", "")
+        result = {}
+
         result = {}
 
         # Define the tasks to be executed in parallel
