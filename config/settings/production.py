@@ -11,7 +11,7 @@ SECRET_KEY = env(
 )
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
 # ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["example.com"])
-ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1", "10.149.0.38", "iknow.inf-bb.uni-jena.de"]
+ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1", "10.149.0.38", "iknow.inf-bb.uni-jena.de", "leutra.geogr.uni-jena.de", "tippecc.github.io"]
 
 # DATABASES
 # ------------------------------------------------------------------------------
@@ -132,42 +132,6 @@ EMAIL_SUBJECT_PREFIX = env(
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to
 # the site admins on every HTTP 500 error when DEBUG=False.
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
-    "formatters": {
-        "verbose": {
-            "format": "%(levelname)s %(asctime)s %(module)s "
-                      "%(process)d %(thread)d %(message)s"
-        }
-    },
-    "handlers": {
-        "mail_admins": {
-            "level": "ERROR",
-            "filters": ["require_debug_false"],
-            "class": "django.utils.log.AdminEmailHandler",
-        },
-        "console": {
-            "level": "DEBUG",
-            "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
-    },
-    "root": {"level": "INFO", "handlers": ["console"]},
-    "loggers": {
-        "django.request": {
-            "handlers": ["mail_admins"],
-            "level": "ERROR",
-            "propagate": True,
-        },
-        "django.security.DisallowedHost": {
-            "level": "ERROR",
-            "handlers": ["console", "mail_admins"],
-            "propagate": True,
-        },
-    },
-}
 
 # Your stuff...
 # ------------------------------------------------------------------------------

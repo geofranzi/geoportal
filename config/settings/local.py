@@ -13,7 +13,7 @@ SECRET_KEY = env(
     default="hi9QXEFQEh0dzRTv7igcf63fBfmk0t97bB5NJcNWSxw1KCo0QLiNqpI6d979ZypS",
 )
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1", "10.149.0.38", "iknow.inf-bb.uni-jena.de"]
+ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1", "10.149.0.38", "iknow.inf-bb.uni-jena.de", "leutra.geogr.uni-jena.de", "tippecc.github.io"]
 X_FRAME_OPTIONS = 'allow-from http://127.0.0.1:5173/'
 
 # Using postgresSQL change local db settings here (postgres://USERNAME:PASSWORD@HOST:PORT/DATABASENAME

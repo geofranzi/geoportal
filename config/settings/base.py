@@ -20,6 +20,11 @@ if READ_DOT_ENV_FILE:
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
 DEBUG = env.bool("DJANGO_DEBUG", False)
+
+# explicit flag for usage while developing locally only
+# ONLY PUSH set to False
+DEV_LOCAL = False
+
 # Local time zone. Choices are
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # though not all of them may be available with every OS.
@@ -73,7 +78,9 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     'allauth',
     'allauth.account',
+    # 'allauth.socialaccount',
     'authapi',
+    'corsheaders',
     'cronjobs',
     'djgeojson',
     'dj_rest_auth',
@@ -95,6 +102,7 @@ LOCAL_APPS = [
     'csw',
     'swos',
     'phaenopt',
+    'climate',
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -143,6 +151,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -153,6 +163,7 @@ MIDDLEWARE = [
     'django.middleware.gzip.GZipMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     # 'authapi.disable.disableCSRF',
+    # 'allauth.account.middleware.AccountMiddleware'
 ]
 
 # STATIC
@@ -195,7 +206,7 @@ UGLIFYJS_EXTRA_ARGS = (
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-root
 MEDIA_ROOT = str(APPS_DIR / "media")
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-url
-MEDIA_URL = SUBDIR + '/media/'
+MEDIA_URL = "/media/"
 
 # TEMPLATES
 # ------------------------------------------------------------------------------
@@ -249,6 +260,7 @@ FIXTURE_DIRS = (str(APPS_DIR / "fixtures"),)
 SESSION_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#csrf-cookie-httponly
 CSRF_COOKIE_HTTPONLY = True
+CSRF_TRUSTED_ORIGINS = ['http://leutra.geogr.uni-jena.de']
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-browser-xss-filter
 SECURE_BROWSER_XSS_FILTER = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
@@ -319,23 +331,36 @@ MANAGERS = ADMINS
 # https://docs.djangoproject.com/en/dev/ref/settings/#logging
 # See https://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
+# TODO:
+#   - file handler is assumed to work in local when configured
+#   this way in base settings (but file does not exist)
+#   - separate LOGGING object for dev?
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "formatters": {
-        "verbose": {
-            "format": "%(levelname)s %(asctime)s %(module)s "
-                      "%(process)d %(thread)d %(message)s"
-        }
+    'formatters': {
+        'timestamp': {
+            'format': '%(asctime)s %(levelname)s %(message)s',
+            'style': '%',
+            },
     },
     "handlers": {
-        "console": {
+        "file": {
             "level": "DEBUG",
-            "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        }
+            "class": "logging.FileHandler",
+            # "filename": "/opt/geoportal_tippecc/logs/django_error.log",
+            # somehow logging in var/log doesnt work
+            "filename": "/var/log/django/django_error.log",
+            'formatter': 'timestamp',
+        },
     },
-    "root": {"level": "INFO", "handlers": ["console"]},
+    "loggers": {
+        "django": {
+            "handlers": ["file"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+    },
 }
 
 # django-allauth
@@ -368,16 +393,17 @@ REST_FRAMEWORK = {
 }
 
 # django-cors-headers - https://github.com/adamchainz/django-cors-headers#setup
-CORS_URLS_REGEX = r"^/(api|users|datasets|viz|search|projects|iknow|viz_smon|planthub.kg_visualization)/.*$"
+CORS_URLS_REGEX = r"^/(api|users|datasets|viz|search|projects|iknow|viz_smon|planthub.kg_visualization|climate)/.*$"
 
 # Your stuff...
 # ------------------------------------------------------------------------------
 # Allow all or only a certain address
-# CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWED_ORIGINS = [
-    'http://127.0.0.1:5173',
-]
-CORS_ALLOW_HEADERS = ('Authorization', 'Content-Type', 'Cache-Control', 'X-Requested-With')
+CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ALLOWED_ORIGINS = [
+#     'http://127.0.0.1:5173',
+# ]
+
+# CORS_ALLOW_HEADERS = ('Authorization', 'Content-Type', 'Cache-Control', 'X-Requested-With')
 
 # BLAZEGRAPH Settings
 BLAZEGRAPH_URL = 'http://localhost:9999/'
@@ -386,7 +412,7 @@ BLAZEGRAPH_URL = 'http://localhost:9999/'
 STATIC_URL_PREFIX = ""
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 ##################################################
 # satellite data discovery

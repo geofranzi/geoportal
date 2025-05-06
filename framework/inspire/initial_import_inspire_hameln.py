@@ -1,17 +1,24 @@
 import json
 import os
+import sys
 import urllib.parse
 from xml.etree import ElementTree as ET
 
 import django
 
-from content.models import Country
-from inspire.models import InspireTheme
-from layers.models import (Contact, ISOcodelist,)
 
-
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "webgis.settings")
+# os.chdir("..")
+sys.path.append("")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
+sys.path.append("..")
+print(sys.path)
 django.setup()
+
+# exclude the following models from the flake8 check
+# flake8: noqa
+from content.models import Country
+from inspire.models import (InspireHDV, InspireTheme,)
+from layers.models import (Contact, ISOcodelist,)
 
 
 def initial_fill_iso_codelist(filename):
@@ -110,6 +117,18 @@ def initial_fill_inspire_themes():
         inspire_themes.save()
 
 
+def initial_inspire_hdv():
+    print("initial_inspire_hdv")
+    InspireHDV.objects.all().delete()
+    InspireHDV(uri="http://data.europa.eu/bna/c_ac64a52d", name_en="Geospatial", name_de="Georaum").save()
+    InspireHDV(uri="http://data.europa.eu/bna/c_dd313021", name_en="Earth observation and environment", name_de="Erdbeobachtung und Umwelt").save()
+    InspireHDV(uri="http://data.europa.eu/bna/c_164e0bf5", name_en="Meteorological", name_de="Meteorologie").save()
+    InspireHDV(uri="http://data.europa.eu/bna/c_e1da4e07", name_en="Statistics", name_de="Statistik").save()
+    InspireHDV(uri="http://data.europa.eu/bna/c_a9135398", name_en="Companies and company ownership",
+               name_de="Unternehmen und Eigentümerschaft von Unter-nehmen").save()
+    InspireHDV(uri="http://data.europa.eu/bna/c_b79e35eb", name_en="Mobility", name_de="Mobilität").save()
+
+
 def initial_fill_country():
     if Country.objects.filter(name="Germany") is not None:
         country = Country(name="Germany", continent="Europe")
@@ -187,9 +206,12 @@ def initial_fill_contacts_hameln():
 
 
 def create_seed_data():
-    initial_fill_iso_codelist('./gmxCodelists.xml')
-    initial_fill_inspire_themes()
-    initial_fill_country()
-    initial_fill_contacts_hameln()
+    # initial_fill_iso_codelist('./gmxCodelists.xml')
+    # initial_fill_inspire_themes()
+    # initial_fill_country()
+    # initial_fill_contacts_hameln()
+    print("Creating seed data HDV")
+    initial_inspire_hdv()
+
 
 # create_seed_data()

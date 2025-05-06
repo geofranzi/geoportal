@@ -1,8 +1,8 @@
 from urllib.request import urlopen
 
-from django.contrib.auth.models import (Group, User, )
+from django.contrib.auth.models import (Group, User,)
 from django.db import models
-from django.http import (Http404, HttpResponse, )
+from django.http import (Http404, HttpResponse,)
 from rest_framework import serializers
 
 from webgis import settings
@@ -227,7 +227,7 @@ class Layer(models.Model):
 
     def cache(self):
         if self.ogc_type == 'SOS':
-            from geojson import (Feature, FeatureCollection, Point, crs, dump, )
+            from geojson import (Feature, FeatureCollection, Point, crs, dump,)
             from owslib.etree import etree
             from owslib.sos import SensorObservationService
 

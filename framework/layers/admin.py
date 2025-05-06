@@ -4,7 +4,7 @@ from django.contrib import admin
 from suit.sortables import SortableTabularInline
 
 from .models import (ConformityInline, ConstraintConditionsInline, ConstraintLimitInline, Contact, ISOcodelist,
-                     KeywordInline, Layer, Layergroup, LayerInline, OnlineResourceInline, WorkPackage, )
+                     KeywordInline, Layer, Layergroup, LayerInline, OnlineResourceInline, WorkPackage,)
 
 
 # Model form verification for BaseLayer model
