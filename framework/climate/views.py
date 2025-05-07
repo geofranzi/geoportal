@@ -248,7 +248,7 @@ def generate_folder_contet_dict(foldertype, filename, f_info, dat_files, dat_cli
     dirty = True
     num_bands = -1
     # what we know from database
-    
+
     if f_info is not None:
         fileversion = f_info.st_mtime_nc
         if fileversion == str(file_stats.st_mtime):
@@ -301,7 +301,7 @@ def generate_folder_contet_dict(foldertype, filename, f_info, dat_files, dat_cli
     }
 
     return content_el
-    
+
 
 
 # SPECIFICATIONS [temp results]
@@ -1158,30 +1158,26 @@ class TempDownloadView(APIView):
             return self.serve_file(filepath, filename)
 
     def serve_file(self, filepath, filename):
-        # ==== this is for local testing
-
         # just for reference:
         # this -> content_type='application/octet-stream' fixed the decode error
 
-        response = None
-        # check if file exists
+
+        # Check if file exists
         if not os.path.isfile(filepath):
             return HttpResponse(content="File does not exist", status=404)
-        # check if file is empty
+
+        # Check if file is empty
         if os.stat(filepath).st_size == 0:
             return HttpResponse(content="File is empty", status=404)
 
-        else:
-
-            with open(filepath, "rb") as test_file:
-                response = HttpResponse(content=test_file.read(), content_type='application/octet-stream')
-                response["Content-Disposition"] = f'attachment; filename="{filename}"'
-
-            if response is not None:
-                return response
-            else:
-                return HttpResponse(content="Could not read the file content", status=404)
-        # ====
+        try:
+            file_handle = open(filepath, 'rb')
+            response = FileResponse(file_handle,
+            content_type='application/octet-stream')
+            response['Content-Disposition'] = f'attachment;filename="{filename}"'
+            return response
+        except Exception as e:
+            return HttpResponse(content=f"Error reading file: {e}", status=500)
 
     def serve_tif_file(self, filepath, filename, foldertype):
         cat_filename = temp_cat_filename(foldertype, filename)
