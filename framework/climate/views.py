@@ -81,7 +81,13 @@ class TmpCache:
         """return folder data for a specific file
         """
         try:
-            return self._folder_cache[foldertype]["content"].get(filename)
+            # return self._folder_cache[foldertype]["content"].get(filename)
+            source_dir = tmp_raw_path(foldertype)
+            foldercontent, dat_files, dat_clipped_files, nc_clipped_files = read_folder_constrained(source_dir)
+            cat_filename = temp_cat_filename(foldertype, filename)
+            f_info: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
+            return generate_folder_contet_dict(foldertype, filename, f_info, dat_files, dat_clipped_files, nc_clipped_files)
+
         except KeyError:
             logger.warning(f"folder or file no found {foldertype}/{filename}")
             return None
@@ -205,72 +211,8 @@ class TmpCache:
             filepath = tmp_raw_filepath(foldertype, f)
 
             try:
-                file_stats = os.stat(filepath)
-                creation_date = None
-                creation_date = datetime.fromtimestamp(file_stats.st_mtime).strftime(
-                    "%Y-%m-%d %H:%M"
-                )
-                filename = f
-                filesize = sizeof_fmt(file_stats.st_size)
-                in_limit_conversion = in_sizelimit_conversion_i(file_stats.st_size)
-                in_limit_download = in_sizelimit_download_i(file_stats.st_size)
-                filesuffix = Path(f).suffix
-
-                dirty = True
-                num_bands = -1
-                # what we know from database
                 f_info: TempResultFile = all_files[f]
-                if f_info is not None:
-                    fileversion = f_info.st_mtime_nc
-                    if fileversion == str(file_stats.st_mtime):
-                        dirty = False
-                    tif_exists = has_tif_file(f_info.filename, foldertype, f_info)
-                    # convertability
-                    if not tif_exists:
-                        conv_constraint = is_tif_convertable(f_info.filename, foldertype, f_info)
-                        tif_convertable = conv_constraint
-                    else:
-                        tif_convertable = True
-                    if f_info.nc_meta and 'num_bands' in f_info.nc_meta:
-                        num_bands = f_info.nc_meta['num_bands']
-                else:
-                    tif_exists = False
-                    tif_convertable = False
-                    fileversion = str(file_stats.st_mtime)
-
-                if (f + ".dat" in dat_files):
-                    dat_exists = True
-                else:
-                    dat_exists = False
-
-                if (f.replace(".nc", "_clipped.nc.dat") in dat_clipped_files):
-                    dat_clipped_exists = True
-                else:
-                    dat_clipped_exists = False
-
-                if (f.replace(".nc", "_clipped.nc") in nc_clipped_files):
-                    nc_clipped_exists = True
-                else:
-                    nc_clipped_exists = False
-
-                content_el: FileInfo = {
-                    "filename": filename,
-                    "filesize": filesize,
-                    "filesuffix": filesuffix,
-                    "creation_date": creation_date,
-                    "fileversion": fileversion,
-                    "dat_exists": dat_exists,
-                    "dat_clipped_exists": dat_clipped_exists,
-                    "nc_clipped_exists": nc_clipped_exists,
-                    "tif_exists": tif_exists,
-                    "tif_convertable": tif_convertable,
-                    "dirty": dirty,
-                    "in_limit_conversion": in_limit_conversion,
-                    "in_limit_download": in_limit_download,
-                    "num_bands": num_bands
-
-                }
-                content[f] = content_el
+                content[f] = generate_folder_contet_dict(foldertype, f, f_info, dat_files, dat_clipped_files, nc_clipped_files)
             except Exception as e:
                 # file could not be read (this should only ever happen when
                 # serverfiles and folder_content go out of sync)
@@ -289,6 +231,77 @@ tmp_cache = TmpCache()
 tmp_cache.populate_folders()
 
 print(f"The settings DEBUG settings is: {settings.DEBUG}")
+
+def generate_folder_contet_dict(foldertype, filename, f_info, dat_files, dat_clipped_files, nc_clipped_files):
+    filepath = tmp_raw_filepath(foldertype, filename)
+
+    file_stats = os.stat(filepath)
+    creation_date = None
+    creation_date = datetime.fromtimestamp(file_stats.st_mtime).strftime(
+        "%Y-%m-%d %H:%M"
+    )
+    filesize = sizeof_fmt(file_stats.st_size)
+    in_limit_conversion = in_sizelimit_conversion_i(file_stats.st_size)
+    in_limit_download = in_sizelimit_download_i(file_stats.st_size)
+    filesuffix = Path(filename).suffix
+
+    dirty = True
+    num_bands = -1
+    # what we know from database
+    
+    if f_info is not None:
+        fileversion = f_info.st_mtime_nc
+        if fileversion == str(file_stats.st_mtime):
+            dirty = False
+        tif_exists = has_tif_file(f_info.filename, foldertype, f_info)
+        # convertability
+        if not tif_exists:
+            conv_constraint = is_tif_convertable(f_info.filename, foldertype, f_info)
+            tif_convertable = conv_constraint
+        else:
+            tif_convertable = True
+        if f_info.nc_meta and 'num_bands' in f_info.nc_meta:
+            num_bands = f_info.nc_meta['num_bands']
+    else:
+        tif_exists = False
+        tif_convertable = False
+        fileversion = str(file_stats.st_mtime)
+
+    if (filename + ".dat" in dat_files):
+        dat_exists = True
+    else:
+        dat_exists = False
+
+    if (filename.replace(".nc", "_clipped.nc.dat") in dat_clipped_files):
+        dat_clipped_exists = True
+    else:
+        dat_clipped_exists = False
+
+    if (filename.replace(".nc", "_clipped.nc") in nc_clipped_files):
+        nc_clipped_exists = True
+    else:
+        nc_clipped_exists = False
+
+    content_el: FileInfo = {
+        "filename": filename,
+        "filesize": filesize,
+        "filesuffix": filesuffix,
+        "creation_date": creation_date,
+        "fileversion": fileversion,
+        "dat_exists": dat_exists,
+        "dat_clipped_exists": dat_clipped_exists,
+        "nc_clipped_exists": nc_clipped_exists,
+        "tif_exists": tif_exists,
+        "tif_convertable": tif_convertable,
+        "dirty": dirty,
+        "in_limit_conversion": in_limit_conversion,
+        "in_limit_download": in_limit_download,
+        "num_bands": num_bands
+
+    }
+
+    return content_el
+    
 
 
 # SPECIFICATIONS [temp results]
