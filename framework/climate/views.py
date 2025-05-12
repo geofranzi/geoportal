@@ -12,9 +12,9 @@ import tarfile
 import threading
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
 
 import netCDF4
 import pandas as pd
@@ -76,6 +76,21 @@ class TmpCache:
             return []
 
         return list(self._folder_cache[foldertype]["content"].values())
+
+    def get_file_info(self, foldertype: str, filename: str) -> dict | None:
+        """return folder data for a specific file
+        """
+        try:
+            # return self._folder_cache[foldertype]["content"].get(filename)
+            source_dir = tmp_raw_path(foldertype)
+            foldercontent, dat_files, dat_clipped_files, nc_clipped_files = read_folder_constrained(source_dir)
+            cat_filename = temp_cat_filename(foldertype, filename)
+            f_info: TempResultFile = TempResultFile.get_by_cat_filename(cat_filename)
+            return generate_folder_contet_dict(foldertype, filename, f_info, dat_files, dat_clipped_files, nc_clipped_files)
+
+        except KeyError:
+            logger.warning(f"folder or file no found {foldertype}/{filename}")
+            return None
 
     def get_folder_convertable(self, foldertype):
         """Return content on all (tif_convertable) files in folder given by foldertype.
@@ -193,75 +208,11 @@ class TmpCache:
                     all_files[f] = msg
                 pass
 
-            filepath = tmp_raw_filepath(foldertype, f)
+            # filepath = tmp_raw_filepath(foldertype, f)
 
             try:
-                file_stats = os.stat(filepath)
-                creation_date = None
-                creation_date = datetime.fromtimestamp(file_stats.st_mtime).strftime(
-                    "%Y-%m-%d %H:%M"
-                )
-                filename = f
-                filesize = sizeof_fmt(file_stats.st_size)
-                in_limit_conversion = in_sizelimit_conversion_i(file_stats.st_size)
-                in_limit_download = in_sizelimit_download_i(file_stats.st_size)
-                filesuffix = Path(f).suffix
-
-                dirty = True
-                num_bands = -1
-                # what we know from database
                 f_info: TempResultFile = all_files[f]
-                if f_info is not None:
-                    fileversion = f_info.st_mtime_nc
-                    if fileversion == str(file_stats.st_mtime):
-                        dirty = False
-                    tif_exists = has_tif_file(f_info.filename, foldertype, f_info)
-                    # convertability
-                    if not tif_exists:
-                        conv_constraint = is_tif_convertable(f_info.filename, foldertype, f_info)
-                        tif_convertable = conv_constraint
-                    else:
-                        tif_convertable = True
-                    if f_info.nc_meta and 'num_bands' in f_info.nc_meta:
-                        num_bands = f_info.nc_meta['num_bands']
-                else:
-                    tif_exists = False
-                    tif_convertable = False
-                    fileversion = str(file_stats.st_mtime)
-
-                if (f + ".dat" in dat_files):
-                    dat_exists = True
-                else:
-                    dat_exists = False
-
-                if (f.replace(".nc", "_clipped.nc.dat") in dat_clipped_files):
-                    dat_clipped_exists = True
-                else:
-                    dat_clipped_exists = False
-
-                if (f.replace(".nc", "_clipped.nc") in nc_clipped_files):
-                    nc_clipped_exists = True
-                else:
-                    nc_clipped_exists = False
-
-                content_el: FileInfo = {
-                    "filename": filename,
-                    "filesize": filesize,
-                    "filesuffix": filesuffix,
-                    "creation_date": creation_date,
-                    "fileversion": fileversion,
-                    "dat_exists": dat_exists,
-                    "dat_clipped_exists": dat_clipped_exists,
-                    "nc_clipped_exists": nc_clipped_exists,
-                    "tif_exists": tif_exists,
-                    "tif_convertable": tif_convertable,
-                    "dirty": dirty,
-                    "in_limit_conversion": in_limit_conversion,
-                    "in_limit_download": in_limit_download,
-                    "num_bands": num_bands
-
-                }
-                content[f] = content_el
+                content[f] = generate_folder_contet_dict(foldertype, f, f_info, dat_files, dat_clipped_files, nc_clipped_files)
             except Exception as e:
                 # file could not be read (this should only ever happen when
                 # serverfiles and folder_content go out of sync)
@@ -281,6 +232,76 @@ tmp_cache.populate_folders()
 
 print(f"The settings DEBUG settings is: {settings.DEBUG}")
 
+
+def generate_folder_contet_dict(foldertype, filename, f_info, dat_files, dat_clipped_files, nc_clipped_files):
+    filepath = tmp_raw_filepath(foldertype, filename)
+
+    file_stats = os.stat(filepath)
+    creation_date = None
+    creation_date = datetime.fromtimestamp(file_stats.st_mtime).strftime(
+        "%Y-%m-%d %H:%M"
+    )
+    filesize = sizeof_fmt(file_stats.st_size)
+    in_limit_conversion = in_sizelimit_conversion_i(file_stats.st_size)
+    in_limit_download = in_sizelimit_download_i(file_stats.st_size)
+    filesuffix = Path(filename).suffix
+
+    dirty = True
+    num_bands = -1
+    # what we know from database
+
+    if f_info is not None:
+        fileversion = f_info.st_mtime_nc
+        if fileversion == str(file_stats.st_mtime):
+            dirty = False
+        tif_exists = has_tif_file(f_info.filename, foldertype, f_info)
+        # convertability
+        if not tif_exists:
+            conv_constraint = is_tif_convertable(f_info.filename, foldertype, f_info)
+            tif_convertable = conv_constraint
+        else:
+            tif_convertable = True
+        if f_info.nc_meta and 'num_bands' in f_info.nc_meta:
+            num_bands = f_info.nc_meta['num_bands']
+    else:
+        tif_exists = False
+        tif_convertable = False
+        fileversion = str(file_stats.st_mtime)
+
+    if (filename + ".dat" in dat_files):
+        dat_exists = True
+    else:
+        dat_exists = False
+
+    if (filename.replace(".nc", "_clipped.nc.dat") in dat_clipped_files):
+        dat_clipped_exists = True
+    else:
+        dat_clipped_exists = False
+
+    if (filename.replace(".nc", "_clipped.nc") in nc_clipped_files):
+        nc_clipped_exists = True
+    else:
+        nc_clipped_exists = False
+
+    content_el: FileInfo = {
+        "filename": filename,
+        "filesize": filesize,
+        "filesuffix": filesuffix,
+        "creation_date": creation_date,
+        "fileversion": fileversion,
+        "dat_exists": dat_exists,
+        "dat_clipped_exists": dat_clipped_exists,
+        "nc_clipped_exists": nc_clipped_exists,
+        "tif_exists": tif_exists,
+        "tif_convertable": tif_convertable,
+        "dirty": dirty,
+        "in_limit_conversion": in_limit_conversion,
+        "in_limit_download": in_limit_download,
+        "num_bands": num_bands
+
+    }
+
+    return content_el
 
 # SPECIFICATIONS [temp results]
 #  - download single file
@@ -1044,6 +1065,42 @@ class FolderContentView(APIView):
             return JsonResponse({"content": content})
 
 
+class FileContentView(APIView):
+    def get(self, request):
+        """
+        Returns metadata for a single file from the folder cache.
+
+        Request parameters:
+        - type: folder type (e.g. 'raw_temperature')
+        - filename: the name of the file (e.g. 'file1.nc')
+        - force_update (optional): if true, forces cache update
+        """
+        foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
+        filename = request.GET.get("filename", default=None)
+
+        if not foldertype or not filename:
+            return HttpResponse(content="Missing required parameters: 'type' and 'filename'.", status=400)
+
+        source_dir = tmp_raw_path(foldertype)
+        if not source_dir:
+            return HttpResponse(content="Selected folder does not exist or cannot be accessed.", status=500)
+
+        force_update = request.GET.get("force_update", default=False)
+        if force_update:
+            force_update = True
+
+        # Reload folder content if forced or not yet cached
+        if force_update or tmp_cache.is_foldercontent_empty(foldertype):
+            tmp_cache.update_by_foldertype(foldertype)
+
+        file_info = tmp_cache.get_file_info(foldertype, filename)
+
+        if file_info is None:
+            return HttpResponse(content=f"File '{filename}' not found in folder '{foldertype}'.", status=404)
+
+        return JsonResponse({"file": file_info})
+
+
 class TempDownloadView(APIView):
     def get(self, request):
         """Serves a single file from the temporary result files (for download).
@@ -1100,30 +1157,25 @@ class TempDownloadView(APIView):
             return self.serve_file(filepath, filename)
 
     def serve_file(self, filepath, filename):
-        # ==== this is for local testing
-
         # just for reference:
         # this -> content_type='application/octet-stream' fixed the decode error
 
-        response = None
-        # check if file exists
+        # Check if file exists
         if not os.path.isfile(filepath):
             return HttpResponse(content="File does not exist", status=404)
-        # check if file is empty
+
+        # Check if file is empty
         if os.stat(filepath).st_size == 0:
             return HttpResponse(content="File is empty", status=404)
 
-        else:
-
-            with open(filepath, "rb") as test_file:
-                response = HttpResponse(content=test_file.read(), content_type='application/octet-stream')
-                response["Content-Disposition"] = f'attachment; filename="{filename}"'
-
-            if response is not None:
-                return response
-            else:
-                return HttpResponse(content="Could not read the file content", status=404)
-        # ====
+        try:
+            file_handle = open(filepath, 'rb')
+            response = FileResponse(file_handle,
+                                    content_type='application/octet-stream')
+            response['Content-Disposition'] = f'attachment;filename="{filename}"'
+            return response
+        except Exception as e:
+            return HttpResponse(content=f"Error reading file: {e}", status=500)
 
     def serve_tif_file(self, filepath, filename, foldertype):
         cat_filename = temp_cat_filename(foldertype, filename)
@@ -1177,6 +1229,8 @@ class TempDownloadView(APIView):
 
     def prov_stats(self, filename):
         entity = filename.replace(".nc", "")
+        result = {}
+
         result = {}
 
         # Define the tasks to be executed in parallel

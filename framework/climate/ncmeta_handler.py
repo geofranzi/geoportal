@@ -94,7 +94,7 @@ def read_raw_nc_meta_from_file(filepath: str):
             JSON_metadata = json.loads(metadata)
             return JSON_metadata
         except Exception as e:
-            logger.error("Error reading metadata: " + filepath + " " + var + " " + str(e))
+            logger.error("Error reading metadata: " + filepath + "  " + str(e))
             return False, "error"
 
 
