@@ -12,9 +12,9 @@ import tarfile
 import threading
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
 
 import netCDF4
 import pandas as pd
@@ -208,7 +208,7 @@ class TmpCache:
                     all_files[f] = msg
                 pass
 
-            filepath = tmp_raw_filepath(foldertype, f)
+            # filepath = tmp_raw_filepath(foldertype, f)
 
             try:
                 f_info: TempResultFile = all_files[f]
@@ -231,6 +231,7 @@ tmp_cache = TmpCache()
 tmp_cache.populate_folders()
 
 print(f"The settings DEBUG settings is: {settings.DEBUG}")
+
 
 def generate_folder_contet_dict(foldertype, filename, f_info, dat_files, dat_clipped_files, nc_clipped_files):
     filepath = tmp_raw_filepath(foldertype, filename)
@@ -301,8 +302,6 @@ def generate_folder_contet_dict(foldertype, filename, f_info, dat_files, dat_cli
     }
 
     return content_el
-
-
 
 # SPECIFICATIONS [temp results]
 #  - download single file
@@ -1161,7 +1160,6 @@ class TempDownloadView(APIView):
         # just for reference:
         # this -> content_type='application/octet-stream' fixed the decode error
 
-
         # Check if file exists
         if not os.path.isfile(filepath):
             return HttpResponse(content="File does not exist", status=404)
@@ -1173,7 +1171,7 @@ class TempDownloadView(APIView):
         try:
             file_handle = open(filepath, 'rb')
             response = FileResponse(file_handle,
-            content_type='application/octet-stream')
+                                    content_type='application/octet-stream')
             response['Content-Disposition'] = f'attachment;filename="{filename}"'
             return response
         except Exception as e:
