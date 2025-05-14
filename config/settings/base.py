@@ -393,7 +393,7 @@ REST_FRAMEWORK = {
 }
 
 # django-cors-headers - https://github.com/adamchainz/django-cors-headers#setup
-CORS_URLS_REGEX = r"^/(api|users|datasets|viz|search|projects|iknow|viz_smon|planthub.kg_visualization|climate)/.*$"
+CORS_URLS_REGEX = r"^/(api|users|datasets|viz|search|projects|iknow|viz_smon|planthub.kg_visualization|climate|layers)/.*$"
 
 # Your stuff...
 # ------------------------------------------------------------------------------
