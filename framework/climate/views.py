@@ -16,6 +16,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
+import subprocess
+import io
+
 import netCDF4
 import pandas as pd
 import requests
@@ -1114,6 +1117,7 @@ class TempDownloadView(APIView):
 
         # only used for comparison now and thus can be safely used
         filetype = request.GET.get("filetype", default=None)
+        boundigbox = request.GET.get("boundingbox", default=None)
 
         if not foldertype or not filename or not filetype:
             err_msg = "Invalid"
@@ -1154,7 +1158,36 @@ class TempDownloadView(APIView):
             return self.serve_file(os.path.join(source_dir, "dat_clipped", filename).replace(".nc", "_clipped.nc.dat"),
                                    filename.replace(".nc", "_clipped.nc.dat"))
         else:
-            return self.serve_file(filepath, filename)
+            if boundigbox:
+                return self.serve_nc_file_clipped(source_dir, filename, boundigbox)
+            else:
+                return self.serve_file(filepath, filename)
+            
+    def serve_nc_file_clipped(self, source_dir, filename, boundingbox):
+        try:
+            lonmin, lonmax, latmin, latmax = [str(x).strip() for x in boundingbox.split(",")]
+            mount_path = str(Path(source_dir).parent)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # z.B. 20250820_142530
+            output_file = filename.replace(".nc", f"_clipped_{timestamp}.nc")
+            container_input = f"/data/{Path(source_dir).name}/{filename}"
+            container_output = f"/data/_tmp_gateway/download/{output_file}"
+            result = subprocess.run([
+                "docker", "run", "--rm",
+                "-v", f"{mount_path}:/data",
+                "alexgleith/cdo",
+                "cdo", f"sellonlatbox,{lonmin},{lonmax},{latmin},{latmax}",
+                container_input,
+                container_output
+            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if result.returncode != 0:
+                return HttpResponse(content=f"CDO error: {result.stderr.decode()}", status=500)
+            file_handle = open(f"{mount_path}/_tmp_gateway/download/{output_file}", 'rb')
+            response = FileResponse(file_handle,
+                                    content_type='application/octet-stream')
+            response['Content-Disposition'] = f'attachment;filename="{output_file}"'
+            return response
+        except Exception as e:
+            return HttpResponse(content=f"Error slicing file with CDO: {e}", status=500)
 
     def serve_file(self, filepath, filename):
         # just for reference:
