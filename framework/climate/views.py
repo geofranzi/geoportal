@@ -1163,7 +1163,7 @@ class TempDownloadView(APIView):
                 return self.serve_nc_file_clipped(source_dir, filename, boundigbox, timeperiod)
             else:
                 return self.serve_file(filepath, filename)
-            
+
     def serve_nc_file_clipped(self, source_dir, filename, boundingbox=None, timeperiod=None):
         try:
             mount_path = str(Path(source_dir).parent)
