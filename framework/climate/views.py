@@ -1118,6 +1118,7 @@ class TempDownloadView(APIView):
         # only used for comparison now and thus can be safely used
         filetype = request.GET.get("filetype", default=None)
         boundigbox = request.GET.get("boundingbox", default=None)
+        timeperiod = request.GET.get("timeperiod", default=None)
 
         if not foldertype or not filename or not filetype:
             err_msg = "Invalid"
@@ -1158,29 +1159,50 @@ class TempDownloadView(APIView):
             return self.serve_file(os.path.join(source_dir, "dat_clipped", filename).replace(".nc", "_clipped.nc.dat"),
                                    filename.replace(".nc", "_clipped.nc.dat"))
         else:
-            if boundigbox:
-                return self.serve_nc_file_clipped(source_dir, filename, boundigbox)
+            if boundigbox or timeperiod:
+                return self.serve_nc_file_clipped(source_dir, filename, boundigbox, timeperiod)
             else:
                 return self.serve_file(filepath, filename)
             
-    def serve_nc_file_clipped(self, source_dir, filename, boundingbox):
+    def serve_nc_file_clipped(self, source_dir, filename, boundingbox=None, timeperiod=None):
         try:
-            lonmin, lonmax, latmin, latmax = [str(x).strip() for x in boundingbox.split(",")]
             mount_path = str(Path(source_dir).parent)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # z.B. 20250820_142530
-            output_file = filename.replace(".nc", f"_clipped_{timestamp}.nc")
-            container_input = f"/data/{Path(source_dir).name}/{filename}"
-            container_output = f"/data/_tmp_gateway/download/{output_file}"
-            result = subprocess.run([
-                "docker", "run", "--rm",
-                "-v", f"{mount_path}:/data",
-                "alexgleith/cdo",
-                "cdo", f"sellonlatbox,{lonmin},{lonmax},{latmin},{latmax}",
-                container_input,
-                container_output
-            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            if result.returncode != 0:
-                return HttpResponse(content=f"CDO error: {result.stderr.decode()}", status=500)
+            # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # e.g. 20250820_142530
+            if timeperiod:
+                start_time, end_time = [str(x).strip() for x in timeperiod.split(",")]
+                output_file = filename.replace(".nc", f"_time_{start_time}_{end_time}.nc")
+                container_input = f"/data/{Path(source_dir).name}/{filename}"
+                container_output = f"/data/_tmp_gateway/download/{output_file}"
+                result = subprocess.run([
+                    "docker", "run", "--rm",
+                    "-v", f"{mount_path}:/data",
+                    "alexgleith/cdo",
+                    "cdo", f"seldate,{start_time},{end_time}",
+                    container_input,
+                    container_output
+                ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                filename = output_file  # update filename to the clipped version
+                if result.returncode != 0:
+                    return HttpResponse(content=f"CDO error: {result.stderr.decode()}", status=500)
+            if boundingbox:
+                lonmin, lonmax, latmin, latmax = [str(x).strip() for x in boundingbox.split(",")]
+                output_file = filename.replace(".nc", f"_bb_{lonmin}_{lonmax}_{latmin}_{latmax}.nc")
+                if timeperiod:
+                    container_input = f"/data/_tmp_gateway/download/{filename}"
+                else:
+                    container_input = f"/data/{Path(source_dir).name}/{filename}"
+                container_output = f"/data/_tmp_gateway/download/{output_file}"
+                result = subprocess.run([
+                    "docker", "run", "--rm",
+                    "-v", f"{mount_path}:/data",
+                    "alexgleith/cdo",
+                    "cdo", f"sellonlatbox,{lonmin},{lonmax},{latmin},{latmax}",
+                    container_input,
+                    container_output
+                ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if result.returncode != 0:
+                    return HttpResponse(content=f"CDO error: {result.stderr.decode()}", status=500)
+
             file_handle = open(f"{mount_path}/_tmp_gateway/download/{output_file}", 'rb')
             response = FileResponse(file_handle,
                                     content_type='application/octet-stream')
