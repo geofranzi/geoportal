@@ -955,8 +955,15 @@ def select_temp_urls(request):
     request body -- requested filenames
     """
     body_unicode = request.body.decode("utf-8")
-    body = json.loads(body_unicode)
-    if len(body) == 0:
+    try:
+        data = json.loads(body_unicode)
+    except json.JSONDecodeError:
+        return HttpResponse("Invalid JSON", status=400)
+
+    # Extract the values
+    checked_boxes = data.get("boxes", [])               # default to empty list if missing
+    additional_options = data.get("additional_options") # could be None if not provided
+    if len(checked_boxes) == 0:
         return HttpResponse(content="No Files chosen", status=400)
     foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
     if not foldertype:
@@ -972,7 +979,7 @@ def select_temp_urls(request):
 
     url_content = ""
     # for all requested files in requestbody, check if they really exist
-    for requested_file in body:
+    for requested_file in checked_boxes:
         filename = None
         try:
             idx = foldercontent.index(requested_file[0])
@@ -992,6 +999,7 @@ def select_temp_urls(request):
                     + foldertype
                     + "&filetype="
                     + filetype
+                    + additional_options
                     + "\n"
             )
         except Exception as e:
