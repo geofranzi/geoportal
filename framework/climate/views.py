@@ -961,8 +961,8 @@ def select_temp_urls(request):
         return HttpResponse("Invalid JSON", status=400)
 
     # Extract the values
-    checked_boxes = data.get("boxes", [])               # default to empty list if missing
-    additional_options = data.get("additional_options") # could be None if not provided
+    checked_boxes = data.get("boxes", [])
+    additional_options = data.get("additional_options")
     if len(checked_boxes) == 0:
         return HttpResponse(content="No Files chosen", status=400)
     foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
