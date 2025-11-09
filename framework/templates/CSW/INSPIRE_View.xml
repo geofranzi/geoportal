@@ -5,7 +5,11 @@
 {%  endif %}
 <gmd:MD_Metadata xmlns:gmd="http://www.isotc211.org/2005/gmd"
                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                 xsi:schemaLocation="http://www.isotc211.org/2005/gmd http://schemas.opengis.net/csw/2.0.2/profiles/apiso/1.0.0/apiso.xsd">
+                 xsi:schemaLocation="http://www.isotc211.org/2005/gmd http://schemas.opengis.net/csw/2.0.2/profiles/apiso/1.0.0/apiso.xsd"
+                 xmlns:gco="http://www.isotc211.org/2005/gco"
+                 xmlns:xlink="http://www.w3.org/1999/xlink"
+                 xmlns:gmx="http://www.isotc211.org/2005/gmx"
+                    >
    <gmd:fileIdentifier xmlns:gmd="http://www.isotc211.org/2005/gmd">
       <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">{{map.service_identifier}}</gco:CharacterString>
    </gmd:fileIdentifier>
@@ -218,31 +222,18 @@
                </gmd:fileDescription>
             </gmd:MD_BrowseGraphic>
          </gmd:graphicOverview>-->
-          <gmd:descriptiveKeywords>
-              <gmd:MD_Keywords>
-                  <gmd:keyword>
-                      <gmx:Anchor xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://inspire.ec.europa.eu/metadata-codelist/SpatialDataServiceCategory/infoMapAccessService">infoMapAccessService</gmx:Anchor>
-                  </gmd:keyword>
-                  <gmd:thesaurusName>
-                      <gmd:CI_Citation>
-                          <gmd:title>
-                              <gmx:Anchor xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://data.europa.eu/eli/reg/2008/1205">Commission Regulation (EC) No 1205/2008 of 3 December 2008 implementing Directive 2007/2/EC of the European Parliament and of the Council as regards metadata</gmx:Anchor>
-                          </gmd:title>
-                          <gmd:date>
-                              <gmd:CI_Date>
-                                  <gmd:date>
-                                      <gco:Date xmlns:gco="http://www.isotc211.org/2005/gco">2008-12-03</gco:Date>
-                                  </gmd:date>
-                                  <gmd:dateType>
-                                      <gmd:CI_DateTypeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication">Publication</gmd:CI_DateTypeCode>
-                                  </gmd:dateType>
-                              </gmd:CI_Date>
-                          </gmd:date>
-                      </gmd:CI_Citation>
-                  </gmd:thesaurusName>
-              </gmd:MD_Keywords>
+          <gmd:descriptiveKeywords xmlns:gmd="http://www.isotc211.org/2005/gmd">
+          <gmd:MD_Keywords>
+          <gmd:keyword>
+              <gco:CharacterString>infoMapAccessService</gco:CharacterString>
+          </gmd:keyword>
+              <gmd:type>
+                  <gmd:MD_KeywordTypeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="theme"/>
+              </gmd:type>
+          </gmd:MD_Keywords>
           </gmd:descriptiveKeywords>
-         <gmd:descriptiveKeywords xmlns:gmd="http://www.isotc211.org/2005/gmd">
+
+          <gmd:descriptiveKeywords xmlns:gmd="http://www.isotc211.org/2005/gmd">
             <gmd:MD_Keywords>
                <gmd:keyword>
                   <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco">inspireidentifiziert</gco:CharacterString>
@@ -328,7 +319,36 @@
               </gmd:MD_Keywords>
           </gmd:descriptiveKeywords>
           {% endif %}
+          {% if map.inspire_hdv %}
+              <gmd:descriptiveKeywords>
+                  <gmd:MD_Keywords>
 
+
+                      <gmd:keyword>
+                          <gmx:Anchor xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="{{ map.inspire_hdv.uri }}">{{ map.inspire_hdv.name_de }}</gmx:Anchor>
+                      </gmd:keyword>
+
+
+                      <gmd:thesaurusName>
+                          <gmd:CI_Citation>
+                              <gmd:title>
+                                  <gmx:Anchor xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://data.europa.eu/bna/asd487ae75">High-value dataset categories</gmx:Anchor>
+                              </gmd:title>
+                              <gmd:date>
+                                  <gmd:CI_Date>
+                                      <gmd:date>
+                                          <gco:Date xmlns:gco="http://www.isotc211.org/2005/gco">2023-09-27</gco:Date>
+                                      </gmd:date>
+                                      <gmd:dateType>
+                                          <gmd:CI_DateTypeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication">Publication</gmd:CI_DateTypeCode>
+                                      </gmd:dateType>
+                                  </gmd:CI_Date>
+                              </gmd:date>
+                          </gmd:CI_Citation>
+                      </gmd:thesaurusName>
+                  </gmd:MD_Keywords>
+              </gmd:descriptiveKeywords>
+          {% endif %}
           {% if keywords_no_thesaurus %}
               <gmd:descriptiveKeywords xmlns:gmd="http://www.isotc211.org/2005/gmd">
                   <gmd:MD_Keywords>

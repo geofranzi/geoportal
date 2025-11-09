@@ -32,7 +32,7 @@ class InspireThemesSerializer(serializers.ModelSerializer):
         fields = ('uri', 'name_en', 'name_de', 'definition_en', 'definition_de', 'topicCategory')
 
 
-class InspireHVD(models.Model):
+class InspireHDV(models.Model):
     uri = models.CharField(max_length=400, verbose_name="URI")
     name_en = models.CharField(max_length=200, verbose_name="Name (en)")
     name_de = models.CharField(max_length=200, verbose_name="Name (de)")
@@ -43,7 +43,7 @@ class InspireHVD(models.Model):
 
 class InspireHVDSerializer(serializers.ModelSerializer):
     class Meta:
-        model = InspireHVD
+        model = InspireHDV
         fields = ('uri', 'name_en', 'name_de')
 
 
@@ -77,7 +77,7 @@ class SourceLayer(Layer):
 
 class InspireDataset(Layer):
     inspire_theme = models.ManyToManyField(InspireTheme, blank=True, related_name="inspire_theme")
-    inspire_hvd = models.ForeignKey(InspireHVD, related_name="inspire_hvd", on_delete=models.PROTECT, blank=True, null=True)
+    inspire_hdv = models.ForeignKey(InspireHDV, related_name="inspire_hvd", on_delete=models.PROTECT, blank=True, null=True)
 
     opendata = models.BooleanField(default=False)
     inspireidentified = models.BooleanField(default=False)
@@ -140,7 +140,7 @@ class ProcessingInline(models.Model):
 
 class InspireMap(Map):
     inspire_theme = models.ManyToManyField(InspireTheme, blank=True, related_name="inspire_theme_map")
-    inspire_hvd = models.ForeignKey(InspireHVD, related_name="inspire_hvd_map", on_delete=models.PROTECT, blank=True, null=True)
+    inspire_hdv = models.ForeignKey(InspireHDV, related_name="inspire_hvd_map", on_delete=models.PROTECT, blank=True, null=True)
 
     inspire_wms_published = models.BooleanField(default=False)
     inspire_wms_first_publication_date = models.DateTimeField(verbose_name="First publication date", blank=True, null=True)
@@ -167,11 +167,11 @@ class InspireMap(Map):
 
 class InspireMetadataSerializer(MetadataSerializer):
     inspire_theme = InspireThemesSerializer(many=True)
-    inspire_hvd = InspireHVDSerializer(read_only=True)
+    inspire_hdv = InspireHVDSerializer(read_only=True)
 
     class Meta(MetadataSerializer.Meta):
         model = InspireDataset
-        fields = MetadataSerializer.Meta.fields + ('inspire_theme', 'inspire_hvd')
+        fields = MetadataSerializer.Meta.fields + ('inspire_theme', 'inspire_hdv')
 
 
 class SourceMetadataSerializer(MetadataSerializer):
@@ -180,16 +180,16 @@ class SourceMetadataSerializer(MetadataSerializer):
 
     class Meta(MetadataSerializer.Meta):
         model = SourceLayer
-        fields = MetadataSerializer.Meta.fields + ('inspire_theme', 'inspire_hvd')
+        fields = MetadataSerializer.Meta.fields + ('inspire_theme', 'inspire_hdv')
 
 
 class InspireMapSerializer(MapSerializer):
     inspire_theme = InspireThemesSerializer(many=True)
-    inspire_hvd = InspireHVDSerializer(read_only=True)
+    inspire_hdv = InspireHVDSerializer(read_only=True)
 
     class Meta(MapSerializer.Meta):
         model = InspireMap
-        fields = MapSerializer.Meta.fields + ('inspire_theme', 'inspire_hvd')
+        fields = MapSerializer.Meta.fields + ('inspire_theme', 'inspire_hdv')
 
 
 def check_csw_published(identifier):

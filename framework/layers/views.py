@@ -526,7 +526,7 @@ class GetTimeValues(APIView):
 @api_view(['GET'])
 def get_contacts_website(request):
     try:
-        contacts = Contact.objects.exclude(first_name__exact='')
+        contacts = Contact.objects.exclude(first_name__exact='').order_by('id')
     except Contact.DoesNotExist:
         contacts = None
 

@@ -7,7 +7,7 @@ from inspire.csw import (create_csw_view_xml, create_csw_xml, create_update_csw,
 from layers.admin import LayersAdmin
 from map.admin import MapAdmin
 
-from .models import (InspireDataset, InspireHVD, InspireMap, InspireTheme, ProcessingInline, SourceLayer,)
+from .models import (InspireDataset, InspireHDV, InspireMap, InspireTheme, ProcessingInline, SourceLayer,)
 
 
 def create_csw(self, request, queryset):
@@ -100,11 +100,11 @@ class InspireLayerAdmin(LayersAdmin):
 
         (None, {
             'classes': ('suit-tab', 'suit-tab-inspire',),
-            'fields': ('inspireidentified', 'opendata', 'inspire_theme', 'inspire_hvd',),
+            'fields': ('inspireidentified', 'opendata', 'inspire_theme', 'inspire_hdv',),
         }),
     )
     inlines = LayersAdmin.inlines + (ProcessingInlineTab,)
-    list_display = ('title', 'check_csw_published', 'inspire_hvd')
+    list_display = ('title', 'check_csw_published', 'inspire_hdv')
     suit_form_tabs = LayersAdmin.suit_form_tabs + (
         ('inspire', 'INSPIRE'),)
     search_fields = ('title', 'abstract', 'inspire_theme__name')
@@ -119,13 +119,13 @@ class InspireMapAdmin(MapAdmin):
     fieldsets = MapAdmin.fieldsets + (
         (None, {
             'classes': ('suit-tab', 'suit-tab-inspire'),
-            'fields': ('inspire_theme', 'inspire_hvd')
+            'fields': ('inspire_theme', 'inspire_hdv')
         }),
 
     )
     inlines = MapAdmin.inlines
     #  list_display=('title','publishable', 'downloadable', 'internal_contact')
-    list_display = ('full_name', 'ows_title_de', 'ows_title_en', 'ows_url_name', 'inspire_hvd')
+    list_display = ('full_name', 'ows_title_de', 'ows_title_en', 'ows_url_name', 'inspire_hdv')
     suit_form_tabs = MapAdmin.suit_form_tabs + (('inspire', 'Inspire theme'),)
     search_fields = ('abstract', 'inspire_theme__name')
 
@@ -156,4 +156,4 @@ admin.site.register(InspireMap, InspireMapAdmin)
 admin.site.register(SourceLayer, SourceLayerAdmin)
 admin.site.register(InspireDataset, InspireLayerAdmin)
 admin.site.register(InspireTheme, InspireThemeAdmin)
-admin.site.register(InspireHVD, InspireHVDAdmin)
+admin.site.register(InspireHDV, InspireHVDAdmin)

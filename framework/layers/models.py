@@ -93,7 +93,7 @@ class Layer(models.Model):
     title_en = models.CharField(max_length=200, null=True, blank=True)
     abstract = models.TextField()
     abstract_en = models.TextField(null=True, blank=True)
-    topicCategory = models.ManyToManyField(ISOcodelist, limit_choices_to={'code_list': "MD_TopicCategoryCode"}, verbose_name="Topic category", default=227)
+    topicCategory = models.ManyToManyField(ISOcodelist, limit_choices_to={'code_list': "MD_TopicCategoryCode"}, verbose_name="Topic category", default=[227])
     SCOPE_ID = 1
     try:
         SCOPE_ID = ISOcodelist.objects.get(identifier="dataset", code_list="MD_ScopeCode").id

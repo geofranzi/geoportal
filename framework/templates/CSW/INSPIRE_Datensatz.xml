@@ -363,6 +363,37 @@
               </gmd:MD_Keywords>
           </gmd:descriptiveKeywords>
           {% endif %}
+
+          {% if layer.inspire_hdv %}
+              <gmd:descriptiveKeywords>
+                  <gmd:MD_Keywords>
+
+
+                          <gmd:keyword>
+                              <gmx:Anchor xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="{{ layer.inspire_hdv.uri }}">{{ layer.inspire_hdv.name_de }}</gmx:Anchor>
+                          </gmd:keyword>
+
+
+                      <gmd:thesaurusName>
+                          <gmd:CI_Citation>
+                              <gmd:title>
+                                  <gmx:Anchor xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://data.europa.eu/bna/asd487ae75">High-value dataset categories</gmx:Anchor>
+                              </gmd:title>
+                              <gmd:date>
+                                  <gmd:CI_Date>
+                                      <gmd:date>
+                                          <gco:Date xmlns:gco="http://www.isotc211.org/2005/gco">2023-09-27</gco:Date>
+                                      </gmd:date>
+                                      <gmd:dateType>
+                                          <gmd:CI_DateTypeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication">Publication</gmd:CI_DateTypeCode>
+                                      </gmd:dateType>
+                                  </gmd:CI_Date>
+                              </gmd:date>
+                          </gmd:CI_Citation>
+                      </gmd:thesaurusName>
+                  </gmd:MD_Keywords>
+              </gmd:descriptiveKeywords>
+          {% endif %}
 <!-- individual keywords -->
           {% if keywords_no_thesaurus %}
           <gmd:descriptiveKeywords>
