@@ -37,7 +37,7 @@ from .ncmeta_handler import (extract_ncfile_metadata, helper_read_and_add_nodata
 from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex, ClimateDatasetsIndex,
                         ClimateIndicatorIndex, ClimateIndicatorSearch, ClimateSearch,)
 from .serializer import ClimateLayerSerializer
-from .temp_file_locations import (JAMS_TMPL_FILE, TEMP_FOLDER_TYPES, URLTXTFILES_DIR, FileInfo, FolderInfo,
+from .temp_file_locations import (JAMS_TMPL_FILE, TEMP_FOLDER_TYPES, URLTXTFILES_DIR, TEMP_DOWNLOAD_FOLDER, FileInfo, FolderInfo,
                                   copy_filename_as_tif, parse_temp_filename_from_param,
                                   parse_temp_foldertype_from_param, parse_urltxt_filename_from_param, temp_cat_filename,
                                   tmp_cache_path, tmp_raw_filepath, tmp_raw_path,)
@@ -72,6 +72,7 @@ class TmpCache:
         """
         source_dir = tmp_raw_path(foldertype)
         logger.debug(f"source_dir: {source_dir}")
+        # logger.debug(self._folder_cache)
         if not source_dir:
             return []
 
@@ -655,13 +656,16 @@ def split_files_by_extension(file_list, filetype):
     return nc_files
 
 
-def extract_jams_files(foldertype, filename):
+def extract_jams_files(foldertype, filename, bbox=None, period=None):
     try:
         import rioxarray  # noqa
         logger.debug('extract jams started')
         wrong_variables = ['time_bnds', 'spatial_ref']
         decimal_digits = 5
         source_dir = tmp_raw_path(foldertype)
+        output_dir = f"{TEMP_DOWNLOAD_FOLDER}"
+        output_file = filename
+        
         filepath = os.path.join(source_dir, filename)
         try:
             nc = xr.open_dataset(filepath)
@@ -683,6 +687,19 @@ def extract_jams_files(foldertype, filename):
 
         ds = nc[var_name]
         ds = ds.rio.write_crs("EPSG:4326")
+        if bbox is not None:
+            lonmin, lonmax, latmin, latmax = [float(x) for x in bbox.split(",")]
+            ds = ds.sel(
+                lat=slice(latmin, latmax),
+                lon=slice(lonmin, lonmax)
+            )
+            output_file = output_file.replace(".nc", f"_bb_{lonmin}_{lonmax}_{latmin}_{latmax}.nc")
+        
+        if period is not None:
+            start_time, end_time = [str(x).strip() for x in period.split(",")]
+            ds = ds.sel(time=slice(start_time, end_time))
+            output_file = output_file.replace(".nc", f"_time_{start_time}_{end_time}.nc")
+            
         ds = ds.rio.reproject(epsg_utm)
         time_var = nc['time']
         tres = pd.TimedeltaIndex(time_var.diff(dim='time')).mean()
@@ -737,8 +754,10 @@ def extract_jams_files(foldertype, filename):
         meta = meta.replace('%ys%', ys)
         df.set_index('time', inplace=True)
         # output metadata and data to file
+        output_file = r'{}.dat'.format(os.path.join(output_dir, output_file))
         try:
-            with open(r'{}.dat'.format(os.path.join(source_dir, "dat", filename)), 'w', encoding="utf-8") as file:
+            # with open(r'{}.dat'.format(os.path.join(source_dir, "dat", filename)), 'w', encoding="utf-8") as file:
+            with open(output_file, 'w', encoding="utf-8") as file:
                 # Append lines to the file
                 file.write(meta)
 
@@ -753,9 +772,9 @@ def extract_jams_files(foldertype, filename):
                 file.close()
         except Exception as e:
             logger.debug(f"During extract jams file: error while writing dat-file: {e}")
-
         tmp_cache.flag_dat_exists(foldertype, filename, True)
         logger.debug('extract jams ended')
+        return output_file
     except Exception as unexpected_error:
         logger.debug(f"During extract jams file: unexpected error: {unexpected_error}")
 
@@ -1177,7 +1196,7 @@ class TempDownloadView(APIView):
                 start_time, end_time = [str(x).strip() for x in timeperiod.split(",")]
                 output_file = filename.replace(".nc", f"_time_{start_time}_{end_time}.nc")
                 container_input = f"/data/{Path(source_dir).name}/{filename}"
-                container_output = f"/data/_tmp_gateway/download/{output_file}"
+                container_output = f"{TEMP_DOWNLOAD_FOLDER}{output_file}"
                 result = subprocess.run([
                     "docker", "run", "--rm",
                     "-v", f"{mount_path}:/data",
@@ -1193,10 +1212,10 @@ class TempDownloadView(APIView):
                 lonmin, lonmax, latmin, latmax = [str(x).strip() for x in boundingbox.split(",")]
                 output_file = filename.replace(".nc", f"_bb_{lonmin}_{lonmax}_{latmin}_{latmax}.nc")
                 if timeperiod:
-                    container_input = f"/data/_tmp_gateway/download/{filename}"
+                    container_input = f"{TEMP_DOWNLOAD_FOLDER}{filename}"
                 else:
                     container_input = f"/data/{Path(source_dir).name}/{filename}"
-                container_output = f"/data/_tmp_gateway/download/{output_file}"
+                container_output = f"{TEMP_DOWNLOAD_FOLDER}{output_file}"
                 result = subprocess.run([
                     "docker", "run", "--rm",
                     "-v", f"{mount_path}:/data",
@@ -1671,21 +1690,29 @@ class GenerateDatView(APIView):
         """
         foldertype = parse_temp_foldertype_from_param(request.GET.get("type", default=None))
         filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
-        try:
+        boundigbox = request.GET.get("boundingbox", default=None)
+        timeperiod = request.GET.get("timeperiod", default=None)
+        print(timeperiod)
+        # try:
             # Start the long-running process in a separate thread
-            process_thread = threading.Thread(target=extract_jams_files, args=(foldertype, filename))
-            process_thread.start()
+            # process_thread = threading.Thread(target=extract_jams_files, args=(foldertype, filename))
+            # process_thread.start()
 
             # Wait for the thread to complete
-            process_thread.join()
+            # process_thread.join()
+        file_path = extract_jams_files(foldertype, filename, boundigbox, timeperiod)
+        filename = os.path.basename(file_path)
 
-            # Return a 200 response to indicate the process was successfully completed
-            return JsonResponse({"message": "Process completed successfully"}, status=200)
-        except Exception as e:
-            # If there was an error starting the process, log the exception
-            print(f"Error starting process: {e}")
-            # Return a 500 response to indicate an internal server error
-            return JsonResponse({"error": "Failed to start process"}, status=500)
+        file_handle = open(file_path, 'rb')
+        response = FileResponse(file_handle,
+                                content_type='application/octet-stream')
+        response['Content-Disposition'] = f'attachment;filename="{filename}"'
+        return response
+        # except Exception as e:
+        #     # If there was an error starting the process, log the exception
+        #     print(f"Error starting process: {e}")
+        #     # Return a 500 response to indicate an internal server error
+        #     return JsonResponse({"error": "Failed to start process"}, status=500)
         # finally:
         #     # TODO: - check if this is correct or needs to be moved
         #     # use this to set the existence of the dat file in cache
@@ -2196,8 +2223,8 @@ def helper_update_nodatavalue():
 # helper_update_nodatavalue()
 
 # def update_all_tempfolders():
-#     for foldertype in TEMP_FOLDER_TYPES:
-#         tmp_cache.update_by_foldertype(foldertype)
+#      for foldertype in TEMP_FOLDER_TYPES:
+#          tmp_cache.update_by_foldertype(foldertype)
 
 
 # delete_all_temp_results()

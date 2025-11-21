@@ -50,6 +50,7 @@ TEMP_FOLDER_TYPES = [
     "CMIP6_bias_ind",
     "CMIP6_bias_ind_stat",
     "CHIRPS",
+    "CHIRPS3",
     "vaal_CORDEX",
     "vaal_CHIRPS",
     "vaal_ERA5_LAND",
@@ -57,6 +58,7 @@ TEMP_FOLDER_TYPES = [
     "kunene_GLEAM",
     "kariba_CORDEX",
     "luanginga_CORDEX",
+    "nwnamibia_CORDEX",
     "CORDEX_LANDSURF_ind_full",
     "CORDEX_LANDSURF_ind_slices20",
     "CORDEX_LANDSURF_ind_slices30",
@@ -75,6 +77,8 @@ TEMP_URL = "/data/_tmp_gateway/url"  # path to url directory (wget requests stor
 URLTXTFILES_DIR = TEMP_URL
 
 JAMS_TMPL_FILE = os.path.join(settings.BASE_DIR, "framework/climate/static/jams_tmpl.dat")
+TEMP_DOWNLOAD_FOLDER = "/data/_tmp_gateway/download/"
+
 
 FileInfo = TypedDict(
     "FileInfo",
