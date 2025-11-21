@@ -665,7 +665,7 @@ def extract_jams_files(foldertype, filename, bbox=None, period=None):
         source_dir = tmp_raw_path(foldertype)
         output_dir = f"{TEMP_DOWNLOAD_FOLDER}"
         output_file = filename
-        
+
         filepath = os.path.join(source_dir, filename)
         try:
             nc = xr.open_dataset(filepath)
@@ -694,12 +694,12 @@ def extract_jams_files(foldertype, filename, bbox=None, period=None):
                 lon=slice(lonmin, lonmax)
             )
             output_file = output_file.replace(".nc", f"_bb_{lonmin}_{lonmax}_{latmin}_{latmax}.nc")
-        
+
         if period is not None:
             start_time, end_time = [str(x).strip() for x in period.split(",")]
             ds = ds.sel(time=slice(start_time, end_time))
             output_file = output_file.replace(".nc", f"_time_{start_time}_{end_time}.nc")
-            
+
         ds = ds.rio.reproject(epsg_utm)
         time_var = nc['time']
         tres = pd.TimedeltaIndex(time_var.diff(dim='time')).mean()
@@ -1694,12 +1694,12 @@ class GenerateDatView(APIView):
         timeperiod = request.GET.get("timeperiod", default=None)
         print(timeperiod)
         # try:
-            # Start the long-running process in a separate thread
-            # process_thread = threading.Thread(target=extract_jams_files, args=(foldertype, filename))
-            # process_thread.start()
+        #     Start the long-running process in a separate thread
+        #     process_thread = threading.Thread(target=extract_jams_files, args=(foldertype, filename))
+        #     process_thread.start()
 
-            # Wait for the thread to complete
-            # process_thread.join()
+        #     Wait for the thread to complete
+        #     process_thread.join()
         file_path = extract_jams_files(foldertype, filename, boundigbox, timeperiod)
         filename = os.path.basename(file_path)
 
