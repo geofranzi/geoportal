@@ -32,11 +32,11 @@ from rest_framework.views import APIView
 from xclim import testing
 
 from .graph_db import (activities, base_for_entities, count_prov, result_entities, source_entities,)
-from .models import (ClimateLayer, TempResultFile,)
+from .models import (ClimateLayer, TempResultFile, FolderType,)
 from .ncmeta_handler import (extract_ncfile_metadata, helper_read_and_add_nodatavalue, read_file_specific_metadata,)
 from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex, ClimateDatasetsIndex,
                         ClimateIndicatorIndex, ClimateIndicatorSearch, ClimateSearch,)
-from .serializer import ClimateLayerSerializer
+from .serializer import ClimateLayerSerializer, FolderTypeSerializer
 from .temp_file_locations import (JAMS_TMPL_FILE, TEMP_FOLDER_TYPES, URLTXTFILES_DIR, TEMP_DOWNLOAD_FOLDER, FileInfo, FolderInfo,
                                   copy_filename_as_tif, parse_temp_filename_from_param,
                                   parse_temp_foldertype_from_param, parse_urltxt_filename_from_param, temp_cat_filename,
@@ -1827,6 +1827,11 @@ class ElasticsearchCollections(APIView):
 
         return Response(finalJSON)
 
+class FolderTypeListView(APIView):
+    def get(self, request):
+        qs = FolderType.objects.all()
+        serializer = FolderTypeSerializer(qs, many=True)
+        return Response(serializer.data)
 
 def extract_specific_files(tar_file_path, extract_to, file_list):
     with tarfile.open(tar_file_path, "r") as tar:

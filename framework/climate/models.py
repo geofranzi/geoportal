@@ -312,3 +312,39 @@ class TempResultFile(models.Model):
 
     def __str__(self):
         return f"[{self.category}] {str(self.filename)}"
+
+
+class FolderType(models.Model):
+    STATUS_CHOICES = [
+        ("public", "Public"),
+        ("internal", "Internal"),
+    ]
+
+    key = models.CharField(max_length=100, unique=True)
+    display_name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+
+    citation = models.TextField(blank=True)
+    header_regex = models.CharField(max_length=255, blank=True)
+    lineage = models.TextField(blank=True)
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="internal"
+    )
+
+    # BBox besser strukturiert speichern
+    bbox_min_lon = models.FloatField()
+    bbox_min_lat = models.FloatField()
+    bbox_max_lon = models.FloatField()
+    bbox_max_lat = models.FloatField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["key"]
+
+    def __str__(self):
+        return self.display_name

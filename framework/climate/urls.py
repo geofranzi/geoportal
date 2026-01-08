@@ -20,6 +20,7 @@ urlpatterns = [
     path('generate_dat_file', views.GenerateDatView.as_view(), name='generate_dat_file'),
     path('get_temp_file_metadata', views.get_ncfile_metadata, name='get_ncfile_metadata'),
     path('access_tif', views.access_tif_from_ncfile, name="access_tif"),
+    path('get_folder_types', views.FolderTypeListView.as_view(), name="get_folder_types"),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns, allowed=['json'])
