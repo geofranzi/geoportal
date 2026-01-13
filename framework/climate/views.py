@@ -9,7 +9,7 @@ import os
 import sys
 # import cf_xarray as cfxr
 import tarfile
-import threading
+# import threading
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -1827,11 +1827,13 @@ class ElasticsearchCollections(APIView):
 
         return Response(finalJSON)
 
+
 class FolderTypeListView(APIView):
     def get(self, request):
         qs = FolderType.objects.all()
         serializer = FolderTypeSerializer(qs, many=True)
         return Response(serializer.data)
+
 
 def extract_specific_files(tar_file_path, extract_to, file_list):
     with tarfile.open(tar_file_path, "r") as tar:

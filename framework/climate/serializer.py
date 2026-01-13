@@ -9,8 +9,6 @@ class ClimateLayerSerializer(serializers.ModelSerializer):
         fields = ('dataset', 'frequency', 'cf_version', 'processing_method', 'variable', 'local_path', 'file_name', 'size', 'status', 'download_path')
 
 
-
-
 class FolderTypeSerializer(serializers.ModelSerializer):
     bbox = serializers.SerializerMethodField()
 
