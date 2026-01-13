@@ -29,7 +29,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 # import xclim.indices
-from xclim import testing
+# from xclim import testing -> moved to function to avoid pipeline issues
 
 from .graph_db import (activities, base_for_entities, count_prov, result_entities, source_entities,)
 from .models import (ClimateLayer, TempResultFile, FolderType,)
@@ -1369,6 +1369,7 @@ class TempDownloadView(APIView):
 
 @api_view(["GET"])
 def test_xclim(request):
+    from xclim import testing
     year_end = "1951"
 
     # reassign the testing.open_dataset(..) call if needed, for now no assignment
