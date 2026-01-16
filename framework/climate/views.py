@@ -657,127 +657,135 @@ def split_files_by_extension(file_list, filetype):
 
 
 def extract_jams_files(foldertype, filename, bbox=None, period=None):
+    import rioxarray  # noqa
+    logger.debug('extract jams started')
+    wrong_variables = ['time_bnds', 'spatial_ref']
+    decimal_digits = 5
+    source_dir = tmp_raw_path(foldertype)
+    output_dir = f"{TEMP_DOWNLOAD_FOLDER}"
+    output_file = filename
+
+    filepath = os.path.join(source_dir, filename)
     try:
-        import rioxarray  # noqa
-        logger.debug('extract jams started')
-        wrong_variables = ['time_bnds', 'spatial_ref']
-        decimal_digits = 5
-        source_dir = tmp_raw_path(foldertype)
-        output_dir = f"{TEMP_DOWNLOAD_FOLDER}"
-        output_file = filename
-
-        filepath = os.path.join(source_dir, filename)
-        try:
-            nc = xr.open_dataset(filepath)
-        except Exception as e:
-            logger.debug(f"During extract jams file: error while reading nc: {e}")
-        except MemoryError:
-            logger.debug("During extract jams file: memory error")
-        i = 0
-        epsg_utm = get_utm_epsg_from_nc(filepath)
+        nc = xr.open_dataset(filepath)
+    except Exception as e:
+        logger.debug(f"During extract jams file: error while reading nc: {e}")
+        raise FileProcessingError("File not found or readable.")
+    except MemoryError:
+        logger.debug("During extract jams file: memory error")
+        raise FileProcessingError("Memory error.")
+    i = 0
+    epsg_utm = get_utm_epsg_from_nc(filepath)
+    var_name = list(nc.data_vars)[i]
+    while var_name in wrong_variables:
+        i += 1
         var_name = list(nc.data_vars)[i]
-        while var_name in wrong_variables:
-            i += 1
-            var_name = list(nc.data_vars)[i]
-        try:
-            var_unit = nc[var_name].attrs['units']
-        except Exception as e:
-            logger.debug(f"During extract jams file: error while parsing units: {e}")
-            var_unit = 'none'
+    try:
+        var_unit = nc[var_name].attrs['units']
+    except Exception as e:
+        logger.debug(f"During extract jams file: error while parsing units: {e}")
+        var_unit = 'none'
 
-        ds = nc[var_name]
-        ds = ds.rio.write_crs("EPSG:4326")
-        if bbox is not None:
+    ds = nc[var_name]
+    ds = ds.rio.write_crs("EPSG:4326")
+    if bbox is not None:
+        try:
             lonmin, lonmax, latmin, latmax = [float(x) for x in bbox.split(",")]
             ds = ds.sel(
                 lat=slice(latmin, latmax),
                 lon=slice(lonmin, lonmax)
             )
             output_file = output_file.replace(".nc", f"_bb_{lonmin}_{lonmax}_{latmin}_{latmax}.nc")
-
-        if period is not None:
-            start_time, end_time = [str(x).strip() for x in period.split(",")]
-            ds = ds.sel(time=slice(start_time, end_time))
-            output_file = output_file.replace(".nc", f"_time_{start_time}_{end_time}.nc")
-
-        ds = ds.rio.reproject(epsg_utm)
-        time_var = nc['time']
-        tres = pd.TimedeltaIndex(time_var.diff(dim='time')).mean()
-        one_day = pd.Timedelta(days=1)
-
-        df = ds.to_dataframe().reset_index()
-        df = df.dropna(subset=[var_name])
-        df = df.sort_values(by=['time', 'y', 'x'])
-        unique_x_y_pairs = df[['x', 'y']].drop_duplicates()
-        unique_times = df['time'].unique()
-        min_time = min(unique_times)
-        max_time = max(unique_times)
-
-        # read file header template
-        try:
-            with open(JAMS_TMPL_FILE, "r") as file:
-                meta = file.read()
         except Exception as e:
-            logger.debug(f"During extract jams file: error while reading jams template: {e}")
+            logger.debug(f"During extract jams file: error while parsing bbox: {e}")
+            raise FileProcessingError("No data found for selected bounding box.")
 
-        # create metadata header
-        meta = meta.replace('%crs%', epsg_utm)
-        # meta = ""
-        meta = meta.replace('%ncfile%', filename)
-        # meta = meta.replace('%shapefile%', shapefile)
-        meta = meta.replace('%var_name%', var_name)
-        meta = meta.replace('%var_unit%', var_unit)
-        meta = meta.replace('%min_time%', str(min_time))
-        meta = meta.replace('%max_time%', str(max_time))
-        meta = meta.replace('%tres%', 'm' if one_day < tres else 'd')
+    if period is not None:
+        start_time, end_time = [str(x).strip() for x in period.split(",")]
+        if end_time <= start_time:
+            raise FileProcessingError("Invalid time period selected.")
+        ds = ds.sel(time=slice(start_time, end_time))
+        if ds.sizes.get("time", 0) == 0:
+            raise FileProcessingError("No data inside selected time period.")
+        output_file = output_file.replace(".nc", f"_time_{start_time}_{end_time}.nc")
 
-        stations = ''
-        ids = ''
-        elevations = ''
-        cols = ''
-        xs = ''
-        ys = ''
-        n = 1
-        for x, y in unique_x_y_pairs.values:
-            stations += 'station_{}\t'.format(n)
-            ids += '{}\t'.format(n)
-            cols += '{}\t'.format(n)
-            elevations += '0.0\t'
-            xs += '{}\t'.format(x)
-            ys += '{}\t'.format(y)
-            n += 1
-        meta = meta.replace('%stations%', stations)
-        meta = meta.replace('%ids%', ids)
-        meta = meta.replace('%elevations%', elevations)
-        meta = meta.replace('%cols%', cols)
-        meta = meta.replace('%xs%', xs)
-        meta = meta.replace('%ys%', ys)
-        df.set_index('time', inplace=True)
-        # output metadata and data to file
-        output_file = r'{}.dat'.format(os.path.join(output_dir, output_file))
-        try:
-            # with open(r'{}.dat'.format(os.path.join(source_dir, "dat", filename)), 'w', encoding="utf-8") as file:
-            with open(output_file, 'w', encoding="utf-8") as file:
-                # Append lines to the file
-                file.write(meta)
+    ds = ds.rio.reproject(epsg_utm)
+    time_var = nc['time']
+    tres = pd.TimedeltaIndex(time_var.diff(dim='time')).mean()
+    one_day = pd.Timedelta(days=1)
 
-                for timestep in unique_times:
-                    data = df.loc[timestep]
-                    values_list = ['{:.{}f}'.format(value, decimal_digits) for value in data[var_name]]
-                    values = '\t'.join(values_list)
-                    line = '{}\t{}\n'.format(timestep, values)
-                    file.write(line)
+    df = ds.to_dataframe().reset_index()
+    df = df.dropna(subset=[var_name])
+    df = df.sort_values(by=['time', 'y', 'x'])
+    unique_x_y_pairs = df[['x', 'y']].drop_duplicates()
+    unique_times = df['time'].unique()
+    min_time = min(unique_times)
+    max_time = max(unique_times)
 
-                file.write('# end of file')
-                file.close()
-        except Exception as e:
-            logger.debug(f"During extract jams file: error while writing dat-file: {e}")
-        tmp_cache.flag_dat_exists(foldertype, filename, True)
-        logger.debug('extract jams ended')
-        return output_file
-    except Exception as unexpected_error:
-        logger.debug(f"During extract jams file: unexpected error: {unexpected_error}")
+    # read file header template
+    try:
+        with open(JAMS_TMPL_FILE, "r") as file:
+            meta = file.read()
+    except Exception as e:
+        logger.debug(f"During extract jams file: error while reading jams template: {e}")
+        raise FileProcessingError("JAMS template file not found or readable.")
 
+    # create metadata header
+    meta = meta.replace('%crs%', epsg_utm)
+    # meta = ""
+    meta = meta.replace('%ncfile%', filename)
+    # meta = meta.replace('%shapefile%', shapefile)
+    meta = meta.replace('%var_name%', var_name)
+    meta = meta.replace('%var_unit%', var_unit)
+    meta = meta.replace('%min_time%', str(min_time))
+    meta = meta.replace('%max_time%', str(max_time))
+    meta = meta.replace('%tres%', 'm' if one_day < tres else 'd')
+
+    stations = ''
+    ids = ''
+    elevations = ''
+    cols = ''
+    xs = ''
+    ys = ''
+    n = 1
+    for x, y in unique_x_y_pairs.values:
+        stations += 'station_{}\t'.format(n)
+        ids += '{}\t'.format(n)
+        cols += '{}\t'.format(n)
+        elevations += '0.0\t'
+        xs += '{}\t'.format(x)
+        ys += '{}\t'.format(y)
+        n += 1
+    meta = meta.replace('%stations%', stations)
+    meta = meta.replace('%ids%', ids)
+    meta = meta.replace('%elevations%', elevations)
+    meta = meta.replace('%cols%', cols)
+    meta = meta.replace('%xs%', xs)
+    meta = meta.replace('%ys%', ys)
+    df.set_index('time', inplace=True)
+    # output metadata and data to file
+    output_file = r'{}.dat'.format(os.path.join(output_dir, output_file))
+    try:
+        # with open(r'{}.dat'.format(os.path.join(source_dir, "dat", filename)), 'w', encoding="utf-8") as file:
+        with open(output_file, 'w', encoding="utf-8") as file:
+            # Append lines to the file
+            file.write(meta)
+
+            for timestep in unique_times:
+                data = df.loc[timestep]
+                values_list = ['{:.{}f}'.format(value, decimal_digits) for value in data[var_name]]
+                values = '\t'.join(values_list)
+                line = '{}\t{}\n'.format(timestep, values)
+                file.write(line)
+
+            file.write('# end of file')
+            file.close()
+    except Exception as e:
+        logger.debug(f"During extract jams file: error while writing dat-file: {e}")
+        raise FileProcessingError("Could not write output file.")
+    tmp_cache.flag_dat_exists(foldertype, filename, True)
+    logger.debug('extract jams ended')
+    return output_file
 
 def get_utm_epsg_from_nc(nc_path):
     """
@@ -1194,6 +1202,8 @@ class TempDownloadView(APIView):
             # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # e.g. 20250820_142530
             if timeperiod:
                 start_time, end_time = [str(x).strip() for x in timeperiod.split(",")]
+                if end_time <= start_time:
+                    return HttpResponse(content="Invalid time period selected.", status=400)
                 output_file = filename.replace(".nc", f"_time_{start_time}_{end_time}.nc")
                 container_input = f"/data/{Path(source_dir).name}/{filename}"
                 container_output = f"{TEMP_DOWNLOAD_FOLDER}{output_file}"
@@ -1207,7 +1217,10 @@ class TempDownloadView(APIView):
                 ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 filename = output_file  # update filename to the clipped version
                 if result.returncode != 0:
-                    return HttpResponse(content=f"CDO error: {result.stderr.decode()}", status=500)
+                    if "No timesteps selected" in result.stderr.decode():
+                        return HttpResponse(content="No data inside selected time period.", status=400)
+                    else:
+                        return HttpResponse(content=f"CDO error: {result.stderr.decode()}", status=500)
             if boundingbox:
                 lonmin, lonmax, latmin, latmax = [str(x).strip() for x in boundingbox.split(",")]
                 output_file = filename.replace(".nc", f"_bb_{lonmin}_{lonmax}_{latmin}_{latmax}.nc")
@@ -1231,6 +1244,7 @@ class TempDownloadView(APIView):
             response = FileResponse(file_handle,
                                     content_type='application/octet-stream')
             response['Content-Disposition'] = f'attachment;filename="{output_file}"'
+            response['Access-Control-Expose-Headers'] = 'Content-Disposition'
             return response
         except Exception as e:
             return HttpResponse(content=f"Error slicing file with CDO: {e}", status=500)
@@ -1252,6 +1266,7 @@ class TempDownloadView(APIView):
             response = FileResponse(file_handle,
                                     content_type='application/octet-stream')
             response['Content-Disposition'] = f'attachment;filename="{filename}"'
+            response['Access-Control-Expose-Headers'] = 'Content-Disposition'
             return response
         except Exception as e:
             return HttpResponse(content=f"Error reading file: {e}", status=500)
@@ -1693,7 +1708,6 @@ class GenerateDatView(APIView):
         filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
         boundigbox = request.GET.get("boundingbox", default=None)
         timeperiod = request.GET.get("timeperiod", default=None)
-        print(timeperiod)
         # try:
         #     Start the long-running process in a separate thread
         #     process_thread = threading.Thread(target=extract_jams_files, args=(foldertype, filename))
@@ -1701,23 +1715,24 @@ class GenerateDatView(APIView):
 
         #     Wait for the thread to complete
         #     process_thread.join()
-        file_path = extract_jams_files(foldertype, filename, boundigbox, timeperiod)
-        filename = os.path.basename(file_path)
 
-        file_handle = open(file_path, 'rb')
-        response = FileResponse(file_handle,
-                                content_type='application/octet-stream')
-        response['Content-Disposition'] = f'attachment;filename="{filename}"'
-        return response
-        # except Exception as e:
-        #     # If there was an error starting the process, log the exception
-        #     print(f"Error starting process: {e}")
-        #     # Return a 500 response to indicate an internal server error
-        #     return JsonResponse({"error": "Failed to start process"}, status=500)
-        # finally:
-        #     # TODO: - check if this is correct or needs to be moved
-        #     # use this to set the existence of the dat file in cache
-        #     tmp_cache.flag_dat_exists(foldertype, filename, True)
+
+        try:
+            file_path = extract_jams_files(foldertype, filename, boundigbox, timeperiod)
+            filename = os.path.basename(file_path)
+            file_handle = open(file_path, 'rb')
+            response = FileResponse(file_handle,
+                                    content_type='application/octet-stream')
+            response['Content-Disposition'] = f'attachment;filename="{filename}"'
+            response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+            return response
+        except FileProcessingError as e:
+            return HttpResponse(
+            content=str(e),
+            status=400
+        )
+        except Exception:
+            return HttpResponse(content="unexcpected Error: internal server error", status=500)
 
 
 class ElasticsearchCollections(APIView):
@@ -1834,6 +1849,10 @@ class FolderTypeListView(APIView):
         qs = FolderType.objects.all()
         serializer = FolderTypeSerializer(qs, many=True)
         return Response(serializer.data)
+
+
+class FileProcessingError(Exception):
+    pass
 
 
 def extract_specific_files(tar_file_path, extract_to, file_list):
