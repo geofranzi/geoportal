@@ -1719,7 +1719,7 @@ class GenerateDatView(APIView):
             response['Access-Control-Expose-Headers'] = 'Content-Disposition'
             return response
         except FileProcessingError as e:
-            return HttpResponse(content=str(e),status=400)
+            return HttpResponse(content=str(e), status=400)
         except Exception:
             return HttpResponse(content="unexcpected Error: internal server error", status=500)
 
