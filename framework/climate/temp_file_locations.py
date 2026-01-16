@@ -69,6 +69,7 @@ from django.conf import settings
 #     "paper",
 # ]
 
+
 def get_temp_folder_types():
     """Returns list of available folder types for TempResultFiles.
     """
