@@ -58,6 +58,9 @@ class ProcessingMethodAdmin(admin.ModelAdmin):
 class TempResultFileAdmin(admin.ModelAdmin):
     list_display = ('filename', 'category',)
 
+class FolderTypeAdmin(admin.ModelAdmin):
+    list_display = ('key','display_name','description')
+
 
 admin.site.register(CfStandardNames, CfStandardNamesAdmin)
 admin.site.register(ClimateLayer, ClimateLayerAdmin)
@@ -71,5 +74,5 @@ admin.site.register(GlobalClimateModel, GlobalClimateModelAdmin)
 admin.site.register(RegionalClimateModel, RegionalClimateModelAdmin)
 admin.site.register(ProcessingMethod, ProcessingMethodAdmin)
 admin.site.register(TempResultFile, TempResultFileAdmin)
-admin.site.register(FolderType)
+admin.site.register(FolderType, FolderTypeAdmin)
 admin.site.site_header = 'Climate Administration'

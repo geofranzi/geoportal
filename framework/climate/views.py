@@ -37,7 +37,7 @@ from .ncmeta_handler import (extract_ncfile_metadata, helper_read_and_add_nodata
 from .search_es import (ClimateCollectionSearch, ClimateDatasetsCollectionIndex, ClimateDatasetsIndex,
                         ClimateIndicatorIndex, ClimateIndicatorSearch, ClimateSearch,)
 from .serializer import ClimateLayerSerializer, FolderTypeSerializer
-from .temp_file_locations import (JAMS_TMPL_FILE, TEMP_FOLDER_TYPES, URLTXTFILES_DIR, TEMP_DOWNLOAD_FOLDER, FileInfo, FolderInfo,
+from .temp_file_locations import (JAMS_TMPL_FILE, get_temp_folder_types, URLTXTFILES_DIR, TEMP_DOWNLOAD_FOLDER, FileInfo, FolderInfo,
                                   copy_filename_as_tif, parse_temp_filename_from_param,
                                   parse_temp_foldertype_from_param, parse_urltxt_filename_from_param, temp_cat_filename,
                                   tmp_cache_path, tmp_raw_filepath, tmp_raw_path,)
@@ -106,7 +106,7 @@ class TmpCache:
     def populate_folders(self):
         """Populate key value pairs in folder_cache (only used once after init).
         """
-        for foldertype in TEMP_FOLDER_TYPES:
+        for foldertype in get_temp_folder_types():
             # check path and cache existence
             if not tmp_raw_path(foldertype) or foldertype in self._folder_cache:
                 logger.error(f"Folder {foldertype} not found or already in cache.")
@@ -2206,8 +2206,7 @@ def delete_all_temp_results():
 
 def init_temp_results_folders():
     created_objs_counter = 0
-
-    for foldertype in TEMP_FOLDER_TYPES:
+    for foldertype in get_temp_folder_types():
         print(f"Initiating TempResultFiles folder with category: {foldertype}")
         folder_root_path = tmp_raw_path(foldertype)
 

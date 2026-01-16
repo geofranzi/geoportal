@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import TypedDict
+from .models import FolderType
 
 from django.conf import settings
 # import logging
@@ -28,45 +29,50 @@ from django.conf import settings
 #     "orog"
 # ]
 
-TEMP_FOLDER_TYPES = [
-    "CCAM_raw",
-    "CCAM_raw_ind",
-    "CCAM_bias",
-    "CCAM_bias_ind",
-    "CORDEX_bias",
-    "CORDEX_bias_stat",
-    "CORDEX_raw",
-    "CORDEX_raw_stat",
-    "CORDEX_raw_ind",
-    "CORDEX_raw_ind_stat",
-    "CORDEX_bias_ind",
-    "CORDEX_bias_ind_stat",
-    "CMIP6_raw",
-    "CMIP6_raw_stat",
-    "CMIP6_raw_ind",
-    "CMIP6_raw_ind_stat",
-    "CMIP6_bias",
-    "CMIP6_bias_stat",
-    "CMIP6_bias_ind",
-    "CMIP6_bias_ind_stat",
-    "CHIRPS",
-    "CHIRPS3",
-    "vaal_CORDEX",
-    "vaal_CHIRPS",
-    "vaal_ERA5_LAND",
-    "kunene_ERA5_LAND",
-    "kunene_GLEAM",
-    "kariba_CORDEX",
-    "luanginga_CORDEX",
-    "nwnamibia_CORDEX",
-    "CORDEX_LANDSURF_ind_full",
-    "CORDEX_LANDSURF_ind_slices20",
-    "CORDEX_LANDSURF_ind_slices30",
-    "GLEAM",
-    "sftlf",
-    "orog",
-    "paper",
-]
+# TEMP_FOLDER_TYPES = [
+#     "CCAM_raw",
+#     "CCAM_raw_ind",
+#     "CCAM_bias",
+#     "CCAM_bias_ind",
+#     "CORDEX_bias",
+#     "CORDEX_bias_stat",
+#     "CORDEX_raw",
+#     "CORDEX_raw_stat",
+#     "CORDEX_raw_ind",
+#     "CORDEX_raw_ind_stat",
+#     "CORDEX_bias_ind",
+#     "CORDEX_bias_ind_stat",
+#     "CMIP6_raw",
+#     "CMIP6_raw_stat",
+#     "CMIP6_raw_ind",
+#     "CMIP6_raw_ind_stat",
+#     "CMIP6_bias",
+#     "CMIP6_bias_stat",
+#     "CMIP6_bias_ind",
+#     "CMIP6_bias_ind_stat",
+#     "CHIRPS",
+#     "CHIRPS3",
+#     "vaal_CORDEX",
+#     "vaal_CHIRPS",
+#     "vaal_ERA5_LAND",
+#     "kunene_ERA5_LAND",
+#     "kunene_GLEAM",
+#     "kariba_CORDEX",
+#     "luanginga_CORDEX",
+#     "nwnamibia_CORDEX",
+#     "CORDEX_LANDSURF_ind_full",
+#     "CORDEX_LANDSURF_ind_slices20",
+#     "CORDEX_LANDSURF_ind_slices30",
+#     "GLEAM",
+#     "sftlf",
+#     "orog",
+#     "paper",
+# ]
+
+def get_temp_folder_types():
+    """Returns list of available folder types for TempResultFiles.
+    """
+    return list(FolderType.objects.values_list("key", flat=True))
 
 
 # SERVER paths
@@ -122,7 +128,7 @@ if settings.DEV_LOCAL:
     URLTXTFILES_DIR = TEMP_URL
 
 
-for TEMP_FOLDER_TYPE in TEMP_FOLDER_TYPES:
+for TEMP_FOLDER_TYPE in get_temp_folder_types():
     # print("SETTING PATH: ", os.path.join(TEMP_RAW, TEMP_FOLDER_TYPE))
     _folder_list['raw'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_RAW, TEMP_FOLDER_TYPE)
     _folder_list['cache'][TEMP_FOLDER_TYPE] = os.path.join(TEMP_CACHE, TEMP_FOLDER_TYPE)
@@ -145,8 +151,8 @@ def parse_temp_foldertype_from_param(foldertype: str):
     :return: foldertype or false if not exists.
     """
     try:
-        idx = TEMP_FOLDER_TYPES.index(foldertype)
-        return TEMP_FOLDER_TYPES[idx]
+        idx = get_temp_folder_types().index(foldertype)
+        return get_temp_folder_types()[idx]
     except Exception:
         return False
 
