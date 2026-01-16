@@ -787,6 +787,7 @@ def extract_jams_files(foldertype, filename, bbox=None, period=None):
     logger.debug('extract jams ended')
     return output_file
 
+
 def get_utm_epsg_from_nc(nc_path):
     """
     Reads a NetCDF file and returns the appropriate UTM EPSG code based on its extent.
@@ -1708,15 +1709,6 @@ class GenerateDatView(APIView):
         filename = parse_temp_filename_from_param(request.GET.get("name", default=None), foldertype)
         boundigbox = request.GET.get("boundingbox", default=None)
         timeperiod = request.GET.get("timeperiod", default=None)
-        # try:
-        #     Start the long-running process in a separate thread
-        #     process_thread = threading.Thread(target=extract_jams_files, args=(foldertype, filename))
-        #     process_thread.start()
-
-        #     Wait for the thread to complete
-        #     process_thread.join()
-
-
         try:
             file_path = extract_jams_files(foldertype, filename, boundigbox, timeperiod)
             filename = os.path.basename(file_path)
