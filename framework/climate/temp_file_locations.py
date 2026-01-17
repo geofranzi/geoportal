@@ -1,4 +1,7 @@
 import os
+from django.apps import apps
+from django.db.utils import OperationalError, ProgrammingError
+
 from pathlib import Path
 from typing import TypedDict
 from .models import FolderType
