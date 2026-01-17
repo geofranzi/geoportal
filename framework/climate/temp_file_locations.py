@@ -71,9 +71,16 @@ from django.conf import settings
 
 
 def get_temp_folder_types():
-    """Returns list of available folder types for TempResultFiles.
-    """
-    return list(FolderType.objects.values_list("key", flat=True))
+    """Returns list of available folder types for TempResultFiles."""
+    # During app loading/migrations, the app registry or table may not be ready
+    if not apps.ready:
+        return []
+
+    try:
+        return list(FolderType.objects.values_list("key", flat=True))
+    except (OperationalError, ProgrammingError):
+        # DB not ready or table missing (e.g. initial migrate)
+        return []
 
 
 # SERVER paths
