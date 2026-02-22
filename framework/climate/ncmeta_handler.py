@@ -84,7 +84,7 @@ def read_raw_nc_meta_from_file(filepath: str):
             # reading metadata via gdalinfo script
             for var in variable_names:
                 if var not in ["time", "lat", "lon", "prob_of_zero", "latitude", "longitude", "climatology_bounds", "climatology_bounds_details",
-                               "height"] and "time" not in var:
+                               "height", "h2", "crs", "lon_bnds", "lat_bnds", "h10"] and "time" not in var:
                     process = Popen(["gdalinfo", "NETCDF:" + filepath + ":" + var, "-json", "-mm"], stdout=PIPE, stderr=PIPE)
                     stdout, stderr = process.communicate()
                     metadata = stdout.decode("utf-8")
@@ -94,7 +94,7 @@ def read_raw_nc_meta_from_file(filepath: str):
             JSON_metadata = json.loads(metadata)
             return JSON_metadata
         except Exception as e:
-            logger.error("Error reading metadata: " + filepath + "  " + str(e))
+            logger.error("Error reading metadata: " + filepath + "  "+ var +" " + str(e))
             return False, "error"
 
 
