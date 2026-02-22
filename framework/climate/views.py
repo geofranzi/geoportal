@@ -1235,6 +1235,7 @@ class TempDownloadView(APIView):
                     "-v", f"{mount_path}:/data",
                     "alexgleith/cdo",
                     "cdo", f"sellonlatbox,{lonmin},{lonmax},{latmin},{latmax}",
+                    "-selgrid,1",
                     container_input,
                     container_output
                 ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
