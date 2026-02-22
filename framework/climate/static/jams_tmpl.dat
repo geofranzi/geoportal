@@ -1,0 +1,17 @@
+#Extracted from netcdf_to_jams.py; station coordinates are given in: %crs%
+#Input file(s): %ncfile% (NetCDF) and %shapefile% (Shapefile)
+@dataValueAttribs
+%var_name%	0.0	0.0	%var_unit%
+@dataSetAttribs
+missingDataVal	-9999
+dataStart	%min_time%
+dataEnd	%max_time%
+tres	%tres%
+@statAttribVal
+name	%stations%
+ID	%ids%
+elevation	%elevations%
+x	%xs%
+y	%ys%
+datacolumn	%cols%
+@dataVal
